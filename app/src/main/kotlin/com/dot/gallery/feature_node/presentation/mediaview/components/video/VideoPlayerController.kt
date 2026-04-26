@@ -7,6 +7,8 @@ package com.dot.gallery.feature_node.presentation.mediaview.components.video
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -61,13 +64,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import com.dot.gallery.R
 import com.dot.gallery.feature_node.domain.model.PlaybackSpeed
 import com.dot.gallery.feature_node.presentation.util.formatMinSec
-import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@UnstableApi
+@OptIn(ExperimentalMaterial3Api::class, UnstableApi::class)
 @Composable
 fun VideoPlayerController(
     paddingValues: PaddingValues,
@@ -129,6 +135,7 @@ fun VideoPlayerController(
             var isScrubbing by rememberSaveable { mutableStateOf(false) }
             var wasPlayingBeforeScrub by remember { mutableStateOf(false) }
             var sliderValue by rememberSaveable { mutableFloatStateOf(currentTime.longValue.toFloat()) }
+            var sensitivityFactor by remember { mutableFloatStateOf(1f) }
 
             // Update slider position from playback ONLY when not scrubbing.
             LaunchedEffect(currentTime.longValue, isScrubbing) {
@@ -199,6 +206,29 @@ fun VideoPlayerController(
                 )
             }
 
+            if (isScrubbing && sensitivityFactor < 0.95f) {
+                val precisionLevel = (1f / sensitivityFactor).roundToInt().coerceAtLeast(2)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${precisionLevel}× fine",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .background(
+                                Color.Black.copy(alpha = 0.6f),
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -257,7 +287,7 @@ fun VideoPlayerController(
                         colors = disabledColors
                     )
 
-                    // Active (position) slider
+                    // Active (position) slider — display only, gestures handled by overlay
                     val activeColors = SliderDefaults.colors(
                         thumbColor = Color.White,
                         activeTrackColor = Color.White,
@@ -267,36 +297,7 @@ fun VideoPlayerController(
                     Slider(
                         modifier = Modifier.fillMaxWidth(),
                         value = sliderValue.coerceIn(0f, (totalTime).coerceAtLeast(0L).toFloat()),
-                        onValueChange = { newVal ->
-                            if (!isScrubbing) {
-                                isScrubbing = true
-                                wasPlayingBeforeScrub = isPlaying.value
-                                // Pause playback while scrubbing to avoid fighting updates (optional)
-                                if (player.isPlaying) {
-                                    player.pause()
-                                }
-                            }
-                            sliderValue = newVal
-                        },
-                        onValueChangeFinished = {
-                            scope.launch {
-                                val target = sliderValue.toLong().coerceIn(0L, totalTime)
-                                if (player.currentPosition != target) {
-                                    player.seekTo(target)
-                                }
-                                // Immediately reflect the seek in shared state for external UI
-                                currentTime.longValue = target
-                                isScrubbing = false
-                                if (wasPlayingBeforeScrub) {
-                                    player.playWhenReady = true
-                                    player.play()
-                                    isPlaying.value = true
-                                } else {
-                                    player.playWhenReady = false
-                                    isPlaying.value = false
-                                }
-                            }
-                        },
+                        onValueChange = {},
                         valueRange = 0f..(if (totalTime > 0) totalTime.toFloat() else 0f),
                         colors = activeColors,
                         thumb = {
@@ -316,6 +317,74 @@ fun VideoPlayerController(
                                 thumbTrackGapSize = 0.dp
                             )
                         }
+                    )
+
+                    // Sensitivity-aware scrubbing gesture overlay
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .pointerInput(totalTime) {
+                                val maxValue = totalTime.coerceAtLeast(0L).toFloat()
+                                if (maxValue <= 0f) return@pointerInput
+                                val sensitivityRefPx = 200.dp.toPx()
+
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    down.consume()
+
+                                    val startY = down.position.y
+                                    val trackWidth = size.width.toFloat()
+
+                                    isScrubbing = true
+                                    wasPlayingBeforeScrub = isPlaying.value
+                                    if (player.isPlaying) player.pause()
+                                    player.setSeekParameters(SeekParameters.EXACT)
+
+                                    // Seek to tap position
+                                    val tapFraction = (down.position.x / trackWidth).coerceIn(0f, 1f)
+                                    sliderValue = tapFraction * maxValue
+                                    player.seekTo(sliderValue.toLong())
+
+                                    var prevX = down.position.x
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull() ?: break
+                                        if (!change.pressed) {
+                                            change.consume()
+                                            break
+                                        }
+                                        change.consume()
+
+                                        val upwardOffset = (startY - change.position.y).coerceAtLeast(0f)
+                                        val sensitivity = 1f / (1f + upwardOffset / sensitivityRefPx)
+                                        sensitivityFactor = sensitivity
+
+                                        val deltaX = change.position.x - prevX
+                                        prevX = change.position.x
+                                        val deltaFraction = deltaX / trackWidth
+                                        val valueDelta = deltaFraction * maxValue * sensitivity
+
+                                        sliderValue = (sliderValue + valueDelta).coerceIn(0f, maxValue)
+                                        player.seekTo(sliderValue.toLong())
+                                    }
+
+                                    // Finish scrubbing
+                                    player.setSeekParameters(SeekParameters.EXACT)
+                                    val target = sliderValue.toLong().coerceIn(0L, totalTime)
+                                    player.seekTo(target)
+                                    currentTime.longValue = target
+                                    isScrubbing = false
+                                    sensitivityFactor = 1f
+                                    if (wasPlayingBeforeScrub) {
+                                        player.playWhenReady = true
+                                        player.play()
+                                        isPlaying.value = true
+                                    } else {
+                                        player.playWhenReady = false
+                                        isPlaying.value = false
+                                    }
+                                }
+                            }
                     )
                 }
 

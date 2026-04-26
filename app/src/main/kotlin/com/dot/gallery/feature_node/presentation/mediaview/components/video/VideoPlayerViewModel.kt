@@ -13,6 +13,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import com.dot.gallery.feature_node.data.data_source.KeychainHolder
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.util.getUri
@@ -89,8 +90,10 @@ class VideoPlayerViewModel @AssistedInject constructor(
         startProgressLoop()
     }
 
+    @OptIn(UnstableApi::class)
     private fun createExoPlayer(): ExoPlayer {
         return ExoPlayer.Builder(appContext).build().apply {
+            setSeekParameters(SeekParameters.EXACT)
             repeatMode = Player.REPEAT_MODE_ONE
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
