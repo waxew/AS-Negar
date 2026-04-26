@@ -46,6 +46,8 @@ import com.dot.gallery.feature_node.data.data_source.mediastore.queries.AlbumsFl
 import com.dot.gallery.feature_node.data.data_source.mediastore.queries.MediaFlow
 import com.dot.gallery.feature_node.data.data_source.mediastore.queries.MediaUriFlow
 import com.dot.gallery.feature_node.domain.model.Album
+import com.dot.gallery.feature_node.domain.model.AlbumGroup
+import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
@@ -958,6 +960,44 @@ class MediaRepositoryImpl(
     override fun getImageEmbeddings(): Flow<List<ImageEmbedding>> {
         return database.getImageEmbeddingDao().getRecords()
     }
+
+    // ============ Album Groups ============
+
+    override suspend fun insertAlbumGroup(group: AlbumGroup): Long =
+        database.getAlbumGroupDao().insertGroup(group)
+
+    override suspend fun updateAlbumGroup(group: AlbumGroup) =
+        database.getAlbumGroupDao().updateGroup(group)
+
+    override suspend fun deleteAlbumGroup(groupId: Long) =
+        database.getAlbumGroupDao().deleteGroup(groupId)
+
+    override fun getAllAlbumGroups(): Flow<List<AlbumGroup>> =
+        database.getAlbumGroupDao().getAllGroups()
+
+    override fun getAlbumGroup(groupId: Long): Flow<AlbumGroup?> =
+        database.getAlbumGroupDao().getGroup(groupId)
+
+    override suspend fun getAlbumGroupAsync(groupId: Long): AlbumGroup? =
+        database.getAlbumGroupDao().getGroupAsync(groupId)
+
+    override suspend fun addAlbumToGroup(member: AlbumGroupMember) =
+        database.getAlbumGroupDao().addAlbumToGroup(member)
+
+    override suspend fun removeAlbumFromGroup(member: AlbumGroupMember) =
+        database.getAlbumGroupDao().removeAlbumFromGroup(member)
+
+    override suspend fun removeAllAlbumsFromGroup(groupId: Long) =
+        database.getAlbumGroupDao().removeAllAlbumsFromGroup(groupId)
+
+    override fun getAlbumIdsInGroup(groupId: Long): Flow<List<Long>> =
+        database.getAlbumGroupDao().getAlbumIdsInGroup(groupId)
+
+    override fun getAllGroupMembers(): Flow<List<AlbumGroupMember>> =
+        database.getAlbumGroupDao().getAllGroupMembers()
+
+    override suspend fun getGroupIdForAlbum(albumId: Long): Long? =
+        database.getAlbumGroupDao().getGroupIdForAlbum(albumId)
 
     companion object {
         private fun relativePath(newPath: String) = ContentValues().apply {

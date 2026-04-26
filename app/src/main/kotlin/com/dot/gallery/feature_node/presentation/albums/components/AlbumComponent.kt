@@ -29,11 +29,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SdCard
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -95,7 +97,9 @@ fun AlbumComponent(
     onTogglePinClick: ((Album) -> Unit)? = null,
     onToggleIgnoreClick: ((Album) -> Unit)? = null,
     onToggleLockClick: ((Album) -> Unit)? = null,
-    onDeleteAlbumThumbnailClick: ((Album) -> Unit)? = null
+    onDeleteAlbumThumbnailClick: ((Album) -> Unit)? = null,
+    onAddToGroup: ((Album) -> Unit)? = null,
+    onRemoveFromGroup: ((Album) -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
     val appBottomSheetState = rememberAppBottomSheetState()
@@ -109,6 +113,8 @@ fun AlbumComponent(
         val changeThumbnailTitle = stringResource(R.string.change_thumbnail)
         val ignoredTitle = stringResource(id = R.string.add_to_ignored)
         val lockTitle = stringResource(if (album.isLocked) R.string.unlock_album else R.string.lock_album)
+        val addToGroupTitle = stringResource(R.string.add_to_group)
+        val removeFromGroupTitle = stringResource(R.string.remove_album_from_group)
         val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
         val onSecondaryContainer = MaterialTheme.colorScheme.onSecondaryContainer
         val primaryContainer = MaterialTheme.colorScheme.primaryContainer
@@ -219,6 +225,34 @@ fun AlbumComponent(
                                 scope.launch {
                                     appBottomSheetState.hide()
                                     onToggleIgnoreClick(album)
+                                }
+                            }
+                        )
+                    )
+                }
+                if (onAddToGroup != null) {
+                    add(
+                        OptionItem(
+                            icon = Icons.Outlined.CreateNewFolder,
+                            text = addToGroupTitle,
+                            onClick = {
+                                scope.launch {
+                                    appBottomSheetState.hide()
+                                    onAddToGroup(album)
+                                }
+                            }
+                        )
+                    )
+                }
+                if (onRemoveFromGroup != null) {
+                    add(
+                        OptionItem(
+                            icon = Icons.Outlined.RemoveCircleOutline,
+                            text = removeFromGroupTitle,
+                            onClick = {
+                                scope.launch {
+                                    appBottomSheetState.hide()
+                                    onRemoveFromGroup(album)
                                 }
                             }
                         )

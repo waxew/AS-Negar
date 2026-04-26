@@ -56,9 +56,11 @@ import com.dot.gallery.core.presentation.components.FilterKind
 import com.dot.gallery.core.presentation.components.FilterOption
 import com.dot.gallery.core.presentation.components.LoadingAlbum
 import com.dot.gallery.feature_node.domain.model.Album
+import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.util.MediaOrder
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumComponent
+import com.dot.gallery.feature_node.presentation.albums.components.AlbumGroupComponent
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumRowComponent
 import com.dot.gallery.feature_node.presentation.albums.components.CarouselPinnedAlbums
 import com.dot.gallery.feature_node.presentation.search.MainSearchBar
@@ -80,6 +82,11 @@ fun AlbumsScreen(
     onMoveAlbumToTrash: (ActivityResultLauncher<IntentSenderRequest>, Album) -> Unit,
     onIgnoreAlbum: (Album) -> Unit,
     onLockAlbum: (Album) -> Unit,
+    onGroupClick: (AlbumGroupWithAlbums) -> Unit = {},
+    onRenameGroup: (AlbumGroupWithAlbums) -> Unit = {},
+    onDeleteGroup: (AlbumGroupWithAlbums) -> Unit = {},
+    onEditGroup: (AlbumGroupWithAlbums) -> Unit = {},
+    onAddToGroup: ((Album) -> Unit)? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
@@ -193,6 +200,21 @@ fun AlbumsScreen(
                                 }
                             }
                             items(
+                                items = albumsState.value.albumGroups,
+                                key = { group -> "group_${group.group.id}" }
+                            ) { group ->
+                                AlbumGroupComponent(
+                                    modifier = Modifier
+                                        .pinchItem(key = "group_${group.group.id}")
+                                        .animateItem(),
+                                    groupWithAlbums = group,
+                                    onGroupClick = onGroupClick,
+                                    onRenameGroup = onRenameGroup,
+                                    onDeleteGroup = onDeleteGroup,
+                                    onEditGroup = onEditGroup
+                                )
+                            }
+                            items(
                                 items = albumsState.value.albumsUnpinned,
                                 key = { item -> item.toString() }
                             ) { item ->
@@ -214,7 +236,8 @@ fun AlbumsScreen(
                                             onMoveAlbumToTrash(trashResult, it)
                                         },
                                         onToggleIgnoreClick = onIgnoreAlbum,
-                                        onToggleLockClick = onLockAlbum
+                                        onToggleLockClick = onLockAlbum,
+                                        onAddToGroup = onAddToGroup
                                     )
                                 }
                             }
@@ -329,6 +352,20 @@ fun AlbumsScreen(
                                     onViewTypeChange = { viewType = it }
                                 )
                             }
+                        }
+
+                        items(
+                            items = albumsState.value.albumGroups,
+                            key = { group -> "group_${group.group.id}" }
+                        ) { group ->
+                            AlbumGroupComponent(
+                                modifier = Modifier.animateItem(),
+                                groupWithAlbums = group,
+                                onGroupClick = onGroupClick,
+                                onRenameGroup = onRenameGroup,
+                                onDeleteGroup = onDeleteGroup,
+                                onEditGroup = onEditGroup
+                            )
                         }
 
                         items(

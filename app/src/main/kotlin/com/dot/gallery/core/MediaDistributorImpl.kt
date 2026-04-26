@@ -9,6 +9,9 @@ import com.dot.gallery.core.Settings.Misc.EXTENDED_DATE_FORMAT
 import com.dot.gallery.core.Settings.Misc.WEEKLY_DATE_FORMAT
 import com.dot.gallery.core.presentation.components.FilterKind
 import com.dot.gallery.feature_node.domain.model.Album
+import com.dot.gallery.feature_node.domain.model.AlbumGroup
+import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
+import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
 import com.dot.gallery.feature_node.domain.model.AlbumState
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.GeoMedia
@@ -167,6 +170,22 @@ class MediaDistributorImpl @Inject constructor(
             initialValue = emptyList()
         )
 
+    private val albumGroupsFlow: StateFlow<List<AlbumGroup>> =
+        repository.getAllAlbumGroups()
+            .stateIn(
+                scope = appScope,
+                started = sharingMethod,
+                initialValue = emptyList()
+            )
+
+    private val albumGroupMembersFlow: StateFlow<List<AlbumGroupMember>> =
+        repository.getAllGroupMembers()
+            .stateIn(
+                scope = appScope,
+                started = sharingMethod,
+                initialValue = emptyList()
+            )
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override val albumsFlow: StateFlow<AlbumState> = hasPermission.flatMapLatest { granted ->
         if (!granted) flowOf(AlbumState())
@@ -176,7 +195,9 @@ class MediaDistributorImpl @Inject constructor(
             blacklistedAlbumsFlow,
             lockedAlbumsFlow,
             settingsFlow,
-            albumThumbnails
+            albumThumbnails,
+            albumGroupsFlow,
+            albumGroupMembersFlow
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val result = values[0] as Resource<List<Album>>
@@ -189,6 +210,10 @@ class MediaDistributorImpl @Inject constructor(
             val settings = values[4] as TimelineSettings?
             @Suppress("UNCHECKED_CAST")
             val thumbnails = values[5] as List<AlbumThumbnail>
+            @Suppress("UNCHECKED_CAST")
+            val groups = values[6] as List<AlbumGroup>
+            @Suppress("UNCHECKED_CAST")
+            val groupMembers = values[7] as List<AlbumGroupMember>
             val newOrder = settings?.albumMediaOrder ?: albumOrder
             val data = newOrder.sortAlbums(result.data ?: emptyList()).map { album ->
                 val thumbnail = thumbnails.find { it.albumId == album.id }
@@ -199,11 +224,24 @@ class MediaDistributorImpl @Inject constructor(
                 .mapPinned(pinnedAlbums)
                 .mapLocked(lockedAlbums)
 
+            val groupedAlbumIds = groupMembers.map { it.albumId }.toSet()
+            val albumGroups = groups.map { group ->
+                val memberAlbumIds = groupMembers
+                    .filter { it.groupId == group.id }
+                    .map { it.albumId }
+                    .toSet()
+                AlbumGroupWithAlbums(
+                    group = group,
+                    albums = cleanData.filter { it.id in memberAlbumIds }
+                )
+            }
+
             AlbumState(
                 albums = cleanData,
                 albumsWithBlacklisted = data,
-                albumsUnpinned = cleanData.filter { !it.isPinned },
+                albumsUnpinned = cleanData.filter { !it.isPinned && it.id !in groupedAlbumIds },
                 albumsPinned = cleanData.filter { it.isPinned }.sortedBy { it.label },
+                albumGroups = albumGroups,
                 isLoading = false,
                 error = if (result is Resource.Error) result.message ?: "An error occurred" else ""
             )

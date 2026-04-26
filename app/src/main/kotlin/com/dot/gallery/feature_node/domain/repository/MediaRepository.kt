@@ -13,6 +13,8 @@ import androidx.datastore.preferences.core.Preferences
 import com.dot.gallery.core.Resource
 import com.dot.gallery.feature_node.data.data_source.CategoryWithMediaCount
 import com.dot.gallery.feature_node.domain.model.Album
+import com.dot.gallery.feature_node.domain.model.AlbumGroup
+import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
@@ -265,5 +267,31 @@ interface MediaRepository {
     suspend fun getRecord(id: Long): ImageEmbedding?
 
     fun getImageEmbeddings(): Flow<List<ImageEmbedding>>
+
+    // ============ Album Groups ============
+
+    suspend fun insertAlbumGroup(group: AlbumGroup): Long
+
+    suspend fun updateAlbumGroup(group: AlbumGroup)
+
+    suspend fun deleteAlbumGroup(groupId: Long)
+
+    fun getAllAlbumGroups(): Flow<List<AlbumGroup>>
+
+    fun getAlbumGroup(groupId: Long): Flow<AlbumGroup?>
+
+    suspend fun getAlbumGroupAsync(groupId: Long): AlbumGroup?
+
+    suspend fun addAlbumToGroup(member: AlbumGroupMember)
+
+    suspend fun removeAlbumFromGroup(member: AlbumGroupMember)
+
+    suspend fun removeAllAlbumsFromGroup(groupId: Long)
+
+    fun getAlbumIdsInGroup(groupId: Long): Flow<List<Long>>
+
+    fun getAllGroupMembers(): Flow<List<AlbumGroupMember>>
+
+    suspend fun getGroupIdForAlbum(albumId: Long): Long?
 
 }

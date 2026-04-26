@@ -11,6 +11,8 @@ import androidx.room.DeleteColumn
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
+import com.dot.gallery.feature_node.domain.model.AlbumGroup
+import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
 import com.dot.gallery.feature_node.domain.model.EditedMedia
@@ -46,9 +48,11 @@ import com.dot.gallery.feature_node.domain.util.Converters
         Category::class,
         MediaCategory::class,
         EditedMedia::class,
-        LockedAlbum::class
+        LockedAlbum::class,
+        AlbumGroup::class,
+        AlbumGroupMember::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -67,6 +71,7 @@ import com.dot.gallery.feature_node.domain.util.Converters
         AutoMigration(from = 14, to = 15, spec = InternalDatabase.RemoveIconEmojiMigration::class),
         AutoMigration(from = 15, to = 16),
         AutoMigration(from = 16, to = 17),
+        AutoMigration(from = 17, to = 18),
     ]
 )
 @TypeConverters(Converters::class)
@@ -96,6 +101,8 @@ abstract class InternalDatabase : RoomDatabase() {
     abstract fun getEditHistoryDao(): EditHistoryDao
 
     abstract fun getLockedAlbumDao(): LockedAlbumDao
+
+    abstract fun getAlbumGroupDao(): AlbumGroupDao
 
     companion object {
         const val NAME = "internal_db"

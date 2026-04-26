@@ -99,6 +99,22 @@ sealed class Screen(val route: String) {
         fun categoryId(id: Long) = "$route?categoryId=$id"
     }
 
+    data object AlbumGroupViewScreen : Screen("album_group_view_screen") {
+
+        fun groupId() = "$route?groupId={groupId}"
+
+        fun groupId(id: Long) = "$route?groupId=$id"
+
+    }
+
+    data object EditGroupScreen : Screen("edit_group_screen") {
+
+        fun groupId() = "$route?groupId={groupId}"
+
+        fun groupId(id: Long) = "$route?groupId=$id"
+
+    }
+
     data object DateFormatScreen : Screen("date_format_screen")
 
     data object SearchScreen : Screen("search_screen")

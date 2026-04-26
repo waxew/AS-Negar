@@ -73,6 +73,8 @@ import com.dot.gallery.core.presentation.components.util.permissionGranted
 import com.dot.gallery.core.presentation.vm.NavigationViewModel
 import com.dot.gallery.core.toggleNavigationBar
 import com.dot.gallery.feature_node.domain.model.MediaState
+import com.dot.gallery.feature_node.presentation.albums.AlbumGroupViewScreen
+import com.dot.gallery.feature_node.presentation.albums.EditGroupScreen
 import com.dot.gallery.feature_node.presentation.albums.AlbumsScreen
 import com.dot.gallery.feature_node.presentation.albums.AlbumsViewModel
 import com.dot.gallery.feature_node.presentation.albumtimeline.AlbumTimelineScreen
@@ -323,6 +325,51 @@ fun NavigationComp(
                         pendingLockAlbum = null
                     }
                 )
+                // Album group sheet state
+                val groupSheetState = rememberAppBottomSheetState()
+                var groupDialogMode by remember { mutableStateOf("create") }
+                var groupDialogGroupId by remember { mutableStateOf<Long?>(null) }
+                var groupDialogInitialName by remember { mutableStateOf("") }
+                var pendingGroupAlbum by remember { mutableStateOf<com.dot.gallery.feature_node.domain.model.Album?>(null) }
+                val deleteGroupSheetState = rememberAppBottomSheetState()
+                var pendingDeleteGroupId by remember { mutableStateOf<Long?>(null) }
+
+                val distributor = com.dot.gallery.core.LocalMediaDistributor.current
+                val albumsStateForGroups by distributor.albumsFlow.collectAsStateWithLifecycle()
+
+                AlbumGroupSheet(
+                    sheetState = groupSheetState,
+                    mode = groupDialogMode,
+                    initialName = groupDialogInitialName,
+                    existingGroups = albumsStateForGroups.albumGroups,
+                    onCreateGroup = { name ->
+                        val albumId = pendingGroupAlbum?.id
+                        if (albumId != null) {
+                            albumsViewModel.createGroup(name, listOf(albumId))
+                        } else {
+                            albumsViewModel.createGroup(name, emptyList())
+                        }
+                        pendingGroupAlbum = null
+                    },
+                    onRenameGroup = { newName ->
+                        groupDialogGroupId?.let { albumsViewModel.renameGroup(it, newName) }
+                    },
+                    onAddToExistingGroup = { groupId ->
+                        pendingGroupAlbum?.let { album ->
+                            albumsViewModel.addAlbumToGroup(groupId, album.id)
+                        }
+                        pendingGroupAlbum = null
+                    }
+                )
+
+                DeleteGroupSheet(
+                    sheetState = deleteGroupSheetState,
+                    onConfirmDelete = {
+                        pendingDeleteGroupId?.let { albumsViewModel.deleteGroup(it) }
+                        pendingDeleteGroupId = null
+                    }
+                )
+
                 AlbumsScreen(
                     isScrolling = isScrolling,
                     onAlbumClick = onAlbumClickWithLock,
@@ -331,6 +378,26 @@ fun NavigationComp(
                     onMoveAlbumToTrash = albumsViewModel::moveAlbumToTrash,
                     onIgnoreAlbum = albumsViewModel::addAlbumToIgnored,
                     onLockAlbum = onLockAlbumWithCheck,
+                    onGroupClick = albumsViewModel.onGroupClick(eventHandler::navigate),
+                    onRenameGroup = { group ->
+                        groupDialogMode = "rename"
+                        groupDialogGroupId = group.group.id
+                        groupDialogInitialName = group.group.label
+                        scope.launch { groupSheetState.show() }
+                    },
+                    onDeleteGroup = { group ->
+                        pendingDeleteGroupId = group.group.id
+                        scope.launch { deleteGroupSheetState.show() }
+                    },
+                    onEditGroup = { group ->
+                        eventHandler.navigate(Screen.EditGroupScreen.groupId(group.group.id))
+                    },
+                    onAddToGroup = { album ->
+                        pendingGroupAlbum = album
+                        groupDialogMode = "addToGroup"
+                        groupDialogInitialName = ""
+                        scope.launch { groupSheetState.show() }
+                    },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
                 )
@@ -364,6 +431,76 @@ fun NavigationComp(
                     isScrolling = isScrolling,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
+                )
+            }
+            composable(
+                route = Screen.AlbumGroupViewScreen.groupId(),
+                arguments = listOf(
+                    navArgument(name = "groupId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                val groupId = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("groupId") ?: -1L
+                }
+                val albumsViewModel = hiltViewModel<AlbumsViewModel>()
+                val groupViewScope = rememberCoroutineScope()
+                val groupViewRenameSheetState = rememberAppBottomSheetState()
+                var groupViewRenameGroupId by remember { mutableStateOf<Long?>(null) }
+                var groupViewRenameInitialName by remember { mutableStateOf("") }
+
+                AlbumGroupSheet(
+                    sheetState = groupViewRenameSheetState,
+                    mode = "rename",
+                    initialName = groupViewRenameInitialName,
+                    onRenameGroup = { newName ->
+                        groupViewRenameGroupId?.let { albumsViewModel.renameGroup(it, newName) }
+                    }
+                )
+
+                AlbumGroupViewScreen(
+                    groupId = groupId,
+                    onAlbumClick = { album ->
+                        albumsViewModel.onAlbumClick(eventHandler::navigate)(album)
+                    },
+                    onAlbumLongClick = albumsViewModel.onAlbumLongClick,
+                    onMoveAlbumToTrash = albumsViewModel::moveAlbumToTrash,
+                    onIgnoreAlbum = albumsViewModel::addAlbumToIgnored,
+                    onRemoveFromGroup = { album ->
+                        albumsViewModel.removeAlbumFromGroup(groupId, album.id)
+                    },
+                    onRenameGroup = { group ->
+                        groupViewRenameGroupId = group.group.id
+                        groupViewRenameInitialName = group.group.label
+                        groupViewScope.launch { groupViewRenameSheetState.show() }
+                    },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this
+                )
+            }
+            composable(
+                route = Screen.EditGroupScreen.groupId(),
+                arguments = listOf(
+                    navArgument(name = "groupId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                val groupId = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("groupId") ?: -1L
+                }
+                val albumsViewModel = hiltViewModel<AlbumsViewModel>()
+                EditGroupScreen(
+                    groupId = groupId,
+                    onAddAlbum = { gId, albumId ->
+                        albumsViewModel.addAlbumToGroup(gId, albumId)
+                    },
+                    onRemoveAlbum = { gId, albumId ->
+                        albumsViewModel.removeAlbumFromGroup(gId, albumId)
+                    }
                 )
             }
             composable(

@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
+import com.dot.gallery.feature_node.presentation.albums.components.AlbumGroupComponent
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -189,6 +192,19 @@ fun <T: Media> MoveMediaSheet(
                     enter = Constants.Animation.enterAnimation,
                     exit = Constants.Animation.exitAnimation
                 ) {
+                    val groups = albumState.value.albumGroups
+                    val groupedAlbumIds = remember(groups) {
+                        groups.flatMap { g -> g.albums.map { it.id } }.toSet()
+                    }
+                    val ungroupedAlbums = remember(albumState.value.albums, groupedAlbumIds) {
+                        albumState.value.albums.filter { it.id !in groupedAlbumIds }
+                    }
+                    var selectedGroup by remember { mutableStateOf<AlbumGroupWithAlbums?>(null) }
+                    // Keep selectedGroup in sync with latest data
+                    val liveSelectedGroup = selectedGroup?.let { sel ->
+                        groups.find { it.group.id == sel.group.id }
+                    }
+
                     LazyVerticalGrid(
                         state = rememberLazyGridState(),
                         modifier = Modifier.padding(horizontal = 8.dp),
@@ -201,52 +217,115 @@ fun <T: Media> MoveMediaSheet(
                             ).dp
                         )
                     ) {
-                        item {
-                            AlbumComponent(
-                                album = Album.NewAlbum,
-                                isEnabled = true,
-                                onItemClick = {
-                                    scope.launch(Dispatchers.Main) {
-                                        newAlbumSheetState.show()
-                                    }
-                                }
-                            )
-                        }
-                        items(
-                            items = albumState.value.albums,
-                            key = { item -> item.toString() }
-                        ) { item ->
-                            val mediaVolume = (mediaList.firstOrNull()?.volume ?: item.volume)
-                            val albumOwnership =
-                                item.relativePath.substringBeforeLast("Android/media/", "allow")
-                            val mediaOwnership =
-                                mediaList.firstOrNull()?.relativePath?.substringBeforeLast(
-                                    "Android/media/",
-                                    "allow"
-                                ) ?: albumOwnership
-                            val mediaAlbum = mediaList.firstOrNull()?.albumLabel ?: item.label
-                            val isStorageManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager() else true
-                            AlbumComponent(
-                                album = item,
-                                isEnabled = isStorageManager || (item.volume == mediaVolume
-                                        && albumOwnership == "allow"
-                                        && mediaOwnership == "allow"
-                                        && item.label != mediaAlbum
-                                        && (item.relativePath.contains("Pictures")
-                                        || item.relativePath.contains("DCIM"))),
-                                onItemClick = { album ->
-                                    if (album.isLocked) {
-                                        if (!biometricState.isSupported) {
-                                            scope.launch { securitySheetState.show() }
+                        if (liveSelectedGroup != null) {
+                            // Group detail view
+                            item(
+                                span = { GridItemSpan(maxLineSpan) },
+                                key = "group_back_header"
+                            ) {
+                                PickerGroupBackHeader(
+                                    group = liveSelectedGroup,
+                                    onBack = { selectedGroup = null }
+                                )
+                            }
+                            items(
+                                items = liveSelectedGroup.albums,
+                                key = { item -> "group_album_${item.id}" }
+                            ) { item ->
+                                val mediaVolume = (mediaList.firstOrNull()?.volume ?: item.volume)
+                                val albumOwnership =
+                                    item.relativePath.substringBeforeLast("Android/media/", "allow")
+                                val mediaOwnership =
+                                    mediaList.firstOrNull()?.relativePath?.substringBeforeLast(
+                                        "Android/media/",
+                                        "allow"
+                                    ) ?: albumOwnership
+                                val mediaAlbum = mediaList.firstOrNull()?.albumLabel ?: item.label
+                                val isStorageManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager() else true
+                                AlbumComponent(
+                                    modifier = Modifier.animateItem(),
+                                    album = item,
+                                    isEnabled = isStorageManager || (item.volume == mediaVolume
+                                            && albumOwnership == "allow"
+                                            && mediaOwnership == "allow"
+                                            && item.label != mediaAlbum
+                                            && (item.relativePath.contains("Pictures")
+                                            || item.relativePath.contains("DCIM"))),
+                                    onItemClick = { album ->
+                                        if (album.isLocked) {
+                                            if (!biometricState.isSupported) {
+                                                scope.launch { securitySheetState.show() }
+                                            } else {
+                                                pendingLockedAlbumPath = album.relativePath
+                                                biometricState.authenticate()
+                                            }
                                         } else {
-                                            pendingLockedAlbumPath = album.relativePath
-                                            biometricState.authenticate()
+                                            startMove(album.relativePath)
                                         }
-                                    } else {
-                                        startMove(album.relativePath)
                                     }
-                                }
-                            )
+                                )
+                            }
+                        } else {
+                            // Main view: New Album + groups + ungrouped albums
+                            item {
+                                AlbumComponent(
+                                    album = Album.NewAlbum,
+                                    isEnabled = true,
+                                    onItemClick = {
+                                        scope.launch(Dispatchers.Main) {
+                                            newAlbumSheetState.show()
+                                        }
+                                    }
+                                )
+                            }
+
+                            items(
+                                items = groups,
+                                key = { group -> "group_${group.group.id}" }
+                            ) { group ->
+                                AlbumGroupComponent(
+                                    modifier = Modifier.animateItem(),
+                                    groupWithAlbums = group,
+                                    onGroupClick = { selectedGroup = it }
+                                )
+                            }
+
+                            items(
+                                items = ungroupedAlbums,
+                                key = { item -> item.toString() }
+                            ) { item ->
+                                val mediaVolume = (mediaList.firstOrNull()?.volume ?: item.volume)
+                                val albumOwnership =
+                                    item.relativePath.substringBeforeLast("Android/media/", "allow")
+                                val mediaOwnership =
+                                    mediaList.firstOrNull()?.relativePath?.substringBeforeLast(
+                                        "Android/media/",
+                                        "allow"
+                                    ) ?: albumOwnership
+                                val mediaAlbum = mediaList.firstOrNull()?.albumLabel ?: item.label
+                                val isStorageManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager() else true
+                                AlbumComponent(
+                                    album = item,
+                                    isEnabled = isStorageManager || (item.volume == mediaVolume
+                                            && albumOwnership == "allow"
+                                            && mediaOwnership == "allow"
+                                            && item.label != mediaAlbum
+                                            && (item.relativePath.contains("Pictures")
+                                            || item.relativePath.contains("DCIM"))),
+                                    onItemClick = { album ->
+                                        if (album.isLocked) {
+                                            if (!biometricState.isSupported) {
+                                                scope.launch { securitySheetState.show() }
+                                            } else {
+                                                pendingLockedAlbumPath = album.relativePath
+                                                biometricState.authenticate()
+                                            }
+                                        } else {
+                                            startMove(album.relativePath)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

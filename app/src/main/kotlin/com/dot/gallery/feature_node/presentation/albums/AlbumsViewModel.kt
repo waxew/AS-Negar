@@ -14,6 +14,9 @@ import com.dot.gallery.core.Settings
 import com.dot.gallery.core.presentation.components.FilterKind
 import com.dot.gallery.core.presentation.components.FilterOption
 import com.dot.gallery.feature_node.domain.model.Album
+import com.dot.gallery.feature_node.domain.model.AlbumGroup
+import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
+import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
@@ -127,5 +130,45 @@ class AlbumsViewModel @Inject constructor(
                 }
             }
         }
+
+    // ============ Album Groups ============
+
+    fun onGroupClick(navigate: (String) -> Unit): (AlbumGroupWithAlbums) -> Unit = { group ->
+        navigate(Screen.AlbumGroupViewScreen.groupId(group.group.id))
+    }
+
+    fun createGroup(name: String, albumIds: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val groupId = repository.insertAlbumGroup(AlbumGroup(label = name))
+            albumIds.forEach { albumId ->
+                repository.addAlbumToGroup(AlbumGroupMember(groupId = groupId, albumId = albumId))
+            }
+        }
+    }
+
+    fun renameGroup(groupId: Long, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = repository.getAlbumGroupAsync(groupId) ?: return@launch
+            repository.updateAlbumGroup(existing.copy(label = newName))
+        }
+    }
+
+    fun deleteGroup(groupId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteAlbumGroup(groupId)
+        }
+    }
+
+    fun addAlbumToGroup(groupId: Long, albumId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.addAlbumToGroup(AlbumGroupMember(groupId = groupId, albumId = albumId))
+        }
+    }
+
+    fun removeAlbumFromGroup(groupId: Long, albumId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.removeAlbumFromGroup(AlbumGroupMember(groupId = groupId, albumId = albumId))
+        }
+    }
 
 }

@@ -8,6 +8,7 @@ data class AlbumState(
     val albumsWithBlacklisted: List<Album> = emptyList(),
     val albumsUnpinned: List<Album> = emptyList(),
     val albumsPinned: List<Album> = emptyList(),
+    val albumGroups: List<AlbumGroupWithAlbums> = emptyList(),
     val error: String = "",
     val isLoading: Boolean = true
 )
