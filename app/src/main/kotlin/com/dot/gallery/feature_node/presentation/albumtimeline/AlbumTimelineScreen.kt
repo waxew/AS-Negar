@@ -9,17 +9,34 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -33,14 +50,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.dokar.pinchzoomgrid.PinchZoomGridLayout
 import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.R
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.Settings.Album.rememberAlbumMediaSort
 import com.dot.gallery.core.Settings.Album.rememberHideTimelineOnAlbum
@@ -49,6 +76,7 @@ import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.EmptyMedia
 import com.dot.gallery.core.presentation.components.NavigationButton
 import com.dot.gallery.core.presentation.components.SelectionSheet
+import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
@@ -82,6 +110,19 @@ fun AlbumTimelineScreen(
     var canScroll by rememberSaveable { mutableStateOf(true) }
     var lastCellIndex by rememberGridSize()
     val eventHandler = LocalEventHandler.current
+    val distributor = LocalMediaDistributor.current
+    val albumsState by distributor.albumsFlow.collectAsStateWithLifecycle()
+    val currentAlbum = remember(albumsState, albumId) {
+        albumsState.albums.find { it.id == albumId }
+    }
+    val mergedAlbumIds = currentAlbum?.mergedAlbumIds ?: emptyList()
+    val constituentAlbums = remember(albumsState, mergedAlbumIds) {
+        if (mergedAlbumIds.size > 1) {
+            val idSet = mergedAlbumIds.toSet()
+            albumsState.albumsWithBlacklisted.filter { it.id in idSet }
+        } else emptyList()
+    }
+    var showMergedBanner by rememberSaveable { mutableStateOf(true) }
     val baseMediaState = rememberedDerivedState(allAlbumsMediaState.value) { allAlbumsMediaState.value[albumId] ?: MediaState() }
     val selector = LocalMediaSelector.current
     val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
@@ -176,7 +217,14 @@ fun AlbumTimelineScreen(
                     canScroll = canScroll,
                     allowHeaders = !hideTimelineOnAlbum,
                     showMonthlyHeader = false,
-                    aboveGridContent = null,
+                    aboveGridContent = if (constituentAlbums.size > 1 && showMergedBanner) {
+                        {
+                            AlbumsMergedBanner(
+                                constituentAlbums = constituentAlbums,
+                                onDismiss = { showMergedBanner = false }
+                            )
+                        }
+                    } else null,
                     isScrolling = isScrolling,
                     emptyContent = { EmptyMedia() },
                     sharedTransitionScope = sharedTransitionScope,
@@ -196,5 +244,94 @@ fun AlbumTimelineScreen(
             allMedia = mediaState.value,
             selectedMedia = selectedMediaList
         )
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun AlbumsMergedBanner(
+    constituentAlbums: List<Album>,
+    onDismiss: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp, bottom = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.albums_merged_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.albums_merged_description, constituentAlbums.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = stringResource(R.string.dismiss),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(
+                    items = constituentAlbums,
+                    key = { it.id }
+                ) { album ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(72.dp)
+                    ) {
+                        GlideImage(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            model = album.uri,
+                            contentDescription = album.label,
+                            contentScale = ContentScale.Crop,
+                            requestBuilderTransform = {
+                                it.centerCrop()
+                                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                    .thumbnail(it.clone().sizeMultiplier(0.4f))
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = album.relativePath.removeSuffix("/"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
     }
 }

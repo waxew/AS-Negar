@@ -158,6 +158,16 @@ fun SettingsCustomizationScreen() {
             screenPosition = Position.Middle
         )
 
+        var mergeAlbumsByName by Settings.Album.rememberMergeAlbumsByName()
+        val mergeAlbumsByNamePref = rememberSwitchPreference(
+            mergeAlbumsByName,
+            title = stringResource(R.string.merge_albums_by_name),
+            summary = stringResource(R.string.merge_albums_by_name_summary),
+            isChecked = mergeAlbumsByName,
+            onCheck = { mergeAlbumsByName = it },
+            screenPosition = Position.Middle
+        )
+
         var allowGifAnimation by rememberAllowGifAnimation()
         val allowGifAnimationPref = rememberSwitchPreference(
             allowGifAnimation,
@@ -949,6 +959,7 @@ fun SettingsCustomizationScreen() {
             groupByMonthPref,
             groupSimilarMediaPref,
             hideTimelineOnAlbumPref,
+            mergeAlbumsByNamePref,
             allowGifAnimationPref,
             allowBlurPref,
             forcedLastScreenPref,
@@ -969,6 +980,7 @@ fun SettingsCustomizationScreen() {
                 add(groupByMonthPref)
                 add(groupSimilarMediaPref)
                 add(hideTimelineOnAlbumPref)
+                add(mergeAlbumsByNamePref)
                 add(allowGifAnimationPref)
                 add(forcedLastScreenPref)
                 add(showSelectionTitlesPref)

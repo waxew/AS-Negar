@@ -648,4 +648,9 @@
     <string name="edit_group">Edit group</string>
     <string name="remove_album_from_group">Remove from group</string>
     <string name="other_albums">Other albums</string>
+    <string name="albums_merged_title">Albums merged</string>
+    <string name="albums_merged_description">%1$d albums with the same name have been merged.</string>
+    <string name="merge_albums_by_name">Merge albums by name</string>
+    <string name="merge_albums_by_name_summary">Albums with the same name are displayed as one. They still exist in separate folders.</string>
+    <string name="dismiss">Dismiss</string>
 </resources>

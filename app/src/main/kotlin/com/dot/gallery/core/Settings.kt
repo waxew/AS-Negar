@@ -163,6 +163,12 @@ object Settings {
         @Composable
         fun rememberHideTimelineOnAlbum() =
             rememberPreference(key = HIDE_TIMELINE_ON_ALBUM, defaultValue = false)
+
+        val MERGE_ALBUMS_BY_NAME = booleanPreferencesKey("merge_albums_by_name")
+
+        @Composable
+        fun rememberMergeAlbumsByName() =
+            rememberPreference(key = MERGE_ALBUMS_BY_NAME, defaultValue = true)
     }
 
     object Search {

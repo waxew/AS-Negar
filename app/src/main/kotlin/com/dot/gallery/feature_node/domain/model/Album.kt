@@ -25,7 +25,10 @@ data class Album(
     var size: Long = 0,
     val isPinned: Boolean = false,
     val isLocked: Boolean = false,
+    val mergedAlbumIds: List<Long> = emptyList(),
 ) : Parcelable {
+
+    val isMerged: Boolean get() = mergedAlbumIds.size > 1
 
     val key: String
         get() = "{$id, $uri, $timestamp}"

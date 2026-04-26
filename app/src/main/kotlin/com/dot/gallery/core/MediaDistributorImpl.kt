@@ -116,6 +116,10 @@ class MediaDistributorImpl @Inject constructor(
         repository.getSetting(Settings.Misc.GROUP_SIMILAR_MEDIA, true)
             .stateIn(appScope, sharingMethod, true)
 
+    override val mergeAlbumsByName: StateFlow<Boolean> =
+        repository.getSetting(Settings.Album.MERGE_ALBUMS_BY_NAME, true)
+            .stateIn(appScope, sharingMethod, true)
+
     /**
      * Settings
      */
@@ -197,7 +201,8 @@ class MediaDistributorImpl @Inject constructor(
             settingsFlow,
             albumThumbnails,
             albumGroupsFlow,
-            albumGroupMembersFlow
+            albumGroupMembersFlow,
+            mergeAlbumsByName
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val result = values[0] as Resource<List<Album>>
@@ -214,6 +219,7 @@ class MediaDistributorImpl @Inject constructor(
             val groups = values[6] as List<AlbumGroup>
             @Suppress("UNCHECKED_CAST")
             val groupMembers = values[7] as List<AlbumGroupMember>
+            val shouldMerge = values[8] as Boolean
             val newOrder = settings?.albumMediaOrder ?: albumOrder
             val data = newOrder.sortAlbums(result.data ?: emptyList()).map { album ->
                 val thumbnail = thumbnails.find { it.albumId == album.id }
@@ -224,7 +230,9 @@ class MediaDistributorImpl @Inject constructor(
                 .mapPinned(pinnedAlbums)
                 .mapLocked(lockedAlbums)
 
-            val groupedAlbumIds = groupMembers.map { it.albumId }.toSet()
+            val mergedData = if (shouldMerge) mergeAlbumsByLabel(cleanData) else cleanData
+
+            val groupMemberAlbumIds = groupMembers.map { it.albumId }.toSet()
             val albumGroups = groups.map { group ->
                 val memberAlbumIds = groupMembers
                     .filter { it.groupId == group.id }
@@ -232,15 +240,24 @@ class MediaDistributorImpl @Inject constructor(
                     .toSet()
                 AlbumGroupWithAlbums(
                     group = group,
-                    albums = cleanData.filter { it.id in memberAlbumIds }
+                    albums = mergedData.filter { album ->
+                        if (album.isMerged) album.mergedAlbumIds.any { it in memberAlbumIds }
+                        else album.id in memberAlbumIds
+                    }
                 )
             }
+            val groupedMergedIds = mergedData
+                .filter { album ->
+                    if (album.isMerged) album.mergedAlbumIds.any { it in groupMemberAlbumIds }
+                    else album.id in groupMemberAlbumIds
+                }
+                .mapTo(HashSet()) { it.id }
 
             AlbumState(
-                albums = cleanData,
+                albums = mergedData,
                 albumsWithBlacklisted = data,
-                albumsUnpinned = cleanData.filter { !it.isPinned && it.id !in groupedAlbumIds },
-                albumsPinned = cleanData.filter { it.isPinned }.sortedBy { it.label },
+                albumsUnpinned = mergedData.filter { !it.isPinned && it.id !in groupedMergedIds },
+                albumsPinned = mergedData.filter { it.isPinned }.sortedBy { it.label },
                 albumGroups = albumGroups,
                 isLoading = false,
                 error = if (result is Resource.Error) result.message ?: "An error occurred" else ""
@@ -287,9 +304,15 @@ class MediaDistributorImpl @Inject constructor(
                 }
 
                 val mediaByAlbum = allMedia.groupBy { it.albumID }
+                val albumById = albumState.albums.associateBy { it.id }
                 val result = HashMap<Long, MediaState<Media.UriMedia>>(albumIds.size)
                 for (albumId in albumIds) {
-                    val albumMedia = mediaByAlbum[albumId] ?: continue
+                    val album = albumById[albumId]
+                    val albumMedia = if (album != null && album.isMerged) {
+                        album.mergedAlbumIds.flatMap { mediaByAlbum[it] ?: emptyList() }
+                    } else {
+                        mediaByAlbum[albumId] ?: continue
+                    }
                     val filtered = albumMedia.toMutableList().apply {
                         removeAll { media -> blacklistedAlbums.any { it.shouldIgnore(media, albumId) } }
                     }
@@ -506,5 +529,26 @@ class MediaDistributorImpl @Inject constructor(
                 initialValue = emptyList()
             )
 
+    private fun mergeAlbumsByLabel(albums: List<Album>): List<Album> {
+        val grouped = albums.groupBy { it.label }
+        return grouped.flatMap { (_, sameNameAlbums) ->
+            if (sameNameAlbums.size <= 1) {
+                sameNameAlbums
+            } else {
+                val primary = sameNameAlbums.maxBy { it.timestamp }
+                val mergedIds = sameNameAlbums.map { it.id }
+                listOf(
+                    primary.copy(
+                        count = sameNameAlbums.sumOf { it.count },
+                        size = sameNameAlbums.sumOf { it.size },
+                        timestamp = sameNameAlbums.maxOf { it.timestamp },
+                        isPinned = sameNameAlbums.any { it.isPinned },
+                        isLocked = sameNameAlbums.any { it.isLocked },
+                        mergedAlbumIds = mergedIds
+                    )
+                )
+            }
+        }
+    }
 
 }

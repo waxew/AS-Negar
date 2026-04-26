@@ -27,6 +27,7 @@ interface MediaDistributor {
     val dateFormatsFlow: StateFlow<Triple<String, String, String>>
     var groupByMonth: Boolean
     val groupSimilarMedia: StateFlow<Boolean>
+    val mergeAlbumsByName: StateFlow<Boolean>
 
     /**
      * Settings
