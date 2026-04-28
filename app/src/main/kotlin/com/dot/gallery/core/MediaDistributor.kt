@@ -1,6 +1,7 @@
 package com.dot.gallery.core
 
 import com.dot.gallery.feature_node.domain.model.AlbumState
+import com.dot.gallery.feature_node.domain.model.CollectionWithCount
 import com.dot.gallery.feature_node.domain.model.GeoMedia
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
@@ -65,6 +66,12 @@ interface MediaDistributor {
      */
     val vaultsMediaFlow: StateFlow<VaultState>
     fun vaultMediaFlow(vault: Vault?): StateFlow<MediaState<Media.UriMedia>>
+
+    /**
+     * Collections
+     */
+    val collectionsFlow: StateFlow<List<CollectionWithCount>>
+    fun collectionMediaFlow(collectionId: Long): StateFlow<MediaState<Media.UriMedia>>
 
     /**
      * Search

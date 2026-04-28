@@ -35,6 +35,10 @@ sealed class Screen(val route: String) {
 
         fun idAndCategoryId(id: Long, categoryId: Long) = "$route?mediaId=$id&categoryId=$categoryId"
 
+        fun idAndCollection() = "$route?mediaId={mediaId}&collectionId={collectionId}"
+
+        fun idAndCollection(id: Long, collectionId: Long) = "$route?mediaId=$id&collectionId=$collectionId"
+
         fun idAndLocation() = "$route?mediaId={mediaId}&gpsLocationNameCity={gpsLocationNameCity}&gpsLocationNameCountry={gpsLocationNameCountry}"
 
         fun idAndLocation(id: Long, gpsLocationNameCity: String, gpsLocationNameCountry: String) = "$route?mediaId=$id&gpsLocationNameCity=$gpsLocationNameCity&gpsLocationNameCountry=$gpsLocationNameCountry"
@@ -112,6 +116,14 @@ sealed class Screen(val route: String) {
         fun groupId() = "$route?groupId={groupId}"
 
         fun groupId(id: Long) = "$route?groupId=$id"
+
+    }
+
+    data object CollectionViewScreen : Screen("collection_view_screen") {
+
+        fun collectionId() = "$route?collectionId={collectionId}"
+
+        fun collectionId(id: Long) = "$route?collectionId=$id"
 
     }
 

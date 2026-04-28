@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.CopyAll
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Deselect
@@ -78,6 +79,8 @@ import com.dot.gallery.core.Settings.Misc.rememberTrashEnabled
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaState
+import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
+import com.dot.gallery.feature_node.presentation.collection.components.AddToCollectionSheet
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
 import com.dot.gallery.feature_node.presentation.exif.MoveMediaSheet
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
@@ -89,6 +92,7 @@ import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetStat
 import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.shareMediaWithVaultSupport
 import com.dot.gallery.ui.theme.Shapes
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -112,6 +116,8 @@ fun <T : Media> BoxScope.SelectionSheet(
     val trashSheetState = rememberAppBottomSheetState()
     val moveSheetState = rememberAppBottomSheetState()
     val copySheetState = rememberAppBottomSheetState()
+    var showCollectionSheet by rememberSaveable { mutableStateOf(false) }
+    val collectionViewModel = hiltViewModel<CollectionViewModel>()
     val result = rememberActivityResult(
         onResultOk = {
             selector.clearSelection()
@@ -230,6 +236,14 @@ fun <T : Media> BoxScope.SelectionSheet(
                         }
                     }
                 }
+                // Add to Collection Component
+                SelectionBarColumn(
+                    imageVector = Icons.Outlined.Collections,
+                    tabletMode = tabletMode,
+                    title = stringResource(R.string.add_to_collection)
+                ) {
+                    showCollectionSheet = true
+                }
                 // Copy Component
                 SelectionBarColumn(
                     imageVector = Icons.Outlined.CopyAll,
@@ -306,6 +320,26 @@ fun <T : Media> BoxScope.SelectionSheet(
             handler.deleteMedia(result, it)
         }
     }
+
+    AddToCollectionSheet(
+        visible = showCollectionSheet,
+        collections = albumsState.value.collections,
+        onDismiss = { showCollectionSheet = false },
+        onCollectionSelected = { collectionId ->
+            collectionViewModel.addMediaListToCollection(
+                collectionId,
+                selectedMedia.map { it.id }
+            )
+            selector.clearSelection()
+        },
+        onCreateAndAdd = { name ->
+            collectionViewModel.createCollectionAndAddMedia(
+                name,
+                selectedMedia.map { it.id }
+            )
+            selector.clearSelection()
+        }
+    )
 }
 
 @Composable

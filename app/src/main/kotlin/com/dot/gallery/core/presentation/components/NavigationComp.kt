@@ -85,6 +85,8 @@ import com.dot.gallery.feature_node.presentation.classifier.CategoriesScreen
 import com.dot.gallery.feature_node.presentation.location.LocationsScreen
 import com.dot.gallery.feature_node.presentation.classifier.CategoryViewModel
 import com.dot.gallery.feature_node.presentation.classifier.CategoryViewScreen
+import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
+import com.dot.gallery.feature_node.presentation.collection.CollectionViewScreen
 import com.dot.gallery.feature_node.presentation.dateformat.DateFormatScreen
 import com.dot.gallery.feature_node.presentation.exif.MetadataViewScreen
 import com.dot.gallery.feature_node.presentation.favorites.FavoriteScreen
@@ -399,6 +401,23 @@ fun NavigationComp(
                         scope.launch { groupSheetState.show() }
                     },
                     onToggleMergeSubfolders = albumsViewModel::toggleMergeSubfolders,
+                    onCollectionClick = { cwc ->
+                        eventHandler.navigate(
+                            Screen.CollectionViewScreen.collectionId(cwc.collection.id)
+                        )
+                    },
+                    onCollectionRename = { cwc ->
+                        // TODO: Show rename dialog
+                    },
+                    onCollectionDelete = { cwc ->
+                        albumsViewModel.deleteCollection(cwc.collection.id)
+                    },
+                    onCollectionTogglePin = { cwc ->
+                        albumsViewModel.toggleCollectionPin(
+                            cwc.collection.id,
+                            !cwc.collection.isPinned
+                        )
+                    },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
                 )
@@ -813,6 +832,73 @@ fun NavigationComp(
                     paddingValues = paddingValues,
                     mediaId = mediaId,
                     target = "categoryId_$categoryId",
+                    mediaState = mediaState,
+                    metadataState = metadataState,
+                    albumsState = albumsState,
+                    vaultState = vaultState,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this
+                )
+            }
+
+            composable(
+                route = Screen.CollectionViewScreen.collectionId(),
+                arguments = listOf(
+                    navArgument(name = "collectionId") {
+                        type = NavType.LongType
+                        defaultValue = -1
+                    }
+                )
+            ) { backStackEntry ->
+                val collectionId: Long = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("collectionId") ?: -1
+                }
+                val collectionViewModel = hiltViewModel<CollectionViewModel>()
+                val collections by collectionViewModel.collectionsWithCount.collectAsStateWithLifecycle()
+                val collectionName = remember(collections, collectionId) {
+                    collections.find { it.collection.id == collectionId }?.collection?.label ?: ""
+                }
+
+                CollectionViewScreen(
+                    collectionId = collectionId,
+                    collectionName = collectionName,
+                    paddingValues = paddingValues,
+                    isScrolling = isScrolling,
+                    metadataState = metadataState,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this
+                )
+            }
+
+            composable(
+                route = Screen.MediaViewScreen.idAndCollection(),
+                arguments = listOf(
+                    navArgument(name = "mediaId") {
+                        type = NavType.LongType
+                        defaultValue = -1
+                    },
+                    navArgument(name = "collectionId") {
+                        type = NavType.LongType
+                        defaultValue = -1
+                    }
+                )
+            ) { backStackEntry ->
+                val mediaId: Long = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("mediaId") ?: -1
+                }
+                val collectionId: Long = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("collectionId") ?: -1
+                }
+
+                val distributor = com.dot.gallery.core.LocalMediaDistributor.current
+                val mediaState = distributor.collectionMediaFlow(collectionId)
+                    .collectAsStateWithLifecycle()
+
+                MediaViewScreen(
+                    toggleRotate = toggleRotate,
+                    paddingValues = paddingValues,
+                    mediaId = mediaId,
+                    target = "collection_$collectionId",
                     mediaState = mediaState,
                     metadataState = metadataState,
                     albumsState = albumsState,

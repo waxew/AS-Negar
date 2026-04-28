@@ -17,6 +17,9 @@ import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
+import com.dot.gallery.feature_node.domain.model.Collection
+import com.dot.gallery.feature_node.domain.model.CollectionMedia
+import com.dot.gallery.feature_node.domain.model.CollectionWithCount
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
 import com.dot.gallery.feature_node.domain.model.Media
@@ -302,5 +305,43 @@ interface MediaRepository {
     suspend fun removeMergedSubfolderAlbum(mergedSubfolderAlbum: MergedSubfolderAlbum)
 
     fun getMergedSubfolderAlbums(): Flow<List<MergedSubfolderAlbum>>
+
+    // ============ Collections ============
+
+    suspend fun insertCollection(collection: Collection): Long
+
+    suspend fun updateCollection(collection: Collection)
+
+    suspend fun deleteCollection(collectionId: Long)
+
+    fun getCollection(collectionId: Long): Flow<Collection?>
+
+    suspend fun getCollectionAsync(collectionId: Long): Collection?
+
+    fun getAllCollections(): Flow<List<Collection>>
+
+    fun getCollectionsWithCount(): Flow<List<CollectionWithCount>>
+
+    suspend fun updateCollectionLabel(collectionId: Long, label: String)
+
+    suspend fun toggleCollectionPinned(collectionId: Long, isPinned: Boolean)
+
+    suspend fun updateCollectionCover(collectionId: Long, mediaId: Long?)
+
+    suspend fun addMediaToCollection(collectionId: Long, mediaId: Long)
+
+    suspend fun addMediaListToCollection(collectionId: Long, mediaIds: List<Long>)
+
+    suspend fun removeMediaFromCollection(collectionId: Long, mediaId: Long)
+
+    fun getMediaIdsInCollection(collectionId: Long): Flow<List<Long>>
+
+    suspend fun getMediaIdsInCollectionAsync(collectionId: Long): List<Long>
+
+    fun getMediaCountInCollection(collectionId: Long): Flow<Int>
+
+    fun getCollectionIdsForMedia(mediaId: Long): Flow<List<Long>>
+
+    suspend fun cleanupOrphanedCollectionMedia(validMediaIds: List<Long>)
 
 }

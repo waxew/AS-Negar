@@ -48,6 +48,9 @@ import com.dot.gallery.feature_node.data.data_source.mediastore.queries.MediaUri
 import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
+import com.dot.gallery.feature_node.domain.model.Collection
+import com.dot.gallery.feature_node.domain.model.CollectionMedia
+import com.dot.gallery.feature_node.domain.model.CollectionWithCount
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
@@ -1010,6 +1013,68 @@ class MediaRepositoryImpl(
 
     override fun getMergedSubfolderAlbums(): Flow<List<MergedSubfolderAlbum>> =
         database.getMergedSubfolderDao().getMergedSubfolderAlbums()
+
+    // ============ Collections ============
+
+    private val collectionDao get() = database.getCollectionDao()
+
+    override suspend fun insertCollection(collection: Collection): Long =
+        collectionDao.insertCollection(collection)
+
+    override suspend fun updateCollection(collection: Collection) =
+        collectionDao.updateCollection(collection)
+
+    override suspend fun deleteCollection(collectionId: Long) =
+        collectionDao.deleteCollection(collectionId)
+
+    override fun getCollection(collectionId: Long): Flow<Collection?> =
+        collectionDao.getCollectionFlow(collectionId)
+
+    override suspend fun getCollectionAsync(collectionId: Long): Collection? =
+        collectionDao.getCollectionAsync(collectionId)
+
+    override fun getAllCollections(): Flow<List<Collection>> =
+        collectionDao.getAllCollections()
+
+    override fun getCollectionsWithCount(): Flow<List<CollectionWithCount>> =
+        collectionDao.getCollectionsWithCount().map { list ->
+            list.map { it.toCollectionWithCount() }
+        }
+
+    override suspend fun updateCollectionLabel(collectionId: Long, label: String) =
+        collectionDao.updateCollectionLabel(collectionId, label)
+
+    override suspend fun toggleCollectionPinned(collectionId: Long, isPinned: Boolean) =
+        collectionDao.updateCollectionPinned(collectionId, isPinned)
+
+    override suspend fun updateCollectionCover(collectionId: Long, mediaId: Long?) =
+        collectionDao.updateCollectionCover(collectionId, mediaId)
+
+    override suspend fun addMediaToCollection(collectionId: Long, mediaId: Long) =
+        collectionDao.addMediaToCollection(CollectionMedia(collectionId, mediaId))
+
+    override suspend fun addMediaListToCollection(collectionId: Long, mediaIds: List<Long>) =
+        collectionDao.addMediaListToCollection(
+            mediaIds.map { CollectionMedia(collectionId, it) }
+        )
+
+    override suspend fun removeMediaFromCollection(collectionId: Long, mediaId: Long) =
+        collectionDao.removeMediaFromCollection(collectionId, mediaId)
+
+    override fun getMediaIdsInCollection(collectionId: Long): Flow<List<Long>> =
+        collectionDao.getMediaIdsInCollection(collectionId)
+
+    override suspend fun getMediaIdsInCollectionAsync(collectionId: Long): List<Long> =
+        collectionDao.getMediaIdsInCollectionAsync(collectionId)
+
+    override fun getMediaCountInCollection(collectionId: Long): Flow<Int> =
+        collectionDao.getMediaCountInCollection(collectionId)
+
+    override fun getCollectionIdsForMedia(mediaId: Long): Flow<List<Long>> =
+        collectionDao.getCollectionIdsForMedia(mediaId)
+
+    override suspend fun cleanupOrphanedCollectionMedia(validMediaIds: List<Long>) =
+        collectionDao.cleanupOrphanedCollectionMedia(validMediaIds)
 
     companion object {
         private fun relativePath(newPath: String) = ContentValues().apply {

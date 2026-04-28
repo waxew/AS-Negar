@@ -14,6 +14,7 @@ import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
 import com.dot.gallery.feature_node.domain.model.AlbumState
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
+import com.dot.gallery.feature_node.domain.model.CollectionWithCount
 import com.dot.gallery.feature_node.domain.model.GeoMedia
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
@@ -199,6 +200,17 @@ class MediaDistributorImpl @Inject constructor(
                 initialValue = emptyList()
             )
 
+    /**
+     * Collections
+     */
+    override val collectionsFlow: StateFlow<List<CollectionWithCount>> =
+        repository.getCollectionsWithCount()
+            .stateIn(
+                scope = appScope,
+                started = sharingMethod,
+                initialValue = emptyList()
+            )
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override val albumsFlow: StateFlow<AlbumState> = hasPermission.flatMapLatest { granted ->
         if (!granted) flowOf(AlbumState())
@@ -213,6 +225,7 @@ class MediaDistributorImpl @Inject constructor(
             albumGroupMembersFlow,
             mergeAlbumsByName,
             mergedSubfolderAlbumsFlow,
+            collectionsFlow,
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val result = values[0] as Resource<List<Album>>
@@ -232,6 +245,8 @@ class MediaDistributorImpl @Inject constructor(
             val shouldMerge = values[8] as Boolean
             @Suppress("UNCHECKED_CAST")
             val mergedSubfolders = values[9] as List<MergedSubfolderAlbum>
+            @Suppress("UNCHECKED_CAST")
+            val collections = values[10] as List<CollectionWithCount>
             val newOrder = settings?.albumMediaOrder ?: albumOrder
             val data = newOrder.sortAlbums(result.data ?: emptyList()).map { album ->
                 val thumbnail = thumbnails.find { it.albumId == album.id }
@@ -275,6 +290,7 @@ class MediaDistributorImpl @Inject constructor(
                 albumsUnpinned = mergedData.filter { !it.isPinned && it.id !in groupedMergedIds },
                 albumsPinned = mergedData.filter { it.isPinned }.sortedBy { it.label },
                 albumGroups = albumGroups,
+                collections = collections,
                 isLoading = false,
                 error = if (result is Resource.Error) result.message ?: "An error occurred" else ""
             )
@@ -533,6 +549,50 @@ class MediaDistributorImpl @Inject constructor(
             weeklyDateFormat = weeklyDateFormat
         )
     }.stateIn(appScope, sharingMethod, MediaState())
+
+    /**
+     * Collections
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Suppress("UNCHECKED_CAST")
+    override fun collectionMediaFlow(collectionId: Long): StateFlow<MediaState<Media.UriMedia>> =
+        combine(
+            repository.getMediaIdsInCollection(collectionId),
+            repository.getCompleteMedia(),
+            settingsFlow,
+            dateFormatsFlow,
+            albumMediaSortFlow,
+            groupSimilarMedia
+        ) { values ->
+            val mediaIds = values[0] as List<Long>
+            val allMediaResult = values[1] as Resource<List<Media.UriMedia>>
+            val settings = values[2] as TimelineSettings?
+            val dateFormats = values[3] as Triple<String, String, String>
+            val albumSort = values[4] as Settings.Album.LastSort
+            val shouldGroupSimilar = values[5] as Boolean
+
+            val (defaultDateFormat, extendedDateFormat, weeklyDateFormat) = dateFormats
+            val allMedia = allMediaResult.data ?: emptyList()
+            val mediaIdSet = mediaIds.toHashSet()
+            val collectionMedia = allMedia.filter { it.id in mediaIdSet }
+
+            val sorter = when (albumSort.kind) {
+                FilterKind.DATE -> MediaOrder.Date(albumSort.orderType)
+                FilterKind.DATE_MODIFIED -> MediaOrder.DateModified(albumSort.orderType)
+                FilterKind.NAME -> MediaOrder.Label(albumSort.orderType)
+            }
+
+            mapMediaToItem(
+                data = sorter.sortMedia(collectionMedia),
+                error = allMediaResult.message ?: "",
+                albumId = -1L,
+                groupByMonth = settings?.groupTimelineByMonth == true,
+                groupSimilarMedia = shouldGroupSimilar,
+                defaultDateFormat = defaultDateFormat,
+                extendedDateFormat = extendedDateFormat,
+                weeklyDateFormat = weeklyDateFormat
+            )
+        }.stateIn(appScope, sharingMethod, MediaState())
 
     /**
      * Search

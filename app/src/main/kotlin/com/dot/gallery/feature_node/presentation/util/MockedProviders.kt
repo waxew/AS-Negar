@@ -10,6 +10,7 @@ import com.dot.gallery.core.MediaHandler
 import com.dot.gallery.core.MediaSelector
 import com.dot.gallery.core.util.SetupMediaProviders
 import com.dot.gallery.feature_node.domain.model.AlbumState
+import com.dot.gallery.feature_node.domain.model.CollectionWithCount
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
 import com.dot.gallery.feature_node.domain.model.Media
@@ -68,6 +69,8 @@ class MockedMediaDistributor: MediaDistributor {
         gpsLocationNameCity: String,
         gpsLocationNameCountry: String
     ): Flow<MediaState<Media.UriMedia>> = emptyFlow()
+    override val collectionsFlow: StateFlow<List<CollectionWithCount>> = MutableStateFlow(emptyList())
+    override fun collectionMediaFlow(collectionId: Long): StateFlow<MediaState<Media.UriMedia>> = MutableStateFlow(MediaState())
 }
 
 class MockedMediaHandler: MediaHandler {

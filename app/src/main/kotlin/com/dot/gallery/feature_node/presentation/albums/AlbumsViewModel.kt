@@ -184,4 +184,24 @@ class AlbumsViewModel @Inject constructor(
         }
     }
 
+    // ============ Collections ============
+
+    fun deleteCollection(collectionId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteCollection(collectionId)
+        }
+    }
+
+    fun toggleCollectionPin(collectionId: Long, isPinned: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.toggleCollectionPinned(collectionId, isPinned)
+        }
+    }
+
+    fun renameCollection(collectionId: Long, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateCollectionLabel(collectionId, newName)
+        }
+    }
+
 }

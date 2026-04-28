@@ -58,12 +58,14 @@ import com.dot.gallery.core.presentation.components.FilterOption
 import com.dot.gallery.core.presentation.components.LoadingAlbum
 import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
+import com.dot.gallery.feature_node.domain.model.CollectionWithCount
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.util.MediaOrder
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumComponent
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumGroupComponent
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumRowComponent
 import com.dot.gallery.feature_node.presentation.albums.components.CarouselPinnedAlbums
+import com.dot.gallery.feature_node.presentation.collection.components.CollectionComponent
 import com.dot.gallery.feature_node.presentation.search.MainSearchBar
 import com.dot.gallery.feature_node.presentation.timeline.components.TimelineNavActions
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -89,6 +91,10 @@ fun AlbumsScreen(
     onEditGroup: (AlbumGroupWithAlbums) -> Unit = {},
     onAddToGroup: ((Album) -> Unit)? = null,
     onToggleMergeSubfolders: ((Album) -> Unit)? = null,
+    onCollectionClick: (CollectionWithCount) -> Unit = {},
+    onCollectionRename: (CollectionWithCount) -> Unit = {},
+    onCollectionDelete: (CollectionWithCount) -> Unit = {},
+    onCollectionTogglePin: (CollectionWithCount) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
@@ -187,6 +193,41 @@ fun AlbumsScreen(
                                         )
                                     }
                                 }
+                            }
+                            item(
+                                span = { GridItemSpan(maxLineSpan) },
+                                key = "collectionsHeader"
+                            ) {
+                                AnimatedVisibility(
+                                    visible = albumsState.value.collections.isNotEmpty(),
+                                    enter = enterAnimation,
+                                    exit = exitAnimation
+                                ) {
+                                    Text(
+                                        modifier = Modifier
+                                            .pinchItem(key = "collectionsHeader")
+                                            .padding(horizontal = 8.dp)
+                                            .padding(vertical = 24.dp),
+                                        text = stringResource(R.string.collections_title),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            items(
+                                items = albumsState.value.collections,
+                                key = { "collection_${it.collection.id}" }
+                            ) { collectionWithCount ->
+                                CollectionComponent(
+                                    modifier = Modifier
+                                        .pinchItem(key = "collection_${collectionWithCount.collection.id}")
+                                        .animateItem(),
+                                    collectionWithCount = collectionWithCount,
+                                    onItemClick = onCollectionClick,
+                                    onRename = onCollectionRename,
+                                    onDelete = onCollectionDelete,
+                                    onTogglePin = onCollectionTogglePin
+                                )
                             }
                             item(
                                 span = { GridItemSpan(maxLineSpan) },
@@ -345,6 +386,36 @@ fun AlbumsScreen(
                                     )
                                 }
                             }
+                        }
+
+                        item("collectionsHeader_list") {
+                            AnimatedVisibility(
+                                visible = albumsState.value.collections.isNotEmpty(),
+                                enter = enterAnimation,
+                                exit = exitAnimation
+                            ) {
+                                Text(
+                                    modifier = Modifier
+                                        .padding(horizontal = 8.dp)
+                                        .padding(vertical = 24.dp),
+                                    text = stringResource(R.string.collections_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        items(
+                            items = albumsState.value.collections,
+                            key = { "collection_list_${it.collection.id}" }
+                        ) { collectionWithCount ->
+                            CollectionComponent(
+                                modifier = Modifier.animateItem(),
+                                collectionWithCount = collectionWithCount,
+                                onItemClick = onCollectionClick,
+                                onRename = onCollectionRename,
+                                onDelete = onCollectionDelete,
+                                onTogglePin = onCollectionTogglePin
+                            )
                         }
 
                         item("filterButton") {

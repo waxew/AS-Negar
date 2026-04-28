@@ -15,6 +15,8 @@ import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
+import com.dot.gallery.feature_node.domain.model.Collection
+import com.dot.gallery.feature_node.domain.model.CollectionMedia
 import com.dot.gallery.feature_node.domain.model.EditedMedia
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
@@ -52,9 +54,11 @@ import com.dot.gallery.feature_node.domain.util.Converters
         LockedAlbum::class,
         AlbumGroup::class,
         AlbumGroupMember::class,
-        MergedSubfolderAlbum::class
+        MergedSubfolderAlbum::class,
+        Collection::class,
+        CollectionMedia::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -75,6 +79,7 @@ import com.dot.gallery.feature_node.domain.util.Converters
         AutoMigration(from = 16, to = 17),
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
+        AutoMigration(from = 19, to = 20),
     ]
 )
 @TypeConverters(Converters::class)
@@ -108,6 +113,8 @@ abstract class InternalDatabase : RoomDatabase() {
     abstract fun getAlbumGroupDao(): AlbumGroupDao
 
     abstract fun getMergedSubfolderDao(): MergedSubfolderDao
+
+    abstract fun getCollectionDao(): CollectionDao
 
     companion object {
         const val NAME = "internal_db"
