@@ -652,6 +652,8 @@
     <string name="albums_merged_description">%1$d albums with the same name have been merged.</string>
     <string name="merge_albums_by_name">Merge albums by name</string>
     <string name="merge_albums_by_name_summary">Albums with the same name are displayed as one. They still exist in separate folders.</string>
+    <string name="merge_subfolders">Merge subfolders</string>
+    <string name="unmerge_subfolders">Unmerge subfolders</string>
     <string name="dismiss">Dismiss</string>
 
     <!-- Visual / Image-to-Image search -->

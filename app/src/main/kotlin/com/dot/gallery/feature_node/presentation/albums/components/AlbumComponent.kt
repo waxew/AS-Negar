@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SdCard
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -99,7 +100,9 @@ fun AlbumComponent(
     onToggleLockClick: ((Album) -> Unit)? = null,
     onDeleteAlbumThumbnailClick: ((Album) -> Unit)? = null,
     onAddToGroup: ((Album) -> Unit)? = null,
-    onRemoveFromGroup: ((Album) -> Unit)? = null
+    onRemoveFromGroup: ((Album) -> Unit)? = null,
+    onToggleMergeSubfolders: ((Album) -> Unit)? = null,
+    isMergedSubfolder: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
     val appBottomSheetState = rememberAppBottomSheetState()
@@ -115,6 +118,9 @@ fun AlbumComponent(
         val lockTitle = stringResource(if (album.isLocked) R.string.unlock_album else R.string.lock_album)
         val addToGroupTitle = stringResource(R.string.add_to_group)
         val removeFromGroupTitle = stringResource(R.string.remove_album_from_group)
+        val mergeSubfoldersTitle = stringResource(
+            if (isMergedSubfolder) R.string.unmerge_subfolders else R.string.merge_subfolders
+        )
         val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
         val onSecondaryContainer = MaterialTheme.colorScheme.onSecondaryContainer
         val primaryContainer = MaterialTheme.colorScheme.primaryContainer
@@ -253,6 +259,20 @@ fun AlbumComponent(
                                 scope.launch {
                                     appBottomSheetState.hide()
                                     onRemoveFromGroup(album)
+                                }
+                            }
+                        )
+                    )
+                }
+                if (onToggleMergeSubfolders != null) {
+                    add(
+                        OptionItem(
+                            icon = Icons.Outlined.AccountTree,
+                            text = mergeSubfoldersTitle,
+                            onClick = {
+                                scope.launch {
+                                    appBottomSheetState.hide()
+                                    onToggleMergeSubfolders(album)
                                 }
                             }
                         )

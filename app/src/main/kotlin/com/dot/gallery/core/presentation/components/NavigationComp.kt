@@ -398,6 +398,7 @@ fun NavigationComp(
                         groupDialogInitialName = ""
                         scope.launch { groupSheetState.show() }
                     },
+                    onToggleMergeSubfolders = albumsViewModel::toggleMergeSubfolders,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
                 )

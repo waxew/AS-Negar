@@ -22,6 +22,7 @@ import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
+import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
 import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.UIEvent
@@ -157,6 +158,14 @@ class MediaDistributorImpl @Inject constructor(
                 initialValue = emptyList()
             )
 
+    override val mergedSubfolderAlbumsFlow: StateFlow<List<MergedSubfolderAlbum>> =
+        repository.getMergedSubfolderAlbums()
+            .stateIn(
+                scope = appScope,
+                started = sharingMethod,
+                initialValue = emptyList()
+            )
+
     private var albumOrder: MediaOrder
         get() = settingsFlow.value?.albumMediaOrder ?: MediaOrder.Date(OrderType.Descending)
         set(value) {
@@ -202,7 +211,8 @@ class MediaDistributorImpl @Inject constructor(
             albumThumbnails,
             albumGroupsFlow,
             albumGroupMembersFlow,
-            mergeAlbumsByName
+            mergeAlbumsByName,
+            mergedSubfolderAlbumsFlow,
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val result = values[0] as Resource<List<Album>>
@@ -220,6 +230,8 @@ class MediaDistributorImpl @Inject constructor(
             @Suppress("UNCHECKED_CAST")
             val groupMembers = values[7] as List<AlbumGroupMember>
             val shouldMerge = values[8] as Boolean
+            @Suppress("UNCHECKED_CAST")
+            val mergedSubfolders = values[9] as List<MergedSubfolderAlbum>
             val newOrder = settings?.albumMediaOrder ?: albumOrder
             val data = newOrder.sortAlbums(result.data ?: emptyList()).map { album ->
                 val thumbnail = thumbnails.find { it.albumId == album.id }
@@ -230,7 +242,11 @@ class MediaDistributorImpl @Inject constructor(
                 .mapPinned(pinnedAlbums)
                 .mapLocked(lockedAlbums)
 
-            val mergedData = if (shouldMerge) mergeAlbumsByLabel(cleanData) else cleanData
+            val subfolderMergedData = mergeSubfolderAlbums(
+                cleanData,
+                mergedSubfolders.mapTo(HashSet()) { it.id }
+            )
+            val mergedData = if (shouldMerge) mergeAlbumsByLabel(subfolderMergedData) else subfolderMergedData
 
             val groupMemberAlbumIds = groupMembers.map { it.albumId }.toSet()
             val albumGroups = groups.map { group ->
@@ -528,6 +544,53 @@ class MediaDistributorImpl @Inject constructor(
                 started = prioritySharingMethod,
                 initialValue = emptyList()
             )
+
+    private fun mergeSubfolderAlbums(
+        albums: List<Album>,
+        mergedSubfolderIds: Set<Long>
+    ): List<Album> {
+        if (mergedSubfolderIds.isEmpty()) return albums
+        val parentAlbums = albums.filter { it.id in mergedSubfolderIds }
+        if (parentAlbums.isEmpty()) return albums
+
+        val absorbedIds = HashSet<Long>()
+        val result = mutableListOf<Album>()
+
+        for (parent in parentAlbums) {
+            val parentPath = parent.relativePath.removeSuffix("/") + "/"
+            val children = albums.filter { album ->
+                album.id != parent.id &&
+                    album.id !in absorbedIds &&
+                    album.relativePath.startsWith(parentPath)
+            }
+            if (children.isEmpty()) {
+                continue
+            }
+            val allRelated = listOf(parent) + children
+            val mergedIds = allRelated.map { it.id }
+            children.forEach { absorbedIds.add(it.id) }
+            result.add(
+                parent.copy(
+                    count = allRelated.sumOf { it.count },
+                    size = allRelated.sumOf { it.size },
+                    timestamp = allRelated.maxOf { it.timestamp },
+                    isPinned = allRelated.any { it.isPinned },
+                    isLocked = allRelated.any { it.isLocked },
+                    mergedAlbumIds = mergedIds
+                )
+            )
+        }
+
+        for (album in albums) {
+            if (album.id !in absorbedIds && album.id !in mergedSubfolderIds) {
+                result.add(album)
+            } else if (album.id in mergedSubfolderIds && result.none { it.id == album.id }) {
+                result.add(album)
+            }
+        }
+
+        return result
+    }
 
     private fun mergeAlbumsByLabel(albums: List<Album>): List<Album> {
         val grouped = albums.groupBy { it.label }

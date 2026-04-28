@@ -9,6 +9,7 @@ import com.dot.gallery.feature_node.domain.model.LocationMedia
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
+import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
 import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.Vault
@@ -41,6 +42,7 @@ interface MediaDistributor {
     val blacklistedAlbumsFlow: StateFlow<List<IgnoredAlbum>>
     val pinnedAlbumsFlow: StateFlow<List<PinnedAlbum>>
     val lockedAlbumsFlow: StateFlow<List<LockedAlbum>>
+    val mergedSubfolderAlbumsFlow: StateFlow<List<MergedSubfolderAlbum>>
 
     /**
      * Media

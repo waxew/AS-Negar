@@ -25,6 +25,7 @@ import com.dot.gallery.feature_node.domain.model.Media.UriMedia
 import com.dot.gallery.feature_node.domain.model.MediaCategory
 import com.dot.gallery.feature_node.domain.model.MediaMetadata
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
+import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
 import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.Vault
@@ -293,5 +294,13 @@ interface MediaRepository {
     fun getAllGroupMembers(): Flow<List<AlbumGroupMember>>
 
     suspend fun getGroupIdForAlbum(albumId: Long): Long?
+
+    // ============ Merged Subfolder Albums ============
+
+    suspend fun insertMergedSubfolderAlbum(mergedSubfolderAlbum: MergedSubfolderAlbum)
+
+    suspend fun removeMergedSubfolderAlbum(mergedSubfolderAlbum: MergedSubfolderAlbum)
+
+    fun getMergedSubfolderAlbums(): Flow<List<MergedSubfolderAlbum>>
 
 }

@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
@@ -87,10 +88,15 @@ fun AlbumsScreen(
     onDeleteGroup: (AlbumGroupWithAlbums) -> Unit = {},
     onEditGroup: (AlbumGroupWithAlbums) -> Unit = {},
     onAddToGroup: ((Album) -> Unit)? = null,
+    onToggleMergeSubfolders: ((Album) -> Unit)? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
     val distributor = LocalMediaDistributor.current
+    val mergedSubfolderAlbums by distributor.mergedSubfolderAlbumsFlow.collectAsStateWithLifecycle()
+    val mergedSubfolderIds = remember(mergedSubfolderAlbums) {
+        mergedSubfolderAlbums.mapTo(HashSet()) { it.id }
+    }
     val mediaState = distributor.timelineMediaFlow.collectAsStateWithLifecycle(
         context = Dispatchers.IO,
         initialValue = MediaState()
@@ -237,7 +243,9 @@ fun AlbumsScreen(
                                         },
                                         onToggleIgnoreClick = onIgnoreAlbum,
                                         onToggleLockClick = onLockAlbum,
-                                        onAddToGroup = onAddToGroup
+                                        onAddToGroup = onAddToGroup,
+                                        onToggleMergeSubfolders = onToggleMergeSubfolders,
+                                        isMergedSubfolder = item.id in mergedSubfolderIds
                                     )
                                 }
                             }

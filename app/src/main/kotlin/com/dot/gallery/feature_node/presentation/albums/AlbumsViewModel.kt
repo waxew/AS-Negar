@@ -19,6 +19,7 @@ import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
+import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
 import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
@@ -113,6 +114,18 @@ class AlbumsViewModel @Inject constructor(
                 repository.removeLockedAlbum(LockedAlbum(album.id))
             } else {
                 repository.insertLockedAlbum(LockedAlbum(album.id))
+            }
+        }
+    }
+
+    fun toggleMergeSubfolders(album: Album) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val merged = MergedSubfolderAlbum(album.id)
+            val existing = repository.getMergedSubfolderAlbums().firstOrNull() ?: emptyList()
+            if (existing.any { it.id == album.id }) {
+                repository.removeMergedSubfolderAlbum(merged)
+            } else {
+                repository.insertMergedSubfolderAlbum(merged)
             }
         }
     }

@@ -60,6 +60,7 @@ import com.dot.gallery.feature_node.domain.model.MediaCategory
 import com.dot.gallery.feature_node.domain.model.MediaMetadata
 import com.dot.gallery.core.sandbox.IsolatedMetadataParser
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
+import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
 import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.Vault
@@ -998,6 +999,17 @@ class MediaRepositoryImpl(
 
     override suspend fun getGroupIdForAlbum(albumId: Long): Long? =
         database.getAlbumGroupDao().getGroupIdForAlbum(albumId)
+
+    // ============ Merged Subfolder Albums ============
+
+    override suspend fun insertMergedSubfolderAlbum(mergedSubfolderAlbum: MergedSubfolderAlbum) =
+        database.getMergedSubfolderDao().insertMergedSubfolderAlbum(mergedSubfolderAlbum)
+
+    override suspend fun removeMergedSubfolderAlbum(mergedSubfolderAlbum: MergedSubfolderAlbum) =
+        database.getMergedSubfolderDao().removeMergedSubfolderAlbum(mergedSubfolderAlbum)
+
+    override fun getMergedSubfolderAlbums(): Flow<List<MergedSubfolderAlbum>> =
+        database.getMergedSubfolderDao().getMergedSubfolderAlbums()
 
     companion object {
         private fun relativePath(newPath: String) = ContentValues().apply {

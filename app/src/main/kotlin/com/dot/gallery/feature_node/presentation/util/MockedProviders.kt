@@ -18,6 +18,7 @@ import com.dot.gallery.feature_node.domain.model.LocationMedia
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
+import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
 import com.dot.gallery.feature_node.domain.model.PinnedAlbum
 import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.UIEvent
@@ -51,6 +52,7 @@ class MockedMediaDistributor: MediaDistributor {
     override val blacklistedAlbumsFlow: StateFlow<List<IgnoredAlbum>> = MutableStateFlow(emptyList())
     override val pinnedAlbumsFlow: StateFlow<List<PinnedAlbum>> = MutableStateFlow(emptyList())
     override val lockedAlbumsFlow: StateFlow<List<LockedAlbum>> = MutableStateFlow(emptyList())
+    override val mergedSubfolderAlbumsFlow: StateFlow<List<MergedSubfolderAlbum>> = MutableStateFlow(emptyList())
     override val timelineMediaFlow: StateFlow<MediaState<Media.UriMedia>> = MutableStateFlow(MediaState())
     override val albumsTimelinesMediaFlow: StateFlow<Map<Long, MediaState<Media.UriMedia>>> = MutableStateFlow(emptyMap())
     override fun albumTimelineMediaFlow(albumId: Long): StateFlow<MediaState<Media.UriMedia>> = MutableStateFlow(MediaState())
