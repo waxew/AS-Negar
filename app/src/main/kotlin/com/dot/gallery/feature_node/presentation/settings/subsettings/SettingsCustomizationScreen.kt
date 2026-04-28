@@ -76,6 +76,7 @@ import com.dot.gallery.core.Settings.Misc.rememberAutoHideSearchBar
 import com.dot.gallery.core.Settings.Misc.rememberDefaultImageEditor
 import com.dot.gallery.core.Settings.Misc.rememberAllowGifAnimation
 import com.dot.gallery.core.Settings.Misc.rememberGroupSimilarMedia
+import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.Settings.Misc.rememberFavoriteIconPosition
 import com.dot.gallery.core.Settings.Misc.rememberForcedLastScreen
 import com.dot.gallery.core.Settings.Misc.rememberFullBrightnessView
@@ -137,6 +138,256 @@ fun SettingsCustomizationScreen() {
             },
             screenPosition = Position.Top
         )
+
+        val showLayoutDialog = rememberSaveable { mutableStateOf(false) }
+        val layoutSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        var timelineLayoutType by rememberTimelineLayoutType()
+        val layoutLabel = remember(timelineLayoutType) {
+            when (timelineLayoutType) {
+                Settings.Misc.LAYOUT_MOSAIC -> context.getString(R.string.timeline_layout_mosaic)
+                else -> context.getString(R.string.timeline_layout_grid)
+            }
+        }
+        val timelineLayoutPref = rememberPreference(
+            timelineLayoutType,
+            title = stringResource(R.string.timeline_layout_type),
+            summary = stringResource(R.string.timeline_layout_type_summary) + " ($layoutLabel)",
+            onClick = { showLayoutDialog.value = true },
+            screenPosition = Position.Middle
+        )
+        if (showLayoutDialog.value) {
+            ModalBottomSheet(
+                sheetState = layoutSheetState,
+                onDismissRequest = { showLayoutDialog.value = false },
+                contentWindowInsets = {
+                    WindowInsets(bottom = WindowInsets.systemBars.getBottom(LocalDensity.current))
+                }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = Shapes.extraLarge
+                        )
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CompositionLocalProvider(
+                        value = LocalTextStyle.provides(
+                            TextStyle.Default.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    ) {
+                        val layoutScope = rememberCoroutineScope()
+                        Text(
+                            text = stringResource(R.string.choose_timeline_layout),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val layoutOptions = remember(timelineLayoutType) {
+                            listOf(
+                                Settings.Misc.LAYOUT_GRID to (timelineLayoutType == Settings.Misc.LAYOUT_GRID),
+                                Settings.Misc.LAYOUT_MOSAIC to (timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            layoutOptions.forEach { (value, selected) ->
+                                val label = when (value) {
+                                    Settings.Misc.LAYOUT_MOSAIC -> stringResource(R.string.timeline_layout_mosaic)
+                                    else -> stringResource(R.string.timeline_layout_grid)
+                                }
+                                val borderColor = if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                }
+                                val containerColor = if (selected) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                } else {
+                                    Color.Transparent
+                                }
+                                val cellColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                val bigCellColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                Column(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .clickable { timelineLayoutType = value }
+                                        .border(
+                                            width = 2.dp,
+                                            color = borderColor,
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                        .background(containerColor)
+                                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Grid preview mockup
+                                    val gridShape = RoundedCornerShape(8.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(120.dp)
+                                            .clip(gridShape)
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                            .padding(4.dp)
+                                    ) {
+                                        if (value == Settings.Misc.LAYOUT_GRID) {
+                                            // 4×4 uniform grid
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                repeat(4) {
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                        repeat(4) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .weight(1f)
+                                                                    .aspectRatio(1f)
+                                                                    .clip(RoundedCornerShape(2.dp))
+                                                                    .background(cellColor)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // Mosaic preview: big tile + small tiles
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                // Row 1-2: 2×2 big tile on left + 4 small tiles on right
+                                                Row(
+                                                    modifier = Modifier.weight(2f),
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(2f)
+                                                            .fillMaxSize()
+                                                            .clip(RoundedCornerShape(2.dp))
+                                                            .background(bigCellColor)
+                                                    )
+                                                    Column(
+                                                        modifier = Modifier.weight(2f),
+                                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.weight(1f),
+                                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                        ) {
+                                                            repeat(2) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .fillMaxSize()
+                                                                        .clip(RoundedCornerShape(2.dp))
+                                                                        .background(cellColor)
+                                                                )
+                                                            }
+                                                        }
+                                                        Row(
+                                                            modifier = Modifier.weight(1f),
+                                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                        ) {
+                                                            repeat(2) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .fillMaxSize()
+                                                                        .clip(RoundedCornerShape(2.dp))
+                                                                        .background(cellColor)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                // Row 3: 4 singles
+                                                Row(
+                                                    modifier = Modifier.weight(1f),
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    repeat(4) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .fillMaxSize()
+                                                                .clip(RoundedCornerShape(2.dp))
+                                                                .background(cellColor)
+                                                        )
+                                                    }
+                                                }
+                                                // Row 4-5: small tiles on left + 3×2 big on right
+                                                Row(
+                                                    modifier = Modifier.weight(2f),
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.weight(1f),
+                                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                                    ) {
+                                                        repeat(2) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .weight(1f)
+                                                                    .fillMaxSize()
+                                                                    .clip(RoundedCornerShape(2.dp))
+                                                                    .background(cellColor)
+                                                            )
+                                                        }
+                                                    }
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(3f)
+                                                            .fillMaxSize()
+                                                            .clip(RoundedCornerShape(2.dp))
+                                                            .background(bigCellColor)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = null,
+                                        tint = if (selected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outlineVariant
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Button(onClick = {
+                            layoutScope.launch {
+                                layoutSheetState.hide()
+                                showLayoutDialog.value = false
+                            }
+                        }) {
+                            Text(
+                                text = stringResource(R.string.done),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         var groupSimilarMedia by rememberGroupSimilarMedia()
         val groupSimilarMediaPref = rememberSwitchPreference(
@@ -957,6 +1208,7 @@ fun SettingsCustomizationScreen() {
         return remember(
             dateHeaderPref,
             groupByMonthPref,
+            timelineLayoutPref,
             groupSimilarMediaPref,
             hideTimelineOnAlbumPref,
             mergeAlbumsByNamePref,
@@ -978,6 +1230,7 @@ fun SettingsCustomizationScreen() {
             mutableStateListOf<SettingsEntity>().apply {
                 add(timelineHeader)
                 add(groupByMonthPref)
+                add(timelineLayoutPref)
                 add(groupSimilarMediaPref)
                 add(hideTimelineOnAlbumPref)
                 add(mergeAlbumsByNamePref)

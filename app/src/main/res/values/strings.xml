@@ -122,6 +122,11 @@
     <string name="set_wallpaper_error">Can\'t set wallpaper, no app available!</string>
     <string name="monthly_timeline_title">Monthly Timeline</string>
     <string name="monthly_timeline_summary">Group the timeline monthly instead of per date (Restarts the app)</string>
+    <string name="timeline_layout_type">Timeline layout</string>
+    <string name="timeline_layout_type_summary">Choose between a uniform grid or a mosaic layout</string>
+    <string name="timeline_layout_grid">Grid</string>
+    <string name="timeline_layout_mosaic">Mosaic</string>
+    <string name="choose_timeline_layout">Choose timeline layout</string>
     <string name="group_similar_media_title">Group similar photos</string>
     <string name="group_similar_media_summary">Group RAW+JPG pairs, edits and burst photos together in the timeline and albums</string>
     <string name="allow_gif_animation_title">Animate GIFs in grid</string>

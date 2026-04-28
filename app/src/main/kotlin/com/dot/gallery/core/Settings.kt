@@ -543,6 +543,14 @@ object Settings {
         fun rememberAllowGifAnimation() =
             rememberPreference(key = ALLOW_GIF_ANIMATION, defaultValue = true)
 
+        const val LAYOUT_GRID = "grid"
+        const val LAYOUT_MOSAIC = "mosaic"
+        private val TIMELINE_LAYOUT_TYPE = stringPreferencesKey("timeline_layout_type")
+
+        @Composable
+        fun rememberTimelineLayoutType() =
+            rememberPreference(key = TIMELINE_LAYOUT_TYPE, defaultValue = LAYOUT_GRID)
+
         const val EDITOR_BUILTIN = "builtin"
         private val DEFAULT_IMAGE_EDITOR = stringPreferencesKey("default_image_editor")
 

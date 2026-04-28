@@ -43,11 +43,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,8 +72,10 @@ import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.Settings.Album.rememberAlbumMediaSort
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Album.rememberHideTimelineOnAlbum
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
+import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.EmptyMedia
 import com.dot.gallery.core.presentation.components.NavigationButton
@@ -82,6 +86,8 @@ import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.presentation.albumtimeline.components.AlbumSortDropdown
 import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
+import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGrid
+import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
 import com.dot.gallery.feature_node.presentation.common.components.TwoLinedDateToolbarTitle
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -197,40 +203,100 @@ fun AlbumTimelineScreen(
                 )
             }
         ) { it ->
-            PinchZoomGridLayout(
-                state = pinchState,
-                modifier = Modifier.hazeSource(LocalHazeState.current)
-            ) {
-                val hideTimelineOnAlbum by rememberHideTimelineOnAlbum()
-                MediaGridView(
-                    modifier = Modifier.padding(top = it.calculateTopPadding()),
-                    mediaState = mediaState,
-                    metadataState = metadataState,
-                    allowSelection = true,
-                    showSearchBar = false,
-                    enableStickyHeaders = !hideTimelineOnAlbum,
-                    paddingValues = remember(paddingValues) {
-                        PaddingValues(
-                            bottom = paddingValues.calculateBottomPadding() + 128.dp
-                        )
-                    },
-                    canScroll = canScroll,
-                    allowHeaders = !hideTimelineOnAlbum,
-                    showMonthlyHeader = false,
-                    aboveGridContent = if (constituentAlbums.size > 1 && showMergedBanner) {
-                        {
-                            AlbumsMergedBanner(
-                                constituentAlbums = constituentAlbums,
-                                onDismiss = { showMergedBanner = false }
-                            )
-                        }
-                    } else null,
-                    isScrolling = isScrolling,
-                    emptyContent = { EmptyMedia() },
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedContentScope = animatedContentScope
+            val hideTimelineOnAlbum by rememberHideTimelineOnAlbum()
+            val timelineLayoutType by rememberTimelineLayoutType()
+            val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && !hideTimelineOnAlbum
+            if (isMosaicLayout) {
+                val mosaicGridState = rememberLazyGridState(
+                    cacheWindow = dpCacheWindow
+                )
+                val mappedData by remember(mediaState) {
+                    derivedStateOf {
+                        mediaState.value.mappedMedia.toMutableStateList()
+                    }
+                }
+                val headers by remember(mediaState) {
+                    derivedStateOf {
+                        mediaState.value.headers.toMutableStateList()
+                    }
+                }
+                val mosaicPaddingValues = remember(paddingValues, it) {
+                    PaddingValues(
+                        top = it.calculateTopPadding(),
+                        bottom = paddingValues.calculateBottomPadding() + 128.dp
+                    )
+                }
+                TimelineScroller(
+                    modifier = Modifier
+                        .padding(mosaicPaddingValues)
+                        .padding(top = 32.dp)
+                        .padding(vertical = 32.dp),
+                    mappedData = mappedData,
+                    headers = headers,
+                    state = mosaicGridState,
                 ) {
-                    eventHandler.navigate(Screen.MediaViewScreen.idAndAlbum(it.id, albumId))
+                    MosaicMediaGrid(
+                        modifier = Modifier.hazeSource(LocalHazeState.current),
+                        gridState = mosaicGridState,
+                        mediaState = mediaState,
+                        metadataState = metadataState,
+                        mappedData = mappedData,
+                        paddingValues = mosaicPaddingValues,
+                        allowSelection = true,
+                        canScroll = true,
+                        allowHeaders = true,
+                        aboveGridContent = if (constituentAlbums.size > 1 && showMergedBanner) {
+                            {
+                                AlbumsMergedBanner(
+                                    constituentAlbums = constituentAlbums,
+                                    onDismiss = { showMergedBanner = false }
+                                )
+                            }
+                        } else null,
+                        isScrolling = isScrolling,
+                        emptyContent = { EmptyMedia() },
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                        onMediaClick = {
+                            eventHandler.navigate(Screen.MediaViewScreen.idAndAlbum(it.id, albumId))
+                        },
+                    )
+                }
+            } else {
+                PinchZoomGridLayout(
+                    state = pinchState,
+                    modifier = Modifier.hazeSource(LocalHazeState.current)
+                ) {
+                    MediaGridView(
+                        modifier = Modifier.padding(top = it.calculateTopPadding()),
+                        mediaState = mediaState,
+                        metadataState = metadataState,
+                        allowSelection = true,
+                        showSearchBar = false,
+                        enableStickyHeaders = !hideTimelineOnAlbum,
+                        paddingValues = remember(paddingValues) {
+                            PaddingValues(
+                                bottom = paddingValues.calculateBottomPadding() + 128.dp
+                            )
+                        },
+                        canScroll = canScroll,
+                        allowHeaders = !hideTimelineOnAlbum,
+                        showMonthlyHeader = false,
+                        aboveGridContent = if (constituentAlbums.size > 1 && showMergedBanner) {
+                            {
+                                AlbumsMergedBanner(
+                                    constituentAlbums = constituentAlbums,
+                                    onDismiss = { showMergedBanner = false }
+                                )
+                            }
+                        } else null,
+                        isScrolling = isScrolling,
+                        emptyContent = { EmptyMedia() },
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope
+                    ) {
+                        eventHandler.navigate(Screen.MediaViewScreen.idAndAlbum(it.id, albumId))
+                    }
                 }
             }
         }

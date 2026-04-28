@@ -73,6 +73,7 @@ fun <T : Media> MediaImage(
     media: T,
     metadataState: State<MediaMetadataState>,
     stackCount: Int = 1,
+    aspectRatio: Float = 1f,
     canClick: () -> Boolean,
     onMediaClick: (T) -> Unit,
     onItemSelect: (T) -> Unit,
@@ -133,7 +134,7 @@ fun <T : Media> MediaImage(
                     { onItemSelect(media) }
                 }
             )
-            .aspectRatio(1f)
+            .aspectRatio(aspectRatio)
             .then(modifier)
     ) {
 
@@ -141,7 +142,7 @@ fun <T : Media> MediaImage(
             modifier = Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
-                .aspectRatio(1f)
+                .aspectRatio(aspectRatio)
                 .padding(selectedSize)
                 .clip(roundedShape)
                 .hazeSource(badgeHazeState)

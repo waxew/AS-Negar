@@ -30,11 +30,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -49,7 +51,9 @@ import com.dot.gallery.core.Constants.Target.TARGET_TRASH
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.LocalMediaSelector
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
+import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.EmptyMedia
 import com.dot.gallery.core.presentation.components.NavigationActions
@@ -60,6 +64,8 @@ import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
+import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGrid
+import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
 import com.dot.gallery.feature_node.presentation.common.components.TwoLinedDateToolbarTitle
 import com.dot.gallery.feature_node.presentation.search.MainSearchBar
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -198,45 +204,107 @@ fun <T: Media> MediaScreen(
                 }
             }
         ) { it ->
-            PinchZoomGridLayout(
-                state = pinchState,
-                modifier = Modifier.hazeSource(LocalHazeState.current)
-            ) {
-                MediaGridView(
-                    modifier = Modifier.padding(top = it.calculateTopPadding()),
-                    mediaState = mediaState,
-                    metadataState = metadataState,
-                    paddingValues = remember(paddingValues, it) {
-                        PaddingValues(
-                            bottom = paddingValues.calculateBottomPadding() + 128.dp
-                        )
-                    },
-                    searchBarPaddingTop = remember(paddingValues) {
-                        paddingValues.calculateTopPadding()
-                    },
-                    showSearchBar = showSearchBar,
-                    allowSelection = true,
-                    canScroll = canScroll,
-                    allowHeaders = allowHeaders,
-                    enableStickyHeaders = enableStickyHeaders,
-                    showMonthlyHeader = showMonthlyHeader,
-                    aboveGridContent = aboveGridContent,
-                    isScrolling = isScrolling,
-                    emptyContent = emptyContent,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedContentScope = animatedContentScope,
-                    onMediaClick = {
-                        if (customViewingNavigation == null) {
-                            val albumRoute = "albumId=$albumId"
-                            val targetRoute = "target=$target"
-                            val param =
-                                if (target != null) targetRoute else albumRoute
-                            eventHandler.navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}&$param")
-                        } else {
-                            customViewingNavigation(it)
-                        }
-                    },
+            val timelineLayoutType by rememberTimelineLayoutType()
+            val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && allowHeaders
+            if (isMosaicLayout) {
+                val mosaicGridState = rememberLazyGridState(
+                    cacheWindow = dpCacheWindow
                 )
+                val mappedData by remember(mediaState, showMonthlyHeader) {
+                    derivedStateOf {
+                        (if (showMonthlyHeader) mediaState.value.mappedMediaWithMonthly
+                        else mediaState.value.mappedMedia).toMutableStateList()
+                    }
+                }
+                val headers by remember(mediaState) {
+                    derivedStateOf {
+                        mediaState.value.headers.toMutableStateList()
+                    }
+                }
+                val mosaicPaddingValues = remember(paddingValues, it) {
+                    PaddingValues(
+                        top = it.calculateTopPadding(),
+                        bottom = paddingValues.calculateBottomPadding() + 128.dp
+                    )
+                }
+                TimelineScroller(
+                    modifier = Modifier
+                        .padding(mosaicPaddingValues)
+                        .padding(top = 32.dp)
+                        .padding(vertical = 32.dp),
+                    mappedData = mappedData,
+                    headers = headers,
+                    state = mosaicGridState,
+                ) {
+                    MosaicMediaGrid(
+                        modifier = Modifier.hazeSource(LocalHazeState.current),
+                        gridState = mosaicGridState,
+                        mediaState = mediaState,
+                        metadataState = metadataState,
+                        mappedData = mappedData,
+                        paddingValues = mosaicPaddingValues,
+                        allowSelection = true,
+                        canScroll = true,
+                        allowHeaders = true,
+                        aboveGridContent = aboveGridContent,
+                        isScrolling = isScrolling,
+                        emptyContent = emptyContent,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                        onMediaClick = {
+                            if (customViewingNavigation == null) {
+                                val albumRoute = "albumId=$albumId"
+                                val targetRoute = "target=$target"
+                                val param =
+                                    if (target != null) targetRoute else albumRoute
+                                eventHandler.navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}&$param")
+                            } else {
+                                customViewingNavigation(it)
+                            }
+                        },
+                    )
+                }
+            } else {
+                PinchZoomGridLayout(
+                    state = pinchState,
+                    modifier = Modifier.hazeSource(LocalHazeState.current)
+                ) {
+                    MediaGridView(
+                        modifier = Modifier.padding(top = it.calculateTopPadding()),
+                        mediaState = mediaState,
+                        metadataState = metadataState,
+                        paddingValues = remember(paddingValues, it) {
+                            PaddingValues(
+                                bottom = paddingValues.calculateBottomPadding() + 128.dp
+                            )
+                        },
+                        searchBarPaddingTop = remember(paddingValues) {
+                            paddingValues.calculateTopPadding()
+                        },
+                        showSearchBar = showSearchBar,
+                        allowSelection = true,
+                        canScroll = canScroll,
+                        allowHeaders = allowHeaders,
+                        enableStickyHeaders = enableStickyHeaders,
+                        showMonthlyHeader = showMonthlyHeader,
+                        aboveGridContent = aboveGridContent,
+                        isScrolling = isScrolling,
+                        emptyContent = emptyContent,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                        onMediaClick = {
+                            if (customViewingNavigation == null) {
+                                val albumRoute = "albumId=$albumId"
+                                val targetRoute = "target=$target"
+                                val param =
+                                    if (target != null) targetRoute else albumRoute
+                                eventHandler.navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}&$param")
+                            } else {
+                                customViewingNavigation(it)
+                            }
+                        },
+                    )
+                }
             }
         }
         AnimatedVisibility(
