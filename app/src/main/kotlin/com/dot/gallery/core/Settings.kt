@@ -188,6 +188,23 @@ object Settings {
             }
         }
 
+        suspend fun addImageHistory(context: Context, mediaId: Long, mediaLabel: String, mediaUri: String) {
+            context.dataStore.edit { preferences ->
+                val currentHistory = preferences[HISTORY_V2] ?: EMPTY_HISTORY
+                val historyList = Json.decodeFromString<List<SearchHistory>>(currentHistory)
+                    .filter { it.mediaId != mediaId }
+                val newEntry = SearchHistory(
+                    timestamp = System.currentTimeMillis(),
+                    query = mediaLabel,
+                    mediaId = mediaId,
+                    mediaLabel = mediaLabel,
+                    mediaUri = mediaUri
+                )
+                val updatedHistory = (historyList + newEntry).sortedByDescending { it.timestamp }
+                preferences[HISTORY_V2] = Json.encodeToString(updatedHistory)
+            }
+        }
+
         suspend fun removeHistory(context: Context, query: String) {
             context.dataStore.edit { preferences ->
                 val currentHistory = preferences[HISTORY_V2] ?: EMPTY_HISTORY
@@ -197,10 +214,19 @@ object Settings {
                 val updatedHistory = historyList.toMutableList().apply {
                     removeIf { searchHistory ->
                         printDebug("Checking: ${searchHistory.query} == $query")
-                        searchHistory.query == query
+                        searchHistory.query == query && searchHistory.mediaId == null
                     }
                 }
                 printDebug("Updated history: $updatedHistory")
+                preferences[HISTORY_V2] = Json.encodeToString(updatedHistory)
+            }
+        }
+
+        suspend fun removeImageHistory(context: Context, mediaId: Long) {
+            context.dataStore.edit { preferences ->
+                val currentHistory = preferences[HISTORY_V2] ?: EMPTY_HISTORY
+                val historyList = Json.decodeFromString<List<SearchHistory>>(currentHistory)
+                val updatedHistory = historyList.filter { it.mediaId != mediaId }
                 preferences[HISTORY_V2] = Json.encodeToString(updatedHistory)
             }
         }

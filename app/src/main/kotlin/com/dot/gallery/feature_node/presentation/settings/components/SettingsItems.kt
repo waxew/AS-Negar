@@ -152,10 +152,13 @@ fun SettingsItem(
         if (imageUri != null) {
             AsyncImage(
                 uri = imageUri,
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(color = Color.White)
-                    .padding(4.dp),
+                modifier = if (tintIcon) {
+                    Modifier.size(48.dp).clip(CircleShape).background(color = Color.White).padding(4.dp)
+                } else {
+                    Modifier.size(48.dp).clip(RoundedCornerShape(12.dp))
+                },
                 contentDescription = null,
-                contentScale = ContentScale.Fit,
+                contentScale = if (tintIcon) ContentScale.Fit else ContentScale.Crop,
                 colorFilter = if (tintIcon) ColorFilter.tint(MaterialTheme.colorScheme.onSurface) else null
             )
         } else if (imageVector != null) {

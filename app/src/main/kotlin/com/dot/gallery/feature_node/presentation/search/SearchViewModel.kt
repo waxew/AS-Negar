@@ -1,6 +1,7 @@
 package com.dot.gallery.feature_node.presentation.search
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,8 +18,10 @@ import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.MediaGroupType
 import com.dot.gallery.feature_node.domain.util.classifyGroupType
+import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.domain.util.groupKey
 import com.dot.gallery.feature_node.presentation.library.CategoryMedia
+import com.dot.gallery.feature_node.presentation.search.util.centerCrop
 import com.dot.gallery.feature_node.presentation.util.mapMediaToItem
 import com.frosch2010.fuzzywuzzy_kotlin.FuzzySearch
 import com.frosch2010.fuzzywuzzy_kotlin.ToStringFunction
@@ -70,6 +73,9 @@ class SearchViewModel @Inject constructor(
 
     private var _query = MutableStateFlow("")
     val query = _query.asStateFlow()
+
+    private val _selectedImageMedia = MutableStateFlow<Media.UriMedia?>(null)
+    val selectedImageMedia = _selectedImageMedia.asStateFlow()
 
     private val _searchResultsState = MutableStateFlow(SearchResultsState())
     val searchResultsState = _searchResultsState.asStateFlow()
@@ -278,11 +284,116 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    fun addImageHistory(media: Media.UriMedia) {
+        viewModelScope.launch {
+            Settings.Search.addImageHistory(context, media.id, media.label, media.getUri().toString())
+        }
+    }
+
+    fun removeImageHistory(mediaId: Long) {
+        if (removingHistoryJob == null || removingHistoryJob?.isCompleted == true) {
+            removingHistoryJob = viewModelScope.launch {
+                Settings.Search.removeImageHistory(context, mediaId)
+            }
+        }
+    }
+
     fun clearQuery() {
         viewModelScope.launch {
             searchJob?.cancel()
             _query.tryEmit("")
+            _selectedImageMedia.tryEmit(null)
             _searchResultsState.tryEmit(SearchResultsState())
+        }
+    }
+
+    fun setSelectedMedia(media: Media.UriMedia) {
+        _selectedImageMedia.value = media
+        addImageHistory(media)
+        searchByImage(media)
+    }
+
+    fun restoreImageSearch(mediaId: Long) {
+        val media = allMedia.value.media.find { it.id == mediaId } ?: return
+        _selectedImageMedia.value = media
+        searchByImage(media)
+    }
+
+    fun clearSelectedMedia() {
+        _selectedImageMedia.value = null
+        _searchResultsState.tryEmit(SearchResultsState())
+    }
+
+    fun searchByImage(media: Media.UriMedia) {
+        searchJob?.cancel()
+        _query.value = ""
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
+            _searchResultsState.tryEmit(
+                SearchResultsState(
+                    hasSearched = true,
+                    isSearching = true,
+                    progress = 0f,
+                    results = MediaState(isLoading = true)
+                )
+            )
+            try {
+                val uri = media.getUri()
+                val contentResolver = context.contentResolver
+                val bitmap = contentResolver.openInputStream(uri)?.use { inputStream ->
+                    BitmapFactory.decodeStream(inputStream)
+                } ?: run {
+                    _searchResultsState.tryEmit(
+                        SearchResultsState(
+                            hasSearched = true,
+                            isSearching = false,
+                            progress = 1f,
+                            results = MediaState(error = "Could not load image", isLoading = false)
+                        )
+                    )
+                    return@launch
+                }
+
+                val croppedBitmap = centerCrop(bitmap, 224)
+                searchHelper.setupVisionSession().use { session ->
+                    val imageEmbedding = searchHelper.getImageEmbedding(session, croppedBitmap)
+                    val searchResultsPair = searchHelper.sortByCosineDistance(
+                        searchEmbedding = imageEmbedding,
+                        imageEmbeddingsList = imageRecords.value.map { it.embedding },
+                        imageIdxList = imageRecords.value.map { it.id }
+                    )
+                    val allMediaList = allMedia.value.media
+                    val results = searchResultsPair.mapNotNull { (id, score) ->
+                        if (id == media.id) return@mapNotNull null
+                        val m = allMediaList.find { it.id == id }
+                        if (m != null) score to m else null
+                    }
+                    val mediaState = mapMediaToItem(
+                        data = results.map { it.second },
+                        error = "",
+                        albumId = -1L,
+                        defaultDateFormat = dateFormats.value.first,
+                        extendedDateFormat = dateFormats.value.second,
+                        weeklyDateFormat = dateFormats.value.third
+                    )
+                    _searchResultsState.tryEmit(
+                        SearchResultsState(
+                            hasSearched = true,
+                            isSearching = false,
+                            progress = 1f,
+                            results = mediaState
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                _searchResultsState.tryEmit(
+                    SearchResultsState(
+                        hasSearched = true,
+                        isSearching = false,
+                        progress = 1f,
+                        results = MediaState(error = e.message ?: "Search failed", isLoading = false)
+                    )
+                )
+            }
         }
     }
 

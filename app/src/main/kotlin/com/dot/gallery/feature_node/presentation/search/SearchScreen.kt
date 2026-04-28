@@ -108,7 +108,12 @@ fun SearchScreen(
     val distributor = LocalMediaDistributor.current
     val searchResults by viewModel.searchResultsState.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val selectedImageMedia by viewModel.selectedImageMedia.collectAsStateWithLifecycle()
     var searchHistory by rememberSearchHistory()
+
+    // Image-to-image search UI state
+    var showPickerSheet by rememberSaveable { mutableStateOf(false) }
+    var showPreviewDialog by rememberSaveable { mutableStateOf(false) }
 
     // Categories for the carousel
     val topCategories by viewModel.topCategories.collectAsStateWithLifecycle()
@@ -118,15 +123,28 @@ fun SearchScreen(
     val topMediaModes by viewModel.topMediaModes.collectAsStateWithLifecycle()
     val topGroupTypes by viewModel.topGroupTypes.collectAsStateWithLifecycle()
 
+    val visualSearchLabel = stringResource(R.string.visual_search)
     val historyItems by rememberedDerivedState {
         if (searchHistory.isEmpty()) {
             emptyList()
         } else {
             listOf(SettingsEntity.Header("History")) +
-                    searchHistory.map {
-                        SettingsEntity.Preference(
-                            title = it.query,
-                            onClick = { viewModel.setQuery(it.query, apply = true) })
+                    searchHistory.map { entry ->
+                        if (entry.mediaId != null) {
+                            SettingsEntity.Preference(
+                                icon = if (entry.mediaUri == null) Icons.Outlined.ImageSearch else null,
+                                iconUri = entry.mediaUri,
+                                title = entry.mediaLabel ?: entry.query,
+                                summary = visualSearchLabel,
+                                onClick = { viewModel.restoreImageSearch(entry.mediaId) },
+                                tag = entry.mediaId
+                            )
+                        } else {
+                            SettingsEntity.Preference(
+                                title = entry.query,
+                                onClick = { viewModel.setQuery(entry.query, apply = true) }
+                            )
+                        }
                     }.take(5)
         }
     }
@@ -166,7 +184,7 @@ fun SearchScreen(
                                     shape = CircleShape
                                 ),
                             onClick = {
-                                if (query.isNotEmpty()) {
+                                if (query.isNotEmpty() || selectedImageMedia != null) {
                                     viewModel.clearQuery()
                                 } else {
                                     eventHandler.navigateUp()
@@ -217,37 +235,74 @@ fun SearchScreen(
                                     viewModel.addHistory(query)
                                 }
                             ),
+                            leadingIcon = selectedImageMedia?.let { media ->
+                                {
+                                    ImageSearchChip(
+                                        media = media,
+                                        onClick = { showPreviewDialog = true },
+                                        onRemove = { viewModel.clearSelectedMedia() }
+                                    )
+                                }
+                            },
                             placeholder = {
                                 Text(
-                                    text = stringResource(R.string.search_images_videos),
+                                    text = if (selectedImageMedia != null)
+                                        stringResource(R.string.find_similar)
+                                    else
+                                        stringResource(R.string.search_images_videos),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
                             },
                             singleLine = true,
                             trailingIcon = {
-                                AnimatedVisibility(
-                                    visible = query.isNotBlank() && !searchResults.isSearching && !searchResults.hasSearched,
-                                    enter = fadeIn() + slideInHorizontally { it },
-                                    exit = fadeOut() + slideOutHorizontally { it }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    IconButton(
-                                        modifier = Modifier
-                                            .padding(horizontal = 8.dp)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.surfaceContainer,
-                                                shape = CircleShape
-                                            ),
-                                        onClick = {
-                                            viewModel.setQuery(query, apply = true)
-                                            viewModel.addHistory(query)
-                                        }
+                                    AnimatedVisibility(
+                                        visible = query.isNotBlank() && !searchResults.isSearching && !searchResults.hasSearched,
+                                        enter = fadeIn() + slideInHorizontally { it },
+                                        exit = fadeOut() + slideOutHorizontally { it }
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Search,
-                                            contentDescription = stringResource(id = R.string.search_images_videos),
-                                            tint = MaterialTheme.colorScheme.onSurface
-                                        )
+                                        IconButton(
+                                            modifier = Modifier
+                                                .padding(horizontal = 4.dp)
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.surfaceContainer,
+                                                    shape = CircleShape
+                                                ),
+                                            onClick = {
+                                                viewModel.setQuery(query, apply = true)
+                                                viewModel.addHistory(query)
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Search,
+                                                contentDescription = stringResource(id = R.string.search_images_videos),
+                                                tint = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                    AnimatedVisibility(
+                                        visible = selectedImageMedia == null && !searchResults.isSearching,
+                                        enter = fadeIn() + slideInHorizontally { it },
+                                        exit = fadeOut() + slideOutHorizontally { it }
+                                    ) {
+                                        IconButton(
+                                            modifier = Modifier
+                                                .padding(end = 4.dp)
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.surfaceContainer,
+                                                    shape = CircleShape
+                                                ),
+                                            onClick = { showPickerSheet = true }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.ImageSearch,
+                                                contentDescription = stringResource(R.string.search_by_image),
+                                                tint = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -340,7 +395,12 @@ fun SearchScreen(
                             slimLayout = true,
                             swipeToDismiss = true,
                             onDismiss = { item ->
-                                viewModel.removeHistory(item.title)
+                                val mediaId = item.tag as? Long
+                                if (mediaId != null) {
+                                    viewModel.removeImageHistory(mediaId)
+                                } else {
+                                    viewModel.removeHistory(item.title)
+                                }
                                 viewModel.clearQuery()
                             }
                         )
@@ -553,7 +613,7 @@ fun SearchScreen(
                 }
                 AnimatedVisibility(
                     visible = !searchResults.isSearching
-                            && query.isNotEmpty()
+                            && (query.isNotEmpty() || selectedImageMedia != null)
                             && searchResults.results.media.isEmpty()
                             && searchResults.hasSearched,
                     enter = enterAnimation,
@@ -574,6 +634,33 @@ fun SearchScreen(
                 modifier = Modifier.align(Alignment.BottomEnd),
                 allMedia = searchResults.results,
                 selectedMedia = selectedMediaList
+            )
+        }
+
+        // Image search picker bottom sheet
+        if (showPickerSheet) {
+            ImageSearchPickerSheet(
+                onMediaSelected = { media ->
+                    showPickerSheet = false
+                    viewModel.setSelectedMedia(media)
+                },
+                onDismiss = { showPickerSheet = false }
+            )
+        }
+
+        // Image search preview dialog
+        if (showPreviewDialog && selectedImageMedia != null) {
+            ImageSearchPreviewDialog(
+                media = selectedImageMedia!!,
+                onDismiss = { showPreviewDialog = false },
+                onRemove = {
+                    showPreviewDialog = false
+                    viewModel.clearSelectedMedia()
+                },
+                onPickAnother = {
+                    showPreviewDialog = false
+                    showPickerSheet = true
+                }
             )
         }
     }

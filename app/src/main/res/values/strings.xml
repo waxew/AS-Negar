@@ -653,4 +653,12 @@
     <string name="merge_albums_by_name">Merge albums by name</string>
     <string name="merge_albums_by_name_summary">Albums with the same name are displayed as one. They still exist in separate folders.</string>
     <string name="dismiss">Dismiss</string>
+
+    <!-- Visual / Image-to-Image search -->
+    <string name="visual_search">Visual search</string>
+    <string name="search_by_image">Search by image</string>
+    <string name="pick_another">Pick another</string>
+    <string name="remove_image">Remove image</string>
+    <string name="find_similar">Find similar</string>
+    <string name="image_search_preview">Image search preview</string>
 </resources>

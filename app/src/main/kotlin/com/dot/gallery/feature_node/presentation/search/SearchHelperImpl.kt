@@ -2,6 +2,7 @@ package com.dot.gallery.feature_node.presentation.search
 
 import ai.onnxruntime.OrtSession
 import android.content.Context
+import android.graphics.Bitmap
 import com.dot.gallery.feature_node.presentation.search.helpers.SearchVisionHelper
 import com.dot.gallery.feature_node.presentation.search.util.dot
 import com.dot.gallery.feature_node.presentation.util.printDebug
@@ -40,6 +41,12 @@ class SearchHelperImpl @Inject constructor(
 
     override suspend fun getTextEmbedding(session: OrtSession, text: String): FloatArray = withContext(Dispatchers.IO) {
         helper.getTextEmbedding(session, text)
+    }
+
+    override fun setupVisionSession(): OrtSession = helper.setupVisionSession()
+
+    override suspend fun getImageEmbedding(session: OrtSession, bitmap: Bitmap): FloatArray = withContext(Dispatchers.IO) {
+        helper.getImageEmbedding(session, bitmap)
     }
 
 }

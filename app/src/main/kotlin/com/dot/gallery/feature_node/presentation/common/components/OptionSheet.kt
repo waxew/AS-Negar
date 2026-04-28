@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
@@ -179,7 +180,7 @@ fun LazyListScope.SettingsOptionLayout(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .then(paddingModifier)
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .background(
                                 color = MaterialTheme.colorScheme.errorContainer,
                                 shape = shape
@@ -203,7 +204,8 @@ fun LazyListScope.SettingsOptionLayout(
                     SettingsItem(
                         modifier = modifier.animateItem(),
                         item = newItem,
-                        slimLayout = slimLayout
+                        slimLayout = slimLayout,
+                        tintIcon = newItem.iconUri == null
                     )
                 }
             )
@@ -211,7 +213,8 @@ fun LazyListScope.SettingsOptionLayout(
             SettingsItem(
                 modifier = modifier.animateItem(),
                 item = newItem,
-                slimLayout = slimLayout
+                slimLayout = slimLayout,
+                tintIcon = newItem.iconUri == null
             )
         }
     }

@@ -1,6 +1,7 @@
 package com.dot.gallery.feature_node.presentation.search
 
 import ai.onnxruntime.OrtSession
+import android.graphics.Bitmap
 
 interface SearchHelper {
 
@@ -13,4 +14,8 @@ interface SearchHelper {
     suspend fun getTextEmbedding(session: OrtSession, text: String): FloatArray
 
     fun setupTextSession(): OrtSession
+
+    fun setupVisionSession(): OrtSession
+
+    suspend fun getImageEmbedding(session: OrtSession, bitmap: Bitmap): FloatArray
 }
