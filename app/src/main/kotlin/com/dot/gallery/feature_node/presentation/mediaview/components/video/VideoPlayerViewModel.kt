@@ -30,6 +30,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,14 +76,19 @@ class VideoPlayerViewModel @AssistedInject constructor(
 
     private var decryptedFile: File? = null
     private var initialSeekApplied = false
+    private var progressJob: Job? = null
 
     // Public immutable flow
     private val _state =
         MutableStateFlow(PlaybackState(isDecrypting = media.isEncrypted))
     val state: StateFlow<PlaybackState> = _state
 
-    // Owned player
-    var player: ExoPlayer = createExoPlayer()
+    // Owned player — exposed as StateFlow so Compose recomposes on player recreation
+    private val _playerFlow = MutableStateFlow(createExoPlayer())
+    val playerFlow: StateFlow<ExoPlayer> = _playerFlow
+    var player: ExoPlayer
+        get() = _playerFlow.value
+        set(value) { _playerFlow.value = value }
 
     init {
         restoreFromSavedState()
@@ -196,17 +202,21 @@ class VideoPlayerViewModel @AssistedInject constructor(
         }
     }
 
+    @OptIn(UnstableApi::class)
     private fun startProgressLoop() {
-        viewModelScope.launch {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
             while (isActive) {
                 val p = player
-                val pos = p.currentPosition
-                val buffered = p.bufferedPercentage
-                _state.update {
-                    it.copy(
-                        positionMs = pos,
-                        bufferedPercent = buffered
-                    )
+                if (!p.isReleased) {
+                    val pos = p.currentPosition
+                    val buffered = p.bufferedPercentage
+                    _state.update {
+                        it.copy(
+                            positionMs = pos,
+                            bufferedPercent = buffered
+                        )
+                    }
                 }
                 delay(1.seconds / 30) // ~30fps updates
             }
@@ -271,6 +281,8 @@ class VideoPlayerViewModel @AssistedInject constructor(
         if (player.isReleased) {
             printDebug("Reattached to composition ${media.id}'s video")
             runCatching {
+                _state.update { it.copy(ready = false) }
+                initialSeekApplied = false
                 player = createExoPlayer()
                 restoreFromSavedState()
                 prepareMedia()
@@ -288,17 +300,28 @@ class VideoPlayerViewModel @AssistedInject constructor(
     @OptIn(UnstableApi::class)
     fun detachFromComposition() {
         printDebug("Cleared from composition ${media.id}'s video")
+        progressJob?.cancel()
+        progressJob = null
         runCatching {
-            if (!player.isReleased) player.release()
+            if (!player.isReleased) {
+                savedStateHandle[KEY_POSITION] = player.currentPosition
+                savedStateHandle[KEY_PLAYING] = player.isPlaying
+                player.release()
+            }
         }
     }
 
+    @OptIn(UnstableApi::class)
     override fun onCleared() {
-        // Persist position & play state
-        savedStateHandle[KEY_POSITION] = player.currentPosition
-        savedStateHandle[KEY_PLAYING] = player.isPlaying
+        progressJob?.cancel()
+        progressJob = null
         try {
-            player.release()
+            if (!player.isReleased) {
+                // Persist position & play state
+                savedStateHandle[KEY_POSITION] = player.currentPosition
+                savedStateHandle[KEY_PLAYING] = player.isPlaying
+                player.release()
+            }
         } catch (_: Throwable) {
         }
         decryptedFile?.delete()

@@ -17,6 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.MutableState
@@ -79,6 +80,7 @@ fun <T : Media> VideoPlayer(
         )
 
     val playback by vm.state.collectAsStateWithLifecycle()
+    val currentPlayer by vm.playerFlow.collectAsStateWithLifecycle()
 
     // Adapter states to satisfy legacy videoController signature
     val isPlayingState = rememberSaveable(media.id) { mutableStateOf(playback.isPlaying) }
@@ -95,6 +97,13 @@ fun <T : Media> VideoPlayer(
     val canAutoPlay by rememberVideoAutoplay()
     LaunchedEffect(playWhenReady.value, canAutoPlay) {
         vm.setUserPlayWhenReady(playWhenReady.value, canAutoPlay)
+    }
+
+    // Safety net: release player when leaving composition (e.g. fast scroll disposing page)
+    DisposableEffect(vm) {
+        onDispose {
+            vm.detachFromComposition()
+        }
     }
 
     // Audio focus preferences
@@ -115,7 +124,7 @@ fun <T : Media> VideoPlayer(
         }
     }
     val presentationState = rememberPresentationState(
-        player = vm.player,
+        player = currentPlayer,
         keepContentOnReset = true
     )
 
@@ -190,11 +199,12 @@ fun <T : Media> VideoPlayer(
             factory = { ctx ->
                 SurfaceView(ctx).also { sv ->
                     surfaceViewRef = sv
-                    vm.player.setVideoSurfaceView(sv)
                 }
             },
             update = { sv ->
-                vm.player.setVideoSurfaceView(sv)
+                if (!currentPlayer.isReleased) {
+                    currentPlayer.setVideoSurfaceView(sv)
+                }
             },
             modifier = Modifier
                 .align(Alignment.Center)
@@ -223,7 +233,7 @@ fun <T : Media> VideoPlayer(
         exit = exitAnimation
     ) {
         videoController(
-            vm.player,
+            currentPlayer,
             isPlayingState,
             positionState,
             playback.durationMs,
