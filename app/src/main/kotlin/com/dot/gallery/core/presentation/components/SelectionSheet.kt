@@ -74,6 +74,7 @@ import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
+import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.Settings.Misc.rememberShowSelectionTitles
 import com.dot.gallery.core.Settings.Misc.rememberTrashEnabled
 import com.dot.gallery.core.util.SdkCompat
@@ -225,7 +226,8 @@ fun <T : Media> BoxScope.SelectionSheet(
                     }
                 }
                 // Favorite Component
-                if (SdkCompat.supportsFavorites) {
+                val showFavoriteButton by rememberShowFavoriteButton()
+                if (showFavoriteButton && SdkCompat.supportsFavorites) {
                     SelectionBarColumn(
                         imageVector = Icons.Outlined.FavoriteBorder,
                         tabletMode = tabletMode,

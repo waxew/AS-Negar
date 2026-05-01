@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.dot.gallery.R
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
+import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -49,7 +50,8 @@ fun TimelineNavActions() {
     val errorContainer = MaterialTheme.colorScheme.primaryFixed
     val onErrorContainer = MaterialTheme.colorScheme.onPrimaryFixed
 
-    if (SdkCompat.supportsFavorites) {
+    val showFavoriteButton by rememberShowFavoriteButton()
+    if (showFavoriteButton && SdkCompat.supportsFavorites) {
         val favoriteBackgroundModifier = remember(allowBlur) {
             if (!allowBlur) {
                 Modifier.background(
