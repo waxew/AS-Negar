@@ -6,18 +6,30 @@
 package com.dot.gallery.feature_node.presentation.mediaview.components
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,8 +37,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,12 +46,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.dot.gallery.R
+import com.dot.gallery.core.presentation.components.CheckBox
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.util.getUri
 import com.github.panpf.sketch.AsyncImage
-import kotlin.math.abs
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 private val THUMBNAIL_SIZE = 56.dp
 private val ITEM_SPACING = 6.dp
@@ -52,6 +67,10 @@ fun <T : Media> GroupMemberStrip(
     selectedId: Long,
     onSelect: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    multiSelectMode: Boolean = false,
+    multiSelectedIds: Set<Long> = emptySet(),
+    onEnterMultiSelect: (Long) -> Unit = {},
+    onToggleMultiSelect: (Long) -> Unit = {},
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -73,8 +92,9 @@ fun <T : Media> GroupMemberStrip(
         }
     }
 
-    // Auto-select center-most visible item while user is scrolling
-    LaunchedEffect(members) {
+    // Auto-select center-most visible item while user is scrolling (only in normal mode)
+    LaunchedEffect(members, multiSelectMode) {
+        if (multiSelectMode) return@LaunchedEffect
         snapshotFlow {
             if (!listState.isScrollInProgress) return@snapshotFlow null
             val layoutInfo = listState.layoutInfo
@@ -108,9 +128,16 @@ fun <T : Media> GroupMemberStrip(
             items = members,
             key = { it.id }
         ) { member ->
-            val isSelected = member.id == selectedId
+            val isCurrent = member.id == selectedId
+            val isMultiSelected = multiSelectMode && member.id in multiSelectedIds
+            val showBorder = isCurrent || isMultiSelected
+            val borderColor = if (isMultiSelected) {
+                Color(0xFF90CAF9) // light blue for multi-select
+            } else {
+                Color.White // white for current viewing item
+            }
             val borderWidth by animateDpAsState(
-                targetValue = if (isSelected) SELECTED_BORDER_WIDTH else 0.dp,
+                targetValue = if (showBorder) SELECTED_BORDER_WIDTH else 0.dp,
                 label = "thumbnailBorder"
             )
             Box(
@@ -119,22 +146,31 @@ fun <T : Media> GroupMemberStrip(
                     .size(THUMBNAIL_SIZE)
                     .clip(THUMBNAIL_SHAPE)
                     .then(
-                        if (isSelected) {
+                        if (showBorder) {
                             Modifier.border(
                                 width = borderWidth,
-                                color = Color.White,
+                                color = borderColor,
                                 shape = THUMBNAIL_SHAPE
                             )
                         } else Modifier
                     )
-                    .clickable {
-                        val index = members.indexOfFirst { it.id == member.id }
-                        if (index >= 0) {
-                            scope.launch {
-                                listState.animateScrollToItem(index)
+                    .combinedClickable(
+                        onClick = {
+                            if (multiSelectMode) {
+                                onToggleMultiSelect(member.id)
+                            } else {
+                                val index = members.indexOfFirst { it.id == member.id }
+                                if (index >= 0) {
+                                    scope.launch {
+                                        listState.animateScrollToItem(index)
+                                    }
+                                }
                             }
+                        },
+                        onLongClick = if (multiSelectMode) null else {
+                            { onEnterMultiSelect(member.id) }
                         }
-                    }
+                    )
             ) {
                 AsyncImage(
                     uri = member.getUri().toString(),
@@ -144,7 +180,69 @@ fun <T : Media> GroupMemberStrip(
                         .matchParentSize()
                         .clip(THUMBNAIL_SHAPE)
                 )
+                if (multiSelectMode) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(2.dp)
+                    ) {
+                        CheckBox(isChecked = isMultiSelected)
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun GroupMemberSelectionBar(
+    selectedCount: Int,
+    totalCount: Int,
+    onClose: () -> Unit,
+    onSelectAll: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(24.dp)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f),
+                shape = shape
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = stringResource(R.string.selection_dialog_close_cd),
+                tint = Color.White
+            )
+        }
+        Text(
+            text = selectedCount.toString(),
+            color = Color.White,
+            style = MaterialTheme.typography.titleSmall
+        )
+        IconButton(onClick = onSelectAll) {
+            Icon(
+                imageVector = Icons.Outlined.SelectAll,
+                contentDescription = stringResource(R.string.select_all),
+                tint = Color.White
+            )
+        }
+        IconButton(
+            onClick = onShare,
+            enabled = selectedCount > 0
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Share,
+                contentDescription = stringResource(R.string.share),
+                tint = if (selectedCount > 0) Color.White else Color.White.copy(alpha = 0.38f)
+            )
         }
     }
 }

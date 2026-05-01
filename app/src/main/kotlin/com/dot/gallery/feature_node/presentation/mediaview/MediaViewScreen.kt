@@ -99,6 +99,7 @@ import com.dot.gallery.feature_node.domain.util.isImage
 import com.dot.gallery.feature_node.domain.util.isVideo
 import com.dot.gallery.feature_node.domain.util.readUriOnly
 import com.dot.gallery.feature_node.presentation.mediaview.MediaViewViewModel.MediaViewEvent
+import com.dot.gallery.feature_node.presentation.mediaview.components.GroupMemberSelectionBar
 import com.dot.gallery.feature_node.presentation.mediaview.components.GroupMemberStrip
 import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewAppBar
 import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewQuickBottomBar
@@ -107,6 +108,7 @@ import com.dot.gallery.feature_node.presentation.mediaview.components.media.Medi
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoFilmstrip
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.rememberMotionPhotoState
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.VideoPlayerController
+import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.FullBrightnessWindow
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.ProvideInsets
@@ -208,9 +210,15 @@ fun <T : Media> MediaViewScreen(
     // Track which group member is selected (null = show representative/pager item)
     var selectedMemberOverrideId by rememberSaveable { mutableStateOf<Long?>(null) }
 
+    // Multi-select state for group members
+    var groupMultiSelectMode by rememberSaveable { mutableStateOf(false) }
+    var groupMultiSelectedIds by rememberSaveable { mutableStateOf(emptySet<Long>()) }
+
     // Select first group member when swiping to a different page
     LaunchedEffect(currentPage) {
         selectedMemberOverrideId = null
+        groupMultiSelectMode = false
+        groupMultiSelectedIds = emptySet()
     }
 
     // Reset selected member if it was deleted (no longer in group members)
@@ -738,17 +746,68 @@ fun <T : Media> MediaViewScreen(
                     )
             ) {
                 val currentPagerItemId = pagerItems.getOrNull(currentPage)?.id ?: -1L
-                key(currentPagerItemId) {
-                    GroupMemberStrip(
-                        members = currentGroupMembers,
-                        selectedId = selectedMemberOverrideId
-                            ?: currentGroupMembers.firstOrNull()?.id
-                            ?: currentPagerItemId,
-                        onSelect = { id ->
-                            selectedMemberOverrideId = id
-                        }
-                    )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Floating action bar for group multi-select
+                    AnimatedVisibility(visible = groupMultiSelectMode) {
+                        GroupMemberSelectionBar(
+                            selectedCount = groupMultiSelectedIds.size,
+                            totalCount = currentGroupMembers.size,
+                            onClose = {
+                                groupMultiSelectMode = false
+                                groupMultiSelectedIds = emptySet()
+                            },
+                            onSelectAll = {
+                                groupMultiSelectedIds = currentGroupMembers.map { it.id }.toSet()
+                            },
+                            onShare = {
+                                val selected = currentGroupMembers.filter {
+                                    it.id in groupMultiSelectedIds
+                                }
+                                if (selected.isNotEmpty()) {
+                                    scope.launch {
+                                        context.shareMedia(selected)
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    key(currentPagerItemId) {
+                        GroupMemberStrip(
+                            members = currentGroupMembers,
+                            selectedId = selectedMemberOverrideId
+                                ?: currentGroupMembers.firstOrNull()?.id
+                                ?: currentPagerItemId,
+                            onSelect = { id ->
+                                selectedMemberOverrideId = id
+                            },
+                            multiSelectMode = groupMultiSelectMode,
+                            multiSelectedIds = groupMultiSelectedIds,
+                            onEnterMultiSelect = { id ->
+                                groupMultiSelectMode = true
+                                groupMultiSelectedIds = setOf(id)
+                            },
+                            onToggleMultiSelect = { id ->
+                                val newSet = if (id in groupMultiSelectedIds) {
+                                    groupMultiSelectedIds - id
+                                } else {
+                                    groupMultiSelectedIds + id
+                                }
+                                groupMultiSelectedIds = newSet
+                                if (newSet.isEmpty()) {
+                                    groupMultiSelectMode = false
+                                }
+                            }
+                        )
+                    }
                 }
+            }
+            // Back handler for group multi-select mode
+            BackHandler(groupMultiSelectMode) {
+                groupMultiSelectMode = false
+                groupMultiSelectedIds = emptySet()
             }
             LaunchedEffect(showUI) {
                 if (!showUI && (sheetState.currentDetent == FullyExpanded || sheetState.targetDetent == FullyExpanded)) {

@@ -19,11 +19,13 @@ class MediaSelectorImpl : MediaSelector {
         index: Int
     ) {
         val item = mediaState.media[index]
-        val selectedPhoto = selectedMedia.value.find { it == item.id }
-        val newSelection = if (selectedPhoto != null) {
-            selectedMedia.value.toMutableSet().apply { remove(selectedPhoto) }
+        val groupIds = mediaState.mediaGroups[item.id]?.map { it.id }
+        val idsToToggle = groupIds ?: listOf(item.id)
+        val isCurrentlySelected = selectedMedia.value.contains(item.id)
+        val newSelection = if (isCurrentlySelected) {
+            selectedMedia.value.toMutableSet().apply { removeAll(idsToToggle.toSet()) }
         } else {
-            selectedMedia.value.toMutableSet().apply { add(item.id) }
+            selectedMedia.value.toMutableSet().apply { addAll(idsToToggle) }
         }
         selectedMedia.tryEmit(newSelection)
         isSelectionActive.value = newSelection.isNotEmpty()

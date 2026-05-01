@@ -225,6 +225,26 @@ private fun <T : Media> PinchZoomGridScope.MediaGridContentWithHeaders(
         val isSelectionActive by selector.isSelectionActive.collectAsStateWithLifecycle()
         val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
 
+        val groupAwareUpdateSelection: (Set<Long>) -> Unit = remember(mediaState) {
+            { ids ->
+                val groups = mediaState.value.mediaGroups
+                if (groups.isEmpty()) {
+                    selector.rawUpdateSelection(ids)
+                } else {
+                    val expanded = mutableSetOf<Long>()
+                    for (id in ids) {
+                        val group = groups[id]
+                        if (group != null) {
+                            group.forEach { expanded.add(it.id) }
+                        } else {
+                            expanded.add(id)
+                        }
+                    }
+                    selector.rawUpdateSelection(expanded)
+                }
+            }
+        }
+
         LazyVerticalGrid(
             state = gridState,
             modifier = modifier
@@ -234,7 +254,7 @@ private fun <T : Media> PinchZoomGridScope.MediaGridContentWithHeaders(
                     lazyGridState = gridState,
                     haptics = LocalHapticFeedback.current,
                     selectedIds = selectedMedia,
-                    updateSelectedIds = selector::rawUpdateSelection,
+                    updateSelectedIds = groupAwareUpdateSelection,
                     autoScrollSpeed = autoScrollSpeed,
                     autoScrollThreshold = with(LocalDensity.current) { 40.dp.toPx() },
                     scrollGestureActive = scrollGestureActive,
