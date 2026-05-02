@@ -6,6 +6,7 @@ package com.dot.gallery.feature_node.presentation.collection.components
 
 import android.content.ContentUris
 import android.provider.MediaStore
+import com.dot.gallery.feature_node.presentation.util.formatSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
@@ -14,11 +15,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LibraryAdd
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +68,7 @@ fun CollectionComponent(
     onRename: ((CollectionWithCount) -> Unit)? = null,
     onDelete: ((CollectionWithCount) -> Unit)? = null,
     onTogglePin: ((CollectionWithCount) -> Unit)? = null,
+    onEditAlbums: ((CollectionWithCount) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val appBottomSheetState = rememberAppBottomSheetState()
@@ -70,6 +77,7 @@ fun CollectionComponent(
 
     val renameTitle = stringResource(R.string.rename_collection)
     val deleteTitle = stringResource(R.string.delete_collection)
+    val addAlbumsTitle = stringResource(R.string.select_albums_for_collection)
     val pinTitle = stringResource(
         if (collection.isPinned) R.string.unpin_collection else R.string.pin_collection
     )
@@ -80,8 +88,21 @@ fun CollectionComponent(
     val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
     val onTertiaryContainer = MaterialTheme.colorScheme.onTertiaryContainer
 
-    val optionList = remember(collection.isPinned, onRename, onDelete, onTogglePin) {
+    val optionList = remember(collection.isPinned, onRename, onDelete, onTogglePin, onEditAlbums) {
         mutableListOf(
+            OptionItem(
+                icon = Icons.Outlined.LibraryAdd,
+                text = addAlbumsTitle,
+                containerColor = secondaryContainer,
+                contentColor = onSecondaryContainer,
+                enabled = onEditAlbums != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onEditAlbums?.invoke(collectionWithCount)
+                    }
+                }
+            ),
             OptionItem(
                 icon = Icons.Outlined.PushPin,
                 text = pinTitle,
@@ -239,6 +260,9 @@ fun CollectionComponent(
             maxLines = 1
         )
         if (collectionWithCount.mediaCount > 0) {
+            val sizeText = if (collectionWithCount.totalSize > 0) {
+                " (${formatSize(collectionWithCount.totalSize)})"
+            } else ""
             Text(
                 modifier = Modifier
                     .padding(top = 2.dp, bottom = 16.dp)
@@ -246,10 +270,210 @@ fun CollectionComponent(
                 text = stringResource(
                     R.string.n_items_in_collection,
                     collectionWithCount.mediaCount
-                ),
+                ) + sizeText,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
                 style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalGlideComposeApi::class, ExperimentalFoundationApi::class)
+@Composable
+fun CollectionRowComponent(
+    modifier: Modifier = Modifier,
+    collectionWithCount: CollectionWithCount,
+    onItemClick: (CollectionWithCount) -> Unit,
+    onRename: ((CollectionWithCount) -> Unit)? = null,
+    onDelete: ((CollectionWithCount) -> Unit)? = null,
+    onTogglePin: ((CollectionWithCount) -> Unit)? = null,
+    onEditAlbums: ((CollectionWithCount) -> Unit)? = null,
+) {
+    val scope = rememberCoroutineScope()
+    val appBottomSheetState = rememberAppBottomSheetState()
+    val collection = collectionWithCount.collection
+    val feedbackManager = rememberFeedbackManager()
+
+    val renameTitle = stringResource(R.string.rename_collection)
+    val deleteTitle = stringResource(R.string.delete_collection)
+    val addAlbumsTitle = stringResource(R.string.select_albums_for_collection)
+    val pinTitle = stringResource(
+        if (collection.isPinned) R.string.unpin_collection else R.string.pin_collection
+    )
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
+    val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
+    val onSecondaryContainer = MaterialTheme.colorScheme.onSecondaryContainer
+    val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
+    val onTertiaryContainer = MaterialTheme.colorScheme.onTertiaryContainer
+
+    val optionList = remember(collection.isPinned, onRename, onDelete, onTogglePin, onEditAlbums) {
+        mutableListOf(
+            OptionItem(
+                icon = Icons.Outlined.LibraryAdd,
+                text = addAlbumsTitle,
+                containerColor = secondaryContainer,
+                contentColor = onSecondaryContainer,
+                enabled = onEditAlbums != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onEditAlbums?.invoke(collectionWithCount)
+                    }
+                }
+            ),
+            OptionItem(
+                icon = Icons.Outlined.PushPin,
+                text = pinTitle,
+                containerColor = secondaryContainer,
+                contentColor = onSecondaryContainer,
+                enabled = onTogglePin != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onTogglePin?.invoke(collectionWithCount)
+                    }
+                }
+            ),
+            OptionItem(
+                icon = Icons.Outlined.Edit,
+                text = renameTitle,
+                containerColor = tertiaryContainer,
+                contentColor = onTertiaryContainer,
+                enabled = onRename != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onRename?.invoke(collectionWithCount)
+                    }
+                }
+            ),
+            OptionItem(
+                icon = Icons.Outlined.Delete,
+                text = deleteTitle,
+                containerColor = primaryContainer,
+                contentColor = onPrimaryContainer,
+                enabled = onDelete != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onDelete?.invoke(collectionWithCount)
+                    }
+                }
+            )
+        ).toMutableStateList()
+    }
+
+    OptionSheet(
+        state = appBottomSheetState,
+        optionList = arrayOf(optionList),
+        headerContent = {
+            Text(
+                text = collection.label,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val thumbnailUri = remember(collectionWithCount.thumbnailMediaId) {
+        collectionWithCount.thumbnailMediaId?.let { id ->
+            ContentUris.withAppendedId(
+                MediaStore.Files.getContentUri("external"),
+                id
+            )
+        }
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .padding(horizontal = 8.dp)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = { onItemClick(collectionWithCount) },
+                onLongClick = {
+                    feedbackManager.vibrate()
+                    scope.launch { appBottomSheetState.show() }
+                }
+            ),
+    ) {
+        Box(
+            modifier = Modifier.aspectRatio(1f)
+        ) {
+            if (thumbnailUri != null) {
+                GlideImage(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp)),
+                    model = thumbnailUri,
+                    contentDescription = collection.label,
+                    contentScale = ContentScale.Crop,
+                    requestBuilderTransform = {
+                        it.centerCrop()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .thumbnail(it.clone().sizeMultiplier(0.4f))
+                    }
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Outlined.Collections,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clip(RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = collection.label,
+                maxLines = 1,
+                style = MaterialTheme.typography.titleMedium,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (collectionWithCount.mediaCount > 0) {
+                val sizeText = if (collectionWithCount.totalSize > 0) {
+                    " (${formatSize(collectionWithCount.totalSize)})"
+                } else ""
+                Text(
+                    text = stringResource(
+                        R.string.n_items_in_collection,
+                        collectionWithCount.mediaCount
+                    ) + sizeText,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        if (collection.isPinned) {
+            Icon(
+                modifier = Modifier
+                    .size(20.dp)
+                    .align(Alignment.CenterVertically),
+                imageVector = Icons.Outlined.PushPin,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }

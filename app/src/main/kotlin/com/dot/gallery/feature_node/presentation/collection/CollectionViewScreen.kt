@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,7 +57,7 @@ import com.dot.gallery.core.Settings.Misc.rememberGridSize
 import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.EmptyMedia
-import com.dot.gallery.core.presentation.components.NavigationButton
+import com.dot.gallery.core.presentation.components.NavigationBackButton
 import com.dot.gallery.core.presentation.components.SelectionSheet
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
@@ -85,6 +89,7 @@ fun CollectionViewScreen(
     paddingValues: PaddingValues,
     isScrolling: MutableState<Boolean>,
     metadataState: State<MediaMetadataState>,
+    onEditAlbums: (() -> Unit)? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
@@ -95,8 +100,10 @@ fun CollectionViewScreen(
     val selector = LocalMediaSelector.current
     val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
 
-    val mediaState = distributor.collectionMediaFlow(collectionId)
-        .collectAsStateWithLifecycle()
+    val collectionMediaFlow = remember(collectionId) {
+        distributor.collectionMediaFlow(collectionId)
+    }
+    val mediaState = collectionMediaFlow.collectAsStateWithLifecycle()
 
     var albumMediaSort by rememberAlbumMediaSort()
 
@@ -144,13 +151,17 @@ fun CollectionViewScreen(
                         )
                     },
                     navigationIcon = {
-                        NavigationButton(
-                            albumId = -1L,
-                            target = null,
-                            alwaysGoBack = true,
-                        )
+                        NavigationBackButton()
                     },
                     actions = {
+                        if (onEditAlbums != null) {
+                            IconButton(onClick = onEditAlbums) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Edit,
+                                    contentDescription = stringResource(R.string.edit)
+                                )
+                            }
+                        }
                         AlbumSortDropdown(
                             currentSort = albumMediaSort,
                             onSortChange = { newSort ->
@@ -182,12 +193,10 @@ fun CollectionViewScreen(
                         mediaState.value.headers.toMutableStateList()
                     }
                 }
-                val mosaicPaddingValues = remember(paddingValues, it) {
-                    PaddingValues(
-                        top = it.calculateTopPadding(),
-                        bottom = paddingValues.calculateBottomPadding() + 128.dp
-                    )
-                }
+                val mosaicPaddingValues = PaddingValues(
+                    top = it.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding() + 128.dp
+                )
                 TimelineScroller(
                     modifier = Modifier
                         .padding(mosaicPaddingValues)
@@ -227,17 +236,15 @@ fun CollectionViewScreen(
                     modifier = Modifier.hazeSource(LocalHazeState.current)
                 ) {
                     MediaGridView(
-                        modifier = Modifier.padding(top = it.calculateTopPadding()),
                         mediaState = mediaState,
                         metadataState = metadataState,
                         allowSelection = true,
                         showSearchBar = false,
                         enableStickyHeaders = !hideTimelineOnAlbum,
-                        paddingValues = remember(paddingValues) {
-                            PaddingValues(
-                                bottom = paddingValues.calculateBottomPadding() + 128.dp
-                            )
-                        },
+                        paddingValues = PaddingValues(
+                            top = it.calculateTopPadding(),
+                            bottom = paddingValues.calculateBottomPadding() + 128.dp
+                        ),
                         canScroll = canScroll,
                         allowHeaders = !hideTimelineOnAlbum,
                         showMonthlyHeader = false,
@@ -264,7 +271,8 @@ fun CollectionViewScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd),
             allMedia = mediaState.value,
-            selectedMedia = selectedMediaList
+            selectedMedia = selectedMediaList,
+            collectionId = collectionId
         )
     }
 }

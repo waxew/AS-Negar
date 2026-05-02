@@ -63,9 +63,13 @@ import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.util.MediaOrder
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumComponent
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumGroupComponent
+import com.dot.gallery.feature_node.presentation.albums.components.AlbumGroupRowComponent
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumRowComponent
 import com.dot.gallery.feature_node.presentation.albums.components.CarouselPinnedAlbums
 import com.dot.gallery.feature_node.presentation.collection.components.CollectionComponent
+import com.dot.gallery.feature_node.presentation.collection.components.CollectionRowComponent
+import com.dot.gallery.feature_node.presentation.collection.components.CreateCollectionComponent
+import com.dot.gallery.feature_node.presentation.collection.components.CreateCollectionRowComponent
 import com.dot.gallery.feature_node.presentation.search.MainSearchBar
 import com.dot.gallery.feature_node.presentation.timeline.components.TimelineNavActions
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -95,6 +99,8 @@ fun AlbumsScreen(
     onCollectionRename: (CollectionWithCount) -> Unit = {},
     onCollectionDelete: (CollectionWithCount) -> Unit = {},
     onCollectionTogglePin: (CollectionWithCount) -> Unit = {},
+    onCollectionEditAlbums: (CollectionWithCount) -> Unit = {},
+    onCreateCollection: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
@@ -196,41 +202,6 @@ fun AlbumsScreen(
                             }
                             item(
                                 span = { GridItemSpan(maxLineSpan) },
-                                key = "collectionsHeader"
-                            ) {
-                                AnimatedVisibility(
-                                    visible = albumsState.value.collections.isNotEmpty(),
-                                    enter = enterAnimation,
-                                    exit = exitAnimation
-                                ) {
-                                    Text(
-                                        modifier = Modifier
-                                            .pinchItem(key = "collectionsHeader")
-                                            .padding(horizontal = 8.dp)
-                                            .padding(vertical = 24.dp),
-                                        text = stringResource(R.string.collections_title),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                            items(
-                                items = albumsState.value.collections,
-                                key = { "collection_${it.collection.id}" }
-                            ) { collectionWithCount ->
-                                CollectionComponent(
-                                    modifier = Modifier
-                                        .pinchItem(key = "collection_${collectionWithCount.collection.id}")
-                                        .animateItem(),
-                                    collectionWithCount = collectionWithCount,
-                                    onItemClick = onCollectionClick,
-                                    onRename = onCollectionRename,
-                                    onDelete = onCollectionDelete,
-                                    onTogglePin = onCollectionTogglePin
-                                )
-                            }
-                            item(
-                                span = { GridItemSpan(maxLineSpan) },
                                 key = "filterButton"
                             ) {
                                 AnimatedVisibility(
@@ -289,6 +260,32 @@ fun AlbumsScreen(
                                         isMergedSubfolder = item.id in mergedSubfolderIds
                                     )
                                 }
+                            }
+                            items(
+                                items = albumsState.value.collections,
+                                key = { "collection_${it.collection.id}" }
+                            ) { collectionWithCount ->
+                                CollectionComponent(
+                                    modifier = Modifier
+                                        .pinchItem(key = "collection_${collectionWithCount.collection.id}")
+                                        .animateItem(),
+                                    collectionWithCount = collectionWithCount,
+                                    onItemClick = onCollectionClick,
+                                    onRename = onCollectionRename,
+                                    onDelete = onCollectionDelete,
+                                    onTogglePin = onCollectionTogglePin,
+                                    onEditAlbums = onCollectionEditAlbums
+                                )
+                            }
+                            item(
+                                key = "createCollection"
+                            ) {
+                                CreateCollectionComponent(
+                                    modifier = Modifier
+                                        .pinchItem(key = "createCollection")
+                                        .animateItem(),
+                                    onClick = onCreateCollection
+                                )
                             }
 
                             item(
@@ -388,36 +385,6 @@ fun AlbumsScreen(
                             }
                         }
 
-                        item("collectionsHeader_list") {
-                            AnimatedVisibility(
-                                visible = albumsState.value.collections.isNotEmpty(),
-                                enter = enterAnimation,
-                                exit = exitAnimation
-                            ) {
-                                Text(
-                                    modifier = Modifier
-                                        .padding(horizontal = 8.dp)
-                                        .padding(vertical = 24.dp),
-                                    text = stringResource(R.string.collections_title),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        items(
-                            items = albumsState.value.collections,
-                            key = { "collection_list_${it.collection.id}" }
-                        ) { collectionWithCount ->
-                            CollectionComponent(
-                                modifier = Modifier.animateItem(),
-                                collectionWithCount = collectionWithCount,
-                                onItemClick = onCollectionClick,
-                                onRename = onCollectionRename,
-                                onDelete = onCollectionDelete,
-                                onTogglePin = onCollectionTogglePin
-                            )
-                        }
-
                         item("filterButton") {
                             AnimatedVisibility(
                                 visible = albumsState.value.albumsUnpinned.isNotEmpty(),
@@ -437,7 +404,7 @@ fun AlbumsScreen(
                             items = albumsState.value.albumGroups,
                             key = { group -> "group_${group.group.id}" }
                         ) { group ->
-                            AlbumGroupComponent(
+                            AlbumGroupRowComponent(
                                 modifier = Modifier.animateItem(),
                                 groupWithAlbums = group,
                                 onGroupClick = onGroupClick,
@@ -470,6 +437,27 @@ fun AlbumsScreen(
                                     }
                                 )
                             }
+                        }
+
+                        items(
+                            items = albumsState.value.collections,
+                            key = { "collection_list_${it.collection.id}" }
+                        ) { collectionWithCount ->
+                            CollectionRowComponent(
+                                modifier = Modifier.animateItem(),
+                                collectionWithCount = collectionWithCount,
+                                onItemClick = onCollectionClick,
+                                onRename = onCollectionRename,
+                                onDelete = onCollectionDelete,
+                                onTogglePin = onCollectionTogglePin,
+                                onEditAlbums = onCollectionEditAlbums
+                            )
+                        }
+                        item("createCollection_list") {
+                            CreateCollectionRowComponent(
+                                modifier = Modifier.animateItem(),
+                                onClick = onCreateCollection
+                            )
                         }
 
                         item(key = "albumDetails") {

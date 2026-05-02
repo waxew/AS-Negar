@@ -4,6 +4,10 @@ import android.app.Activity
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -99,6 +103,16 @@ fun CategoryViewScreen(
         metadataState = metadataState,
         target = "category_id_$categoryId",
         navActionsContent = { expandedDropDown, result ->
+            IconButton(
+                onClick = {
+                    eventHandler.navigate(Screen.CategoryEditorScreen.edit(categoryId))
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = stringResource(R.string.edit_category)
+                )
+            }
         },
         onActivityResult = { result ->
             if (result.resultCode == Activity.RESULT_OK) {

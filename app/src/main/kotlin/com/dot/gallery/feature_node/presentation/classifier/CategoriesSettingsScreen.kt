@@ -114,7 +114,7 @@ fun CategoriesSettingsScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { eventHandler.navigate(Screen.AddCategoryScreen()) },
+                onClick = { eventHandler.navigate(Screen.CategoryEditorScreen.create()) },
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(

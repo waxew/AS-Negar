@@ -19,8 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -80,12 +79,14 @@ import com.dot.gallery.feature_node.presentation.albums.AlbumsViewModel
 import com.dot.gallery.feature_node.presentation.albumtimeline.AlbumTimelineScreen
 import com.dot.gallery.feature_node.presentation.classifier.AddCategoryScreen
 import com.dot.gallery.feature_node.presentation.classifier.CategoriesSettingsScreen
+import com.dot.gallery.feature_node.presentation.classifier.CategoryEditorScreen
 import com.dot.gallery.feature_node.presentation.classifier.EditCategoryScreen
 import com.dot.gallery.feature_node.presentation.classifier.CategoriesScreen
 import com.dot.gallery.feature_node.presentation.location.LocationsScreen
 import com.dot.gallery.feature_node.presentation.classifier.CategoryViewModel
 import com.dot.gallery.feature_node.presentation.classifier.CategoryViewScreen
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
+import com.dot.gallery.feature_node.presentation.collection.CollectionAlbumSelectorScreen
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewScreen
 import com.dot.gallery.feature_node.presentation.dateformat.DateFormatScreen
 import com.dot.gallery.feature_node.presentation.exif.MetadataViewScreen
@@ -100,11 +101,14 @@ import com.dot.gallery.feature_node.presentation.search.SearchScreen
 import com.dot.gallery.feature_node.presentation.search.SearchViewModel
 import com.dot.gallery.feature_node.presentation.settings.SettingsScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.ColorPaletteScreen
-import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsCustomizationScreen
+
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsGeneralScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsMediaViewerScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsNavigationScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSelectionActionsScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsTimelineAlbumsScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.EditBackupsViewerScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSmartFeaturesScreen
-import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsThemesScreen
 import com.dot.gallery.feature_node.presentation.setup.SetupScreen
 import com.dot.gallery.feature_node.presentation.timeline.TimelineScreen
 import com.dot.gallery.feature_node.presentation.trashed.TrashedGridScreen
@@ -372,6 +376,36 @@ fun NavigationComp(
                     }
                 )
 
+                // Collection sheet state
+                val collectionSheetState = rememberAppBottomSheetState()
+                var collectionDialogMode by remember { mutableStateOf("create") }
+                var collectionDialogId by remember { mutableStateOf<Long?>(null) }
+                var collectionDialogInitialName by remember { mutableStateOf("") }
+                val deleteCollectionSheetState = rememberAppBottomSheetState()
+                var pendingDeleteCollectionId by remember { mutableStateOf<Long?>(null) }
+
+                CollectionSheet(
+                    sheetState = collectionSheetState,
+                    mode = collectionDialogMode,
+                    initialName = collectionDialogInitialName,
+                    onCreateCollection = { name ->
+                        eventHandler.navigate(
+                            Screen.CollectionAlbumSelectorScreen.collectionName(name)
+                        )
+                    },
+                    onRenameCollection = { newName ->
+                        collectionDialogId?.let { albumsViewModel.renameCollection(it, newName) }
+                    }
+                )
+
+                DeleteCollectionSheet(
+                    sheetState = deleteCollectionSheetState,
+                    onConfirmDelete = {
+                        pendingDeleteCollectionId?.let { albumsViewModel.deleteCollection(it) }
+                        pendingDeleteCollectionId = null
+                    }
+                )
+
                 AlbumsScreen(
                     isScrolling = isScrolling,
                     onAlbumClick = onAlbumClickWithLock,
@@ -407,16 +441,31 @@ fun NavigationComp(
                         )
                     },
                     onCollectionRename = { cwc ->
-                        // TODO: Show rename dialog
+                        collectionDialogMode = "rename"
+                        collectionDialogId = cwc.collection.id
+                        collectionDialogInitialName = cwc.collection.label
+                        scope.launch { collectionSheetState.show() }
                     },
                     onCollectionDelete = { cwc ->
-                        albumsViewModel.deleteCollection(cwc.collection.id)
+                        pendingDeleteCollectionId = cwc.collection.id
+                        scope.launch { deleteCollectionSheetState.show() }
                     },
                     onCollectionTogglePin = { cwc ->
                         albumsViewModel.toggleCollectionPin(
                             cwc.collection.id,
                             !cwc.collection.isPinned
                         )
+                    },
+                    onCollectionEditAlbums = { cwc ->
+                        eventHandler.navigate(
+                            Screen.CollectionAlbumSelectorScreen.collectionId(cwc.collection.id)
+                        )
+                    },
+                    onCreateCollection = {
+                        collectionDialogMode = "create"
+                        collectionDialogId = null
+                        collectionDialogInitialName = ""
+                        scope.launch { collectionSheetState.show() }
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
@@ -520,6 +569,52 @@ fun NavigationComp(
                     },
                     onRemoveAlbum = { gId, albumId ->
                         albumsViewModel.removeAlbumFromGroup(gId, albumId)
+                    }
+                )
+            }
+            composable(
+                route = Screen.CollectionAlbumSelectorScreen.collectionName(),
+                arguments = listOf(
+                    navArgument(name = "collectionName") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val collectionName = remember(backStackEntry) {
+                    backStackEntry.arguments?.getString("collectionName") ?: ""
+                }
+                val albumsViewModel = hiltViewModel<AlbumsViewModel>()
+                CollectionAlbumSelectorScreen(
+                    collectionName = collectionName,
+                    onCreateWithAlbums = { name, albumIds ->
+                        albumsViewModel.createCollectionWithAlbums(name, albumIds)
+                        navController.popBackStack()
+                    },
+                    onSkip = { name ->
+                        albumsViewModel.createCollection(name)
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(
+                route = Screen.CollectionAlbumSelectorScreen.collectionId(),
+                arguments = listOf(
+                    navArgument(name = "collectionId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                val collectionId = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("collectionId") ?: -1L
+                }
+                val albumsViewModel = hiltViewModel<AlbumsViewModel>()
+                CollectionAlbumSelectorScreen(
+                    collectionId = collectionId,
+                    onAddAlbumsToCollection = { id, albumIds ->
+                        albumsViewModel.addAlbumsToCollection(id, albumIds)
+                        navController.popBackStack()
                     }
                 )
             }
@@ -720,6 +815,45 @@ fun NavigationComp(
                 )
             }
 
+            // Unified Category Editor — Create mode
+            composable(
+                route = Screen.CategoryEditorScreen.create()
+            ) {
+                CategoryEditorScreen(
+                    categoryId = null,
+                    paddingValues = paddingValues,
+                    isScrolling = isScrolling,
+                    metadataState = metadataState,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this,
+                    onNavigateBack = { navController.navigateUp() }
+                )
+            }
+
+            // Unified Category Editor — Edit mode
+            composable(
+                route = Screen.CategoryEditorScreen.edit(),
+                arguments = listOf(
+                    navArgument(name = "categoryId") {
+                        type = NavType.LongType
+                        defaultValue = -1
+                    }
+                )
+            ) { backStackEntry ->
+                val categoryId = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("categoryId") ?: -1
+                }
+                CategoryEditorScreen(
+                    categoryId = categoryId,
+                    paddingValues = paddingValues,
+                    isScrolling = isScrolling,
+                    metadataState = metadataState,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this,
+                    onNavigateBack = { navController.navigateUp() }
+                )
+            }
+
             composable(
                 route = Screen.CategoryViewScreen.category(),
                 arguments = listOf(
@@ -865,6 +999,11 @@ fun NavigationComp(
                     paddingValues = paddingValues,
                     isScrolling = isScrolling,
                     metadataState = metadataState,
+                    onEditAlbums = {
+                        eventHandler.navigate(
+                            Screen.CollectionAlbumSelectorScreen.collectionId(collectionId)
+                        )
+                    },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
                 )
@@ -891,8 +1030,10 @@ fun NavigationComp(
                 }
 
                 val distributor = com.dot.gallery.core.LocalMediaDistributor.current
-                val mediaState = distributor.collectionMediaFlow(collectionId)
-                    .collectAsStateWithLifecycle()
+                val collectionMediaFlow = remember(collectionId) {
+                    distributor.collectionMediaFlow(collectionId)
+                }
+                val mediaState = collectionMediaFlow.collectAsStateWithLifecycle()
 
                 MediaViewScreen(
                     toggleRotate = toggleRotate,
@@ -911,20 +1052,29 @@ fun NavigationComp(
             composable(Screen.DateFormatScreen()) {
                 DateFormatScreen()
             }
-            composable(Screen.SettingsThemeScreen()) {
-                SettingsThemesScreen()
-            }
             composable(Screen.ColorPaletteScreen()) {
                 ColorPaletteScreen()
             }
             composable(Screen.SettingsGeneralScreen()) {
                 SettingsGeneralScreen()
             }
-            composable(Screen.SettingsCustomizationScreen()) {
-                SettingsCustomizationScreen()
-            }
             composable(Screen.SettingsSmartFeaturesScreen()) {
                 SettingsSmartFeaturesScreen()
+            }
+            composable(Screen.SettingsAppearanceScreen()) {
+                ColorPaletteScreen()
+            }
+            composable(Screen.SettingsTimelineAlbumsScreen()) {
+                SettingsTimelineAlbumsScreen()
+            }
+            composable(Screen.SettingsMediaViewerScreen()) {
+                SettingsMediaViewerScreen()
+            }
+            composable(Screen.SettingsNavigationScreen()) {
+                SettingsNavigationScreen()
+            }
+            composable(Screen.SettingsSelectionActionsScreen()) {
+                SettingsSelectionActionsScreen()
             }
             composable(Screen.EditBackupsViewerScreen()) {
                 EditBackupsViewerScreen()
@@ -1059,7 +1209,6 @@ internal fun SecurityInfoSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 32.dp, vertical = 16.dp)
-                    .navigationBarsPadding()
             ) {
                 Text(
                     text = stringResource(R.string.locked),
@@ -1083,13 +1232,15 @@ internal fun SecurityInfoSheet(
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center
                 )
-                Button(
+                SetupButton(
                     onClick = {
                         scope.launch { sheetState.hide() }
-                    }
-                ) {
-                    Text(text = stringResource(android.R.string.ok))
-                }
+                    },
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(android.R.string.ok)
+                )
             }
         }
     }
@@ -1120,7 +1271,6 @@ private fun LockDisclaimerSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 32.dp, vertical = 16.dp)
-                    .navigationBarsPadding()
             ) {
                 Text(
                     text = stringResource(R.string.lock_album),
@@ -1149,25 +1299,29 @@ private fun LockDisclaimerSheet(
                     horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(
+                    SetupButton(
                         onClick = {
                             scope.launch { sheetState.hide() }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    ) {
-                        Text(text = stringResource(R.string.action_cancel))
-                    }
-                    Button(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.action_cancel)
+                    )
+                    SetupButton(
                         onClick = {
                             onConfirm()
                             scope.launch { sheetState.hide() }
-                        }
-                    ) {
-                        Text(text = stringResource(R.string.lock_album))
-                    }
+                        },
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.lock_album)
+                    )
                 }
             }
         }

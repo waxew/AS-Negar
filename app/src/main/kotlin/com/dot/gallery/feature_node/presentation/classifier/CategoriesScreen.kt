@@ -162,7 +162,7 @@ fun CategoriesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { eventHandler.navigate(Screen.AddCategoryScreen()) },
+                onClick = { eventHandler.navigate(Screen.CategoryEditorScreen.create()) },
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
@@ -232,7 +232,7 @@ fun CategoriesScreen(
                         },
                         onLongClick = {
                             eventHandler.navigate(
-                                Screen.EditCategoryScreen.categoryId(categoryWithCount.id)
+                                Screen.CategoryEditorScreen.edit(categoryWithCount.id)
                             )
                         },
                         modifier = Modifier
@@ -265,7 +265,7 @@ fun CategoriesScreen(
                                 )
                                 .clip(RoundedCornerShape(24.dp))
                                 .clickable {
-                                    eventHandler.navigate(Screen.AddCategoryScreen())
+                                    eventHandler.navigate(Screen.CategoryEditorScreen.create())
                                 }
                                 .padding(32.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),

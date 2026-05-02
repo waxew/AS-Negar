@@ -19,18 +19,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,8 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -85,9 +91,9 @@ fun AddToCollectionSheet(
             )
 
             if (showCreateField) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                val focusRequester = remember { FocusRequester() }
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
                         value = newCollectionName,
@@ -95,20 +101,37 @@ fun AddToCollectionSheet(
                         label = { Text(stringResource(R.string.collection_name)) },
                         placeholder = { Text(stringResource(R.string.collection_name_hint)) },
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (newCollectionName.isNotBlank()) {
+                                    onCreateAndAdd(newCollectionName.trim())
+                                    showCreateField = false
+                                    newCollectionName = ""
+                                    onDismiss()
+                                }
+                            }
+                        )
                     )
-                    Spacer(Modifier.width(8.dp))
-                    TextButton(
+                    Spacer(Modifier.height(8.dp))
+                    FilledTonalButton(
                         enabled = newCollectionName.isNotBlank(),
                         onClick = {
                             onCreateAndAdd(newCollectionName.trim())
                             showCreateField = false
                             newCollectionName = ""
                             onDismiss()
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(stringResource(R.string.create_and_add))
                     }
+                }
+                LaunchedEffect(Unit) {
+                    focusRequester.requestFocus()
                 }
                 Spacer(Modifier.height(12.dp))
             }

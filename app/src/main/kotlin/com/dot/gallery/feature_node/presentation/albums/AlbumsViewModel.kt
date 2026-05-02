@@ -186,6 +186,14 @@ class AlbumsViewModel @Inject constructor(
 
     // ============ Collections ============
 
+    fun createCollection(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertCollection(
+                com.dot.gallery.feature_node.domain.model.Collection(label = name)
+            )
+        }
+    }
+
     fun deleteCollection(collectionId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.deleteCollection(collectionId)
@@ -201,6 +209,39 @@ class AlbumsViewModel @Inject constructor(
     fun renameCollection(collectionId: Long, newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.updateCollectionLabel(collectionId, newName)
+        }
+    }
+
+    fun createCollectionWithAlbums(name: String, albumIds: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val collectionId = repository.insertCollection(
+                com.dot.gallery.feature_node.domain.model.Collection(label = name)
+            )
+            repository.addAlbumsToCollection(collectionId, albumIds)
+            for (albumId in albumIds) {
+                repository.getMediaByAlbumId(albumId)
+                    .firstOrNull()
+                    ?.data
+                    ?.map { it.id }
+                    ?.let { mediaIds ->
+                        repository.addMediaListToCollection(collectionId, mediaIds)
+                    }
+            }
+        }
+    }
+
+    fun addAlbumsToCollection(collectionId: Long, albumIds: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.addAlbumsToCollection(collectionId, albumIds)
+            for (albumId in albumIds) {
+                repository.getMediaByAlbumId(albumId)
+                    .firstOrNull()
+                    ?.data
+                    ?.map { it.id }
+                    ?.let { mediaIds ->
+                        repository.addMediaListToCollection(collectionId, mediaIds)
+                    }
+            }
         }
     }
 
