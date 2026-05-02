@@ -57,21 +57,30 @@ class ApkVersioningPlugin : Plugin<Project> {
                         name.replace("{$key}", value)
                     }
 
+                    // Read APK directory without transforming the artifact pipeline.
+                    // Using get() instead of toTransformMany() keeps baseline profiles
+                    // and other AGP-managed companion files intact.
+                    val apkDir = variant.artifacts.get(SingleArtifact.APK)
+
                     val renameTask = project.tasks.register(
                         "renameApkFor${variant.name}",
                         RenameApkTask::class.java
-                    )
-
-                    val request = variant.artifacts.use(renameTask)
-                        .wiredWithDirectories(
-                            RenameApkTask::inputDir,
-                            RenameApkTask::outputDir
-                        )
-                        .toTransformMany(SingleArtifact.APK)
-
-                    renameTask.configure {
-                        transformationRequest.set(request)
+                    ) {
+                        inputDir.set(apkDir)
                         newFileName.set(resolvedName)
+                        outputDir.set(
+                            project.layout.buildDirectory.dir(
+                                "outputs/apk-renamed/$flavorName/$buildType"
+                            )
+                        )
+                    }
+
+                    // Run the rename task as part of the assemble lifecycle
+                    val capitalizedName = variant.name.replaceFirstChar { c -> c.uppercase() }
+                    project.tasks.configureEach {
+                        if (name == "assemble$capitalizedName") {
+                            finalizedBy(renameTask)
+                        }
                     }
                 }
             }
