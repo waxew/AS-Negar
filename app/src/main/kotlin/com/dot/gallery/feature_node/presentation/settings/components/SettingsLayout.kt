@@ -272,6 +272,7 @@ class SettingsOptionsScope {
         rightText: String? = null,
         enabled: Boolean = true,
         horizontalLayout: Boolean = false,
+        tag: Any? = null,
         onClick: (() -> Unit)? = null,
         onLongClick: (() -> Unit)? = null,
         onSwipeToDelete: (() -> Unit)? = null
@@ -283,6 +284,7 @@ class SettingsOptionsScope {
             rightText = rightText,
             enabled = enabled,
             horizontalLayout = horizontalLayout,
+            tag = tag,
             onClick = onClick,
             onLongClick = onLongClick,
             onSwipeToDelete = onSwipeToDelete

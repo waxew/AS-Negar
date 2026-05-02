@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -298,8 +300,29 @@ fun SettingsItem(
         }
     }
 
+    val isSplitSwitch = item.type == PreferenceType.Switch && item.onClick != null
+    val splitSwitchTrailing: @Composable () -> Unit = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            VerticalDivider(
+                modifier = Modifier.height(32.dp).padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+            Switch(
+                checked = checked,
+                onCheckedChange = { isChecked ->
+                    item.onCheck?.let {
+                        checked = isChecked
+                        it(isChecked)
+                    }
+                },
+            )
+        }
+    }
     val trailingContent: (@Composable () -> Unit)? = when {
         customTrailingContent != null -> customTrailingContent
+        isSplitSwitch -> splitSwitchTrailing
         item.type == PreferenceType.Switch -> switch
         item.type == PreferenceType.Seek -> seekTrailing
         else -> {
@@ -318,7 +341,9 @@ fun SettingsItem(
                 interactionSource = mutableInteractionSource,
                 indication = LocalIndication.current,
                 onClick = {
-                    if (item.type == PreferenceType.Switch) {
+                    if (isSplitSwitch) {
+                        item.onClick?.invoke()
+                    } else if (item.type == PreferenceType.Switch) {
                         item.onCheck?.let {
                             checked = !checked
                             it(checked)

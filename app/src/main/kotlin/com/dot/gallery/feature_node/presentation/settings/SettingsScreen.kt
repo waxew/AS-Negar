@@ -7,7 +7,9 @@ package com.dot.gallery.feature_node.presentation.settings
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.DashboardCustomize
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Fullscreen
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,14 +37,41 @@ fun SettingsScreen() {
     @Composable
     fun rememberDashboardSettings(): SnapshotStateList<SettingsEntity> {
         val eventHandler = LocalEventHandler.current
-        val themePref = rememberPreference(
+        val appearancePref = rememberPreference(
             icon = Icons.Outlined.Palette,
-            title = stringResource(R.string.settings_theme),
-            summary = stringResource(R.string.settings_theme_summary),
+            title = stringResource(R.string.settings_appearance),
+            summary = stringResource(R.string.settings_appearance_summary),
             onClick = {
                 eventHandler.navigate(Screen.ColorPaletteScreen())
             },
             screenPosition = Position.Top
+        )
+        val timelineAlbumsPref = rememberPreference(
+            icon = Icons.Outlined.GridView,
+            title = stringResource(R.string.settings_timeline_albums),
+            summary = stringResource(R.string.settings_timeline_albums_summary),
+            onClick = {
+                eventHandler.navigate(Screen.SettingsTimelineAlbumsScreen())
+            },
+            screenPosition = Position.Middle
+        )
+        val mediaViewerPref = rememberPreference(
+            icon = Icons.Outlined.Fullscreen,
+            title = stringResource(R.string.settings_media_viewer),
+            summary = stringResource(R.string.settings_media_viewer_summary),
+            onClick = {
+                eventHandler.navigate(Screen.SettingsMediaViewerScreen())
+            },
+            screenPosition = Position.Middle
+        )
+        val navigationPref = rememberPreference(
+            icon = Icons.Outlined.Explore,
+            title = stringResource(R.string.settings_navigation),
+            summary = stringResource(R.string.settings_navigation_summary),
+            onClick = {
+                eventHandler.navigate(Screen.SettingsNavigationScreen())
+            },
+            screenPosition = Position.Middle
         )
         val generalPref = rememberPreference(
             icon = Icons.Outlined.Dashboard,
@@ -50,15 +79,6 @@ fun SettingsScreen() {
             summary = stringResource(R.string.settings_general_summary),
             onClick = {
                 eventHandler.navigate(Screen.SettingsGeneralScreen())
-            },
-            screenPosition = Position.Middle
-        )
-        val customisationPref = rememberPreference(
-            icon = Icons.Outlined.DashboardCustomize,
-            title = stringResource(R.string.customization),
-            summary = stringResource(R.string.customization_summary),
-            onClick = {
-                eventHandler.navigate(Screen.SettingsCustomizationScreen())
             },
             screenPosition = Position.Middle
         )
@@ -71,8 +91,14 @@ fun SettingsScreen() {
             },
             screenPosition = Position.Bottom
         )
-        return remember(themePref, generalPref, customisationPref, smartPref) {
-            mutableStateListOf(themePref, generalPref, customisationPref, smartPref)
+        return remember(
+            appearancePref, timelineAlbumsPref, mediaViewerPref,
+            navigationPref, generalPref, smartPref
+        ) {
+            mutableStateListOf(
+                appearancePref, timelineAlbumsPref, mediaViewerPref,
+                navigationPref, generalPref, smartPref
+            )
         }
     }
 
@@ -80,17 +106,32 @@ fun SettingsScreen() {
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val errorColor = MaterialTheme.colorScheme.error
-    val backgroundColors = remember(primaryColor, secondaryColor, tertiaryColor, errorColor) {
-        listOf(primaryColor, secondaryColor, tertiaryColor, errorColor)
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val tertiaryContainerColor = MaterialTheme.colorScheme.tertiaryContainer
+    val backgroundColors = remember(
+        primaryColor, secondaryColor, tertiaryColor,
+        errorColor, primaryContainerColor, tertiaryContainerColor
+    ) {
+        listOf(
+            primaryColor, secondaryColor, tertiaryColor,
+            errorColor, primaryContainerColor, tertiaryContainerColor
+        )
     }
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val onSecondaryColor = MaterialTheme.colorScheme.onSecondary
     val onTertiaryColor = MaterialTheme.colorScheme.onTertiary
     val onErrorColor = MaterialTheme.colorScheme.onError
-    val onBackgroundColors =
-        remember(onPrimaryColor, onSecondaryColor, onTertiaryColor, onErrorColor) {
-            listOf(onPrimaryColor, onSecondaryColor, onTertiaryColor, onErrorColor)
-        }
+    val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val onTertiaryContainerColor = MaterialTheme.colorScheme.onTertiaryContainer
+    val onBackgroundColors = remember(
+        onPrimaryColor, onSecondaryColor, onTertiaryColor,
+        onErrorColor, onPrimaryContainerColor, onTertiaryContainerColor
+    ) {
+        listOf(
+            onPrimaryColor, onSecondaryColor, onTertiaryColor,
+            onErrorColor, onPrimaryContainerColor, onTertiaryContainerColor
+        )
+    }
     BaseSettingsScreen(
         title = stringResource(R.string.settings_title),
         topContent = {

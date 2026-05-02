@@ -2,10 +2,12 @@ package com.dot.gallery.feature_node.presentation.settings.subsettings
 
 import android.content.res.Configuration
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -59,6 +61,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -79,22 +82,92 @@ import androidx.compose.ui.unit.sp
 import com.dot.gallery.R
 import com.dot.gallery.core.Position
 import com.dot.gallery.core.Settings
+import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.presentation.components.NavigationBackButton
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
+import com.dot.gallery.feature_node.presentation.settings.components.SwitchPreferenceDetailScreen
 import com.dot.gallery.feature_node.presentation.settings.components.rememberSwitchPreference
 import com.dot.gallery.ui.core.icons.Albums
 import com.dot.gallery.ui.theme.colorSchemeFromSeed
 import com.dot.gallery.ui.theme.isDarkTheme
 import com.dot.gallery.ui.theme.neutralColorScheme
 
+private const val DETAIL_FOLLOW_SYSTEM = "follow_system"
+private const val DETAIL_DARK_MODE = "dark_mode"
+private const val DETAIL_AMOLED = "amoled"
+private const val DETAIL_BLUR = "blur"
+private const val DETAIL_SHARED = "shared"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ColorPaletteScreen() {
+    var detailKey by rememberSaveable { mutableStateOf<String?>(null) }
     var themeColorSeed by Settings.Misc.rememberThemeColorSeed()
     var forceTheme by Settings.Misc.rememberForceTheme()
     var darkModeValue by Settings.Misc.rememberIsDarkMode()
     var amoledModeValue by Settings.Misc.rememberIsAmoledMode()
+    val shouldAllowBlur = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+    var allowBlur by Settings.Misc.rememberAllowBlur()
+    var sharedElements by Settings.Misc.rememberSharedElements()
     val isDark = isDarkTheme()
+
+    when (detailKey) {
+        DETAIL_FOLLOW_SYSTEM -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.settings_follow_system_theme_title),
+                isChecked = !forceTheme,
+                onCheckedChange = { forceTheme = !it },
+                description = stringResource(R.string.follow_system_theme_description),
+            )
+            return
+        }
+        DETAIL_DARK_MODE -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.settings_dark_mode_title),
+                isChecked = darkModeValue,
+                onCheckedChange = { darkModeValue = it },
+                description = stringResource(R.string.dark_mode_description),
+                preview = { checked -> DarkModePreview(checked) },
+                enabled = forceTheme,
+            )
+            return
+        }
+        DETAIL_AMOLED -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.amoled_mode_title),
+                isChecked = amoledModeValue,
+                onCheckedChange = { amoledModeValue = it },
+                description = stringResource(R.string.amoled_mode_description),
+                preview = { checked -> AmoledPreview(checked) },
+            )
+            return
+        }
+        DETAIL_BLUR -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.fancy_blur),
+                isChecked = allowBlur,
+                onCheckedChange = { allowBlur = it },
+                description = stringResource(R.string.fancy_blur_description),
+                preview = { checked -> BlurPreview(checked) },
+                enabled = shouldAllowBlur,
+            )
+            return
+        }
+        DETAIL_SHARED -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.shared_elements),
+                isChecked = sharedElements,
+                onCheckedChange = { sharedElements = it },
+                description = stringResource(R.string.shared_elements_description),
+            )
+            return
+        }
+    }
 
     val context = LocalContext.current
     var selectedTab by rememberSaveable(themeColorSeed) {
@@ -148,7 +221,7 @@ fun ColorPaletteScreen() {
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.settings_theme)
+                        text = stringResource(R.string.settings_appearance)
                     )
                 },
                 navigationIcon = {
@@ -167,16 +240,20 @@ fun ColorPaletteScreen() {
         val followSystemPref = rememberSwitchPreference(
             forceTheme,
             title = stringResource(R.string.settings_follow_system_theme_title),
+            summary = stringResource(R.string.follow_system_theme_description),
             isChecked = !forceTheme,
             onCheck = { forceTheme = !it },
+            onClick = { detailKey = DETAIL_FOLLOW_SYSTEM },
             screenPosition = Position.Top
         )
         val darkModePref = rememberSwitchPreference(
             darkModeValue, forceTheme,
             title = stringResource(R.string.settings_dark_mode_title),
+            summary = stringResource(R.string.dark_mode_description),
             enabled = forceTheme,
             isChecked = darkModeValue,
             onCheck = { darkModeValue = it },
+            onClick = { detailKey = DETAIL_DARK_MODE },
             screenPosition = Position.Middle
         )
         val amoledModePref = rememberSwitchPreference(
@@ -185,6 +262,30 @@ fun ColorPaletteScreen() {
             summary = stringResource(R.string.amoled_mode_summary),
             isChecked = amoledModeValue,
             onCheck = { amoledModeValue = it },
+            onClick = { detailKey = DETAIL_AMOLED },
+            screenPosition = Position.Bottom
+        )
+
+        val effectsHeader = remember {
+            SettingsEntity.Header(title = "Visual Effects")
+        }
+        val allowBlurPref = rememberSwitchPreference(
+            allowBlur,
+            title = stringResource(R.string.fancy_blur),
+            summary = stringResource(R.string.fancy_blur_summary),
+            isChecked = allowBlur,
+            onCheck = { allowBlur = it },
+            onClick = { detailKey = DETAIL_BLUR },
+            enabled = shouldAllowBlur,
+            screenPosition = Position.Top
+        )
+        val sharedElementsPref = rememberSwitchPreference(
+            sharedElements,
+            title = stringResource(R.string.shared_elements),
+            summary = stringResource(R.string.shared_elements_summary),
+            isChecked = sharedElements,
+            onCheck = { sharedElements = it },
+            onClick = { detailKey = DETAIL_SHARED },
             screenPosition = Position.Bottom
         )
 
@@ -343,6 +444,11 @@ fun ColorPaletteScreen() {
                     SettingsItem(item = darkModePref)
                     SettingsItem(item = amoledModePref)
 
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SettingsItem(item = effectsHeader)
+                    SettingsItem(item = allowBlurPref)
+                    SettingsItem(item = sharedElementsPref)
+
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
@@ -386,6 +492,11 @@ fun ColorPaletteScreen() {
                 SettingsItem(item = followSystemPref)
                 SettingsItem(item = darkModePref)
                 SettingsItem(item = amoledModePref)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                SettingsItem(item = effectsHeader)
+                SettingsItem(item = allowBlurPref)
+                SettingsItem(item = sharedElementsPref)
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -950,5 +1061,119 @@ private fun PillTab(
             style = MaterialTheme.typography.labelLarge,
             color = textColor
         )
+    }
+}
+
+@Composable
+private fun DarkModePreview(isChecked: Boolean) {
+    val bg by animateColorAsState(if (isChecked) Color(0xFF121212) else Color(0xFFFEFBFF), label = "bg")
+    val surface by animateColorAsState(if (isChecked) Color(0xFF2B2B2B) else Color(0xFFE8DEE8), label = "sf")
+    val content by animateColorAsState(if (isChecked) Color(0xFFDADADA) else Color(0xFF1C1C1C), label = "ct")
+    MiniPhoneFrame(backgroundColor = bg, surfaceColor = surface, contentColor = content)
+}
+
+@Composable
+private fun AmoledPreview(isChecked: Boolean) {
+    val bg by animateColorAsState(if (isChecked) Color.Black else Color(0xFF121212), label = "bg")
+    val surface by animateColorAsState(if (isChecked) Color(0xFF0D0D0D) else Color(0xFF2B2B2B), label = "sf")
+    MiniPhoneFrame(backgroundColor = bg, surfaceColor = surface, contentColor = Color(0xFFDADADA))
+}
+
+@Composable
+private fun BlurPreview(isChecked: Boolean) {
+    val backgroundColor = Color(0xFF121212)
+    val contentColor = Color(0xFFDADADA)
+    val surfaceColor = Color(0xFF2B2B2B)
+    val barAlpha by animateFloatAsState(if (isChecked) 0.55f else 1f, label = "barAlpha")
+    val gridColors = listOf(
+        MaterialTheme.colorScheme.primaryContainer,
+        MaterialTheme.colorScheme.tertiaryContainer,
+        MaterialTheme.colorScheme.secondaryContainer,
+    )
+    Box(
+        modifier = Modifier
+            .padding(24.dp)
+            .size(width = 120.dp, height = 200.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+    ) {
+        // Media grid content (extends full height, behind bars)
+        Column(
+            modifier = Modifier.fillMaxSize().padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            repeat(5) { row ->
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    repeat(3) { col ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(gridColors[(row + col) % gridColors.size])
+                        )
+                    }
+                }
+            }
+        }
+        // Top bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .background(surfaceColor.copy(alpha = barAlpha))
+        ) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 6.dp)
+                    .size(30.dp, 5.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(contentColor.copy(alpha = 0.25f))
+            )
+        }
+        // Bottom bar
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(20.dp)
+                .background(surfaceColor.copy(alpha = barAlpha))
+        )
+    }
+}
+
+@Composable
+private fun MiniPhoneFrame(
+    backgroundColor: Color,
+    surfaceColor: Color,
+    contentColor: Color,
+) {
+    Box(
+        modifier = Modifier
+            .padding(24.dp)
+            .size(width = 120.dp, height = 200.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxWidth().height(24.dp).background(surfaceColor))
+            Column(Modifier.weight(1f).padding(6.dp), Arrangement.spacedBy(3.dp)) {
+                Box(Modifier.size(40.dp, 5.dp).clip(RoundedCornerShape(2.dp)).background(contentColor.copy(alpha = 0.25f)))
+                repeat(3) {
+                    Row(Modifier.weight(1f), Arrangement.spacedBy(3.dp)) {
+                        repeat(3) {
+                            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(surfaceColor))
+                        }
+                    }
+                }
+            }
+            Box(Modifier.fillMaxWidth().height(20.dp).background(surfaceColor))
+        }
     }
 }

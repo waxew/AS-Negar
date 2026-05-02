@@ -43,6 +43,7 @@ import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.core.util.rememberPreference
 import com.dot.gallery.core.util.rememberPreferenceSerializable
 import com.dot.gallery.feature_node.domain.model.SearchHistory
+import com.dot.gallery.feature_node.domain.model.SelectionSheetConfig
 import com.dot.gallery.feature_node.domain.util.OrderType
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -512,6 +513,15 @@ object Settings {
         fun rememberShowSelectionTitles() =
             rememberPreference(key = SELECTION_TITLES, defaultValue = true)
 
+        private val SELECTION_SHEET_CONFIG = stringPreferencesKey("selection_sheet_config")
+
+        @Composable
+        fun rememberSelectionSheetConfig() =
+            rememberPreferenceSerializable(
+                keyString = SELECTION_SHEET_CONFIG,
+                defaultValue = SelectionSheetConfig()
+            )
+
         const val ALIAS_REFRA = "ReFra"
         const val ALIAS_GALLERY = "Gallery"
         private val APP_NAME_ALIAS = stringPreferencesKey("app_name_alias")
@@ -699,6 +709,7 @@ sealed class SettingsEntity(
         override val screenPosition: Position = Position.Alone,
         override val isChecked: Boolean = false,
         override val onCheck: ((Boolean) -> Unit)? = null,
+        override val onClick: (() -> Unit)? = null,
     ) : SettingsEntity(
         icon = icon,
         iconUri = iconUri,
@@ -710,6 +721,7 @@ sealed class SettingsEntity(
         enabled = enabled,
         isChecked = isChecked,
         onCheck = onCheck,
+        onClick = onClick,
         screenPosition = screenPosition,
         type = PreferenceType.Switch
     )

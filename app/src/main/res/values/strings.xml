@@ -424,6 +424,37 @@
     <string name="cancel_selection">Cancel selection</string>
     <string name="remove_from_category">Remove from category</string>
     <string name="add_media_to_category">Add media</string>
+
+    <!-- Category Editor (unified create/edit) -->
+    <string name="new_category">New category</string>
+    <string name="describe_content">Describe what to include</string>
+    <string name="describe_content_hint">Describe what photos this category should contain</string>
+    <string name="describe_content_example">e.g., photos of my dog at the beach</string>
+    <string name="quick_start">Quick start</string>
+    <string name="quick_start_subtitle">Tap a suggestion to get started</string>
+    <string name="matching_preview">Preview</string>
+    <string name="matching_preview_description">Top matches for your description</string>
+    <string name="see_all_matches">See all %1$d matches</string>
+    <string name="sensitivity">Sensitivity</string>
+    <string name="sensitivity_broad">Broad</string>
+    <string name="sensitivity_broad_desc">Include loosely related photos</string>
+    <string name="sensitivity_balanced">Balanced</string>
+    <string name="sensitivity_balanced_desc">Good mix of relevance</string>
+    <string name="sensitivity_strict">Strict</string>
+    <string name="sensitivity_strict_desc">Only strong matches</string>
+    <string name="sensitivity_exact">Exact</string>
+    <string name="sensitivity_exact_desc">Near-perfect matches only</string>
+    <string name="fine_tune">Fine-tune</string>
+    <string name="category_created">Category created — classifying photos…</string>
+    <string name="category_updated">Category updated — reclassifying…</string>
+    <string name="category_deleted">Category deleted</string>
+
+    <!-- Reference images (image-to-image search) -->
+    <string name="reference_images">Reference photos</string>
+    <string name="reference_images_hint">Add photos to find visually similar ones</string>
+    <string name="add_reference_photos">Add photos</string>
+    <string name="select_reference_photos">Select reference photos</string>
+    <string name="reference_images_count">%1$d selected</string>
     
     <string name="restore">Restore</string>
     <string name="encrypted">Encrypted</string>
@@ -499,12 +530,85 @@
     <string name="settings_misc_summary">Various uncategorised settings</string>
     <string name="settings_general_summary">Various general settings</string>
     <string name="ai_category_summary">Control what Smart Features you want to use</string>
+
+    <!-- Settings Overhaul: New Section Names & Summaries -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_summary">Theme, colors, dark mode, visual effects</string>
+    <string name="settings_timeline_albums">Timeline &amp; Albums</string>
+    <string name="settings_timeline_albums_summary">Layout, grouping, date format, album behavior</string>
+    <string name="settings_media_viewer">Media Viewer</string>
+    <string name="settings_media_viewer_summary">Viewing experience, editor, video playback</string>
+    <string name="settings_navigation">Navigation</string>
+    <string name="settings_navigation_summary">Launch screen, bars, interface behavior</string>
+
+    <!-- Settings Overhaul: Extended Descriptions -->
+    <string name="monthly_timeline_description">Groups all your photos and videos by month instead of by individual date. This gives a more compact overview when browsing large libraries, but you lose the per-day separation.\n\nChanging this setting will restart the app.</string>
+    <string name="group_similar_media_description">Automatically groups related photos together — RAW+JPG pairs, edited copies, and burst sequences. When enabled, only the main photo is shown in the grid; grouped items appear in the media viewer.</string>
+    <string name="allow_gif_animation_description">When enabled, GIF images play their animation directly in the timeline and album grids. Disable this to show static thumbnails instead, which can reduce lag in folders with many GIFs.</string>
+    <string name="hide_timeline_for_albums_description">Removes the date section headers when browsing inside an album, showing a cleaner continuous grid of media.</string>
+    <string name="merge_albums_by_name_description">Combines albums that share the same name from different storage locations into a single album. Useful if you have media spread across internal storage and SD card.</string>
+    <string name="full_brightness_view_description">Automatically sets screen brightness to maximum when viewing a photo or video in full screen. Brightness returns to your normal level when you leave the viewer.</string>
+    <string name="show_date_header_description">Displays the date and time of the current photo at the top of the media viewer screen.</string>
+    <string name="show_favorite_button_description">Shows a heart button in the media viewer toolbar, allowing you to quickly add or remove the current photo from your favorites.</string>
+    <string name="audio_focus_description">When enabled, the app requests audio focus during video playback. This pauses other audio apps (music, podcasts) while your video plays.\n\nChanging this setting will restart the app.</string>
+    <string name="auto_hide_on_video_play_description">Automatically hides the top and bottom bars when a video starts playing, giving you a full-screen experience. Tap the screen to bring the controls back.</string>
+    <string name="auto_play_video_description">Videos start playing automatically when you swipe to them in the media viewer. Disable this to require a manual tap to play.</string>
+    <string name="fancy_blur_description">Applies a blur effect to the background behind photos in the media viewer. Requires Android 12 or higher.</string>
+    <string name="shared_elements_description">Enables smooth shared element transitions between the grid thumbnails and the full-screen media viewer. This creates a visual connection as items zoom in and out.</string>
+    <string name="old_navbar_description">Switches to the classic Material navigation bar with text labels. On larger screens, this shows a navigation rail on the side instead.</string>
+    <string name="auto_hide_searchbar_description">The search bar or top bar slides out of view when you scroll down, giving more space for content. It reappears when you scroll back up.</string>
+    <string name="auto_hide_navigationbar_description">The bottom navigation bar slides out of view when you scroll down, giving more space for content. It reappears when you scroll back up.</string>
+    <string name="show_selection_titles_description">Shows the title text beneath each item in the bottom selection bar (Timeline, Albums, Library). Disable for a more compact icon-only navigation.</string>
+    <string name="secure_mode_description">Prevents the app content from appearing in screenshots, the recent apps overview, and screen recordings. Useful for privacy when your gallery contains sensitive content.</string>
+    <string name="allow_vibrations_description">Allows the app to send haptic feedback during certain actions and gestures, such as long-pressing to select or pinch-to-zoom transitions.</string>
+    <string name="trash_enabled_description">When enabled, deleted photos and videos are moved to trash and kept for 30 days before permanent deletion. When disabled, deleting is immediate and irreversible.</string>
+    <string name="trash_confirmation_description">Shows a confirmation dialog before moving items to the trash, preventing accidental deletions.</string>
+    <string name="follow_system_theme_description">When enabled, the app follows your device\'s light/dark mode setting automatically. Disable to manually choose light or dark mode below.</string>
+    <string name="dark_mode_description">Forces the app to use dark mode regardless of your system setting. Only available when "Follow System Theme" is disabled.</string>
+    <string name="amoled_mode_description">Uses a pure black background instead of dark grey, providing higher contrast and saving battery on AMOLED screens.</string>
+    <string name="timeline_layout_description">Choose how photos are arranged in the timeline grid. The uniform grid shows equal-sized thumbnails, while the mosaic layout varies sizes for a more dynamic look.</string>
+    <string name="favorite_icon_description">Choose where the favorite heart icon appears on thumbnails in the grid, or hide it entirely.</string>
+    <string name="default_editor_description">Choose which app opens when you tap the edit button. You can use the built-in editor or any compatible external photo editor installed on your device.</string>
+    <string name="launch_screen_description">Choose which screen appears when you open the app. You can pick a specific screen or let the app remember the last one you used.</string>
+    <string name="app_name_description">Change the name and icon displayed on your home screen launcher. The app will restart to apply the change.</string>
+
+    <!-- Settings Overhaul: Metadata worker feedback -->
+    <string name="metadata_collecting">Collecting metadata…</string>
+    <string name="metadata_collecting_progress">Collecting metadata… %1$d%%</string>
+    <string name="metadata_idle">Tap to refresh media metadata from your library</string>
+
     <string name="video_playback">Video Playback</string>
     <string name="interface_settings">Interface</string>
     <string name="show_date_header">Show Media Date Header</string>
     <string name="show_date_header_summary">Show the media date in the media view top bar header.</string>
     <string name="show_selection_titles">Display Selection Item\'s Title</string>
     <string name="show_selection_titles_summary">Display in the selection sheet a title for each action</string>
+    <string name="selection_actions">Selection Actions</string>
+    <string name="selection_actions_summary">Customize action bar items and order</string>
+    <string name="selection_actions_description">Customize which actions appear in the selection bar and their order. Drag to reorder, add or remove actions as needed.</string>
+    <string name="top_actions">Top Actions</string>
+    <string name="middle_actions">Middle Actions</string>
+    <string name="action_bar">Action Bar</string>
+    <string name="add_action">Add action</string>
+    <string name="reset_to_defaults">Reset to defaults</string>
+    <string name="action_locked">This action cannot be removed</string>
+    <string name="no_actions_available">No more actions available</string>
+    <string name="action_requires_favorites">Requires favorites support</string>
+    <string name="action_requires_collection">Only shown inside collections</string>
+    <string name="minimum_one_action">At least one action is required</string>
+    <string name="action_desc_close">Dismiss the selection sheet and clear all selected items</string>
+    <string name="action_desc_select_all">Select or deselect all items in the current view</string>
+    <string name="action_desc_info">View detailed metadata and information about the selected item</string>
+    <string name="action_desc_share">Share selected items with other apps</string>
+    <string name="action_desc_favorite">Toggle favorite status for selected items</string>
+    <string name="action_desc_collection">Add or remove selected items to/from a collection</string>
+    <string name="action_desc_copy">Copy selected items to another album</string>
+    <string name="action_desc_move">Move selected items to another album</string>
+    <string name="action_desc_trash">Move selected items to the trash</string>
+    <string name="action_desc_hide">Encrypt and hide selected items in the vault</string>
+    <string name="action_desc_edit">Open the selected item in the photo editor</string>
+    <string name="action_desc_rotate">Rotate selected items 90° clockwise</string>
+    <string name="add_to_vault">Add to Vault</string>
     <string name="extended_date_header_title">Extended Date Header</string>
     <string name="clear_selection">Remove All</string>
     <string name="selfies">Selfies</string>
@@ -548,6 +652,9 @@
     <string name="group_type_bursts">Bursts</string>
     <string name="group_type_raw_jpg">RAW + JPG</string>
     <string name="group_type_edits">Edits</string>
+
+    <string name="sort_most_accurate">Most accurate</string>
+    <string name="sort_by_date">Date</string>
 
     <plurals name="item_count">
         <item quantity="one">%s item</item>
@@ -693,4 +800,7 @@
     <string name="reset_cover">Reset cover</string>
     <string name="pin_collection">Pin</string>
     <string name="unpin_collection">Unpin</string>
+    <string name="select_albums_for_collection">Add albums</string>
+    <string name="select_albums_for_collection_subtitle">Select albums to add their media to this collection</string>
+    <string name="add_selected">Add selected</string>
 </resources>

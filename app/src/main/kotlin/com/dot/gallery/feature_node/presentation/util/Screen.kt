@@ -56,12 +56,15 @@ sealed class Screen(val route: String) {
     data object FavoriteScreen : Screen("favorite_screen")
 
     data object SettingsScreen : Screen("settings_screen")
-    data object SettingsThemeScreen : Screen("settings_theme_screen")
     data object ColorPaletteScreen : Screen("color_palette_screen")
     data object SettingsGeneralScreen : Screen("settings_general_screen")
-    data object SettingsCustomizationScreen : Screen("settings_customization_screen")
     data object SettingsSmartFeaturesScreen : Screen("settings_smart_features_screen")
     data object EditBackupsViewerScreen : Screen("edit_backups_viewer_screen")
+    data object SettingsAppearanceScreen : Screen("settings_appearance_screen")
+    data object SettingsTimelineAlbumsScreen : Screen("settings_timeline_albums_screen")
+    data object SettingsMediaViewerScreen : Screen("settings_media_viewer_screen")
+    data object SettingsNavigationScreen : Screen("settings_navigation_screen")
+    data object SettingsSelectionActionsScreen : Screen("settings_selection_actions_screen")
 
     data object IgnoredScreen : Screen("ignored_screen")
 
@@ -103,6 +106,12 @@ sealed class Screen(val route: String) {
         fun categoryId(id: Long) = "$route?categoryId=$id"
     }
 
+    data object CategoryEditorScreen : Screen("category_editor_screen") {
+        fun create() = route
+        fun edit() = "$route?categoryId={categoryId}"
+        fun edit(categoryId: Long) = "$route?categoryId=$categoryId"
+    }
+
     data object AlbumGroupViewScreen : Screen("album_group_view_screen") {
 
         fun groupId() = "$route?groupId={groupId}"
@@ -120,6 +129,18 @@ sealed class Screen(val route: String) {
     }
 
     data object CollectionViewScreen : Screen("collection_view_screen") {
+
+        fun collectionId() = "$route?collectionId={collectionId}"
+
+        fun collectionId(id: Long) = "$route?collectionId=$id"
+
+    }
+
+    data object CollectionAlbumSelectorScreen : Screen("collection_album_selector_screen") {
+
+        fun collectionName() = "$route?collectionName={collectionName}"
+
+        fun collectionName(name: String) = "$route?collectionName=$name"
 
         fun collectionId() = "$route?collectionId={collectionId}"
 

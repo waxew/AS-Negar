@@ -14,6 +14,7 @@ fun rememberSwitchPreference(
     summary: String? = null,
     isChecked: Boolean,
     onCheck: (Boolean) -> Unit,
+    onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     screenPosition: Position
 ) = remember(
@@ -22,6 +23,7 @@ fun rememberSwitchPreference(
     summary,
     isChecked,
     onCheck,
+    onClick,
     enabled,
     screenPosition
 ) {
@@ -31,6 +33,7 @@ fun rememberSwitchPreference(
         icon = icon,
         isChecked = isChecked,
         onCheck = onCheck,
+        onClick = onClick,
         enabled = enabled,
         screenPosition = screenPosition
     )
@@ -42,12 +45,14 @@ fun rememberPreference(
     title: String,
     icon: ImageVector? = null,
     summary: String? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
     screenPosition: Position
 ) = remember(
     *keys,
     title,
     summary,
+    enabled,
     onClick,
     screenPosition
 ) {
@@ -55,6 +60,7 @@ fun rememberPreference(
         title = title,
         summary = summary,
         icon = icon,
+        enabled = enabled,
         onClick = onClick,
         screenPosition = screenPosition
     )
