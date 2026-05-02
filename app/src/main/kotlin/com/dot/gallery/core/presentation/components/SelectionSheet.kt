@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,18 +33,29 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.CopyAll
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.PlaylistRemove
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -74,12 +86,17 @@ import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
+import com.dot.gallery.core.Settings.Misc.rememberSelectionSheetConfig
 import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.Settings.Misc.rememberShowSelectionTitles
 import com.dot.gallery.core.Settings.Misc.rememberTrashEnabled
 import com.dot.gallery.core.util.SdkCompat
+import com.dot.gallery.feature_node.domain.model.ActionCondition
 import com.dot.gallery.feature_node.domain.model.Media
+import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
+import com.dot.gallery.feature_node.domain.model.SelectionAction
+import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
 import com.dot.gallery.feature_node.presentation.collection.components.AddToCollectionSheet
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
@@ -88,10 +105,15 @@ import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedStat
 import com.dot.gallery.feature_node.presentation.trashed.components.TrashDialog
 import com.dot.gallery.feature_node.presentation.trashed.components.TrashDialogAction
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.mediaview.components.MediaInfoRow
+import com.dot.gallery.feature_node.presentation.util.launchEditIntent
 import com.dot.gallery.feature_node.presentation.util.rememberActivityResult
+import com.dot.gallery.feature_node.presentation.util.rememberMediaInfo
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.shareMediaWithVaultSupport
+import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
+import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
 import com.dot.gallery.ui.theme.Shapes
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dev.chrisbanes.haze.hazeEffect
@@ -99,12 +121,14 @@ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalHazeMaterialsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun <T : Media> BoxScope.SelectionSheet(
     modifier: Modifier = Modifier,
     allMedia: MediaState<T>,
-    selectedMedia: SnapshotStateList<T>
+    selectedMedia: SnapshotStateList<T>,
+    collectionId: Long? = null,
+    isInVault: Boolean = false,
 ) {
     val albumsState = LocalMediaDistributor.current.albumsFlow.collectAsStateWithLifecycle()
     val selector = LocalMediaSelector.current
@@ -119,6 +143,15 @@ fun <T : Media> BoxScope.SelectionSheet(
     val copySheetState = rememberAppBottomSheetState()
     var showCollectionSheet by rememberSaveable { mutableStateOf(false) }
     val collectionViewModel = hiltViewModel<CollectionViewModel>()
+    val vaultViewModel = hiltViewModel<VaultViewModel>()
+    val vaultSheetState = rememberAppBottomSheetState()
+    // Tracks what the vault sheet is for: "hide", "copy", or "move"
+    var vaultSheetAction by rememberSaveable { mutableStateOf("hide") }
+    val vaults = vaultViewModel.vaultState.collectAsStateWithLifecycle()
+    var showInfoSheet by rememberSaveable { mutableStateOf(false) }
+    val metadataState = LocalMediaDistributor.current.metadataFlow.collectAsStateWithLifecycle(
+        initialValue = MediaMetadataState()
+    )
     val result = rememberActivityResult(
         onResultOk = {
             selector.clearSelection()
@@ -138,6 +171,11 @@ fun <T : Media> BoxScope.SelectionSheet(
         if (!tabletMode) Modifier.fillMaxWidth()
         else Modifier.wrapContentWidth()
     }
+    val config by rememberSelectionSheetConfig()
+    val sanitizedConfig = remember(config) { config.sanitized() }
+    val showFavoriteButton by rememberShowFavoriteButton()
+    val trashEnabled = rememberTrashEnabled()
+
     AnimatedVisibility(
         modifier = modifier,
         visible = isSelectionActive,
@@ -168,33 +206,106 @@ fun <T : Media> BoxScope.SelectionSheet(
                 .align(Alignment.BottomEnd),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SelectionAddon(
-                    onClick = {
-                        scope.launch {
-                            selector.clearSelection()
+            // Top row — driven by config, horizontally scrollable with fade
+            val topScrollState = rememberScrollState()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        val fadeWidth = 32.dp.toPx()
+                        if (topScrollState.canScrollForward) {
+                            drawRect(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(Color.Black, Color.Transparent),
+                                    startX = size.width - fadeWidth,
+                                    endX = size.width
+                                ),
+                                blendMode = BlendMode.DstIn
+                            )
                         }
-                    },
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = stringResource(R.string.selection_dialog_close_cd),
-                    text =  selectedMedia.size.toString()
-                )
-
-                SelectAllAddon(
-                    allMedia = allMedia
-                )
-
-                /*SelectionAddon(
-                    onClick = {
-
-                    },
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = "Add actions"
-                )*/
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.horizontalScroll(topScrollState),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    sanitizedConfig.topActions.forEach { action ->
+                        when (action) {
+                            SelectionAction.CLOSE -> {
+                                SelectionAddon(
+                                    onClick = {
+                                        scope.launch {
+                                            selector.clearSelection()
+                                        }
+                                    },
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = stringResource(R.string.selection_dialog_close_cd),
+                                    text = selectedMedia.size.toString()
+                                )
+                            }
+                            SelectionAction.SELECT_ALL -> {
+                                SelectAllAddon(
+                                    allMedia = allMedia
+                                )
+                            }
+                            SelectionAction.INFO -> {
+                                AnimatedVisibility(visible = selectedMedia.size == 1) {
+                                    SelectionAddon(
+                                        onClick = { showInfoSheet = true },
+                                        imageVector = Icons.Outlined.Info,
+                                        contentDescription = stringResource(R.string.media_details),
+                                        text = stringResource(R.string.media_details)
+                                    )
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
+                }
             }
+            // Middle actions — full-width pill buttons
+            sanitizedConfig.middleActions.forEach { action ->
+                val isVisible = isActionVisible(action, collectionId, showFavoriteButton, isInVault)
+                if (isVisible) {
+                    when (action) {
+                        SelectionAction.COLLECTION -> {
+                            val inCollection = collectionId != null
+                            MiddleActionButton(
+                                icon = action.icon,
+                                text = stringResource(
+                                    if (inCollection) R.string.remove_from_collection
+                                    else R.string.add_to_collection
+                                ),
+                                surfaceColor = surfaceColor,
+                                onClick = {
+                                    if (inCollection) {
+                                        scope.launch {
+                                            selectedMedia.forEach { media ->
+                                                collectionViewModel.removeMediaFromCollection(collectionId, media.id)
+                                            }
+                                            selector.clearSelection()
+                                        }
+                                    } else {
+                                        showCollectionSheet = true
+                                    }
+                                }
+                            )
+                        }
+                        else -> {
+                            MiddleActionButton(
+                                icon = action.icon,
+                                text = stringResource(action.labelRes),
+                                surfaceColor = surfaceColor,
+                                onClick = {}
+                            )
+                        }
+                    }
+                }
+            }
+            // Bottom bar — driven by config
             Row(
                 modifier = Modifier
                     .then(sizeModifier)
@@ -214,83 +325,182 @@ fun <T : Media> BoxScope.SelectionSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Share Component
-                SelectionBarColumn(
-                    imageVector = Icons.Outlined.Share,
-                    tabletMode = tabletMode,
-                    title = stringResource(R.string.share)
-                ) {
-                    scope.launch {
-                        // Use enhanced sharing that handles encrypted media if vault context available
-                        context.shareMediaWithVaultSupport(selectedMedia, currentVault = null)
-                    }
-                }
-                // Favorite Component
-                val showFavoriteButton by rememberShowFavoriteButton()
-                if (showFavoriteButton && SdkCompat.supportsFavorites) {
-                    SelectionBarColumn(
-                        imageVector = Icons.Outlined.FavoriteBorder,
-                        tabletMode = tabletMode,
-                        title = stringResource(R.string.favorite)
-                    ) {
-                        scope.launch {
-                            handler.toggleFavorite(result = result, selectedMedia)
+                sanitizedConfig.bottomActions.forEach { action ->
+                    val isVisible = isActionVisible(action, collectionId, showFavoriteButton, isInVault)
+                    if (isVisible) {
+                        when (action) {
+                            SelectionAction.SHARE -> {
+                                SelectionBarColumn(
+                                    imageVector = action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(action.labelRes)
+                                ) {
+                                    scope.launch {
+                                        context.shareMediaWithVaultSupport(selectedMedia, currentVault = null)
+                                    }
+                                }
+                            }
+                            SelectionAction.FAVORITE -> {
+                                SelectionBarColumn(
+                                    imageVector = action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(action.labelRes)
+                                ) {
+                                    scope.launch {
+                                        handler.toggleFavorite(result = result, selectedMedia)
+                                    }
+                                }
+                            }
+                            
+                            SelectionAction.COPY -> {
+                                SelectionBarColumn(
+                                    imageVector = action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(action.labelRes)
+                                ) {
+                                    if (isInVault) {
+                                        vaultSheetAction = "copy"
+                                        scope.launch { vaultSheetState.show() }
+                                    } else {
+                                        scope.launch { copySheetState.show() }
+                                    }
+                                }
+                            }
+                            SelectionAction.MOVE -> {
+                                SelectionBarColumn(
+                                    imageVector = action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(action.labelRes)
+                                ) {
+                                    if (isInVault) {
+                                        vaultSheetAction = "move"
+                                        scope.launch { vaultSheetState.show() }
+                                    } else {
+                                        scope.launch { moveSheetState.show() }
+                                    }
+                                }
+                            }
+                            
+                            SelectionAction.TRASH -> {
+                                if (isInVault) {
+                                    SelectionBarColumn(
+                                        imageVector = action.icon,
+                                        tabletMode = tabletMode,
+                                        title = stringResource(R.string.trash_delete)
+                                    ) {
+                                        scope.launch {
+                                            val vault = vaultViewModel.currentVault.value ?: return@launch
+                                            selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
+                                                vaultViewModel.deleteMedia(vault, media) {}
+                                            }
+                                            selector.clearSelection()
+                                        }
+                                    }
+                                } else {
+                                    val trashEnabledRes = remember(trashEnabled) {
+                                        if (trashEnabled.value) R.string.trash else R.string.trash_delete
+                                    }
+                                    SelectionBarColumn(
+                                        imageVector = action.icon,
+                                        tabletMode = tabletMode,
+                                        title = stringResource(id = trashEnabledRes),
+                                        onItemLongClick = {
+                                            scope.launch {
+                                                shouldMoveToTrash = false
+                                                trashSheetState.show()
+                                            }
+                                        },
+                                        onItemClick = {
+                                            scope.launch {
+                                                shouldMoveToTrash = true
+                                                trashSheetState.show()
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            SelectionAction.ADD_TO_VAULT -> {
+                                SelectionBarColumn(
+                                    imageVector = if (isInVault) Icons.Outlined.Restore else action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(
+                                        if (isInVault) R.string.restore else action.labelRes
+                                    )
+                                ) {
+                                    if (isInVault) {
+                                        scope.launch {
+                                            val vault = vaultViewModel.currentVault.value ?: return@launch
+                                            selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
+                                                vaultViewModel.restoreMedia(vault, media) {}
+                                            }
+                                            selector.clearSelection()
+                                        }
+                                    } else {
+                                        vaultSheetAction = "hide"
+                                        scope.launch { vaultSheetState.show() }
+                                    }
+                                }
+                            }
+                            SelectionAction.EDIT -> {
+                                SelectionBarColumn(
+                                    imageVector = action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(action.labelRes)
+                                ) {
+                                    selectedMedia.firstOrNull()?.let { media ->
+                                        context.launchEditIntent(media)
+                                    }
+                                }
+                            }
+                            SelectionAction.ROTATE -> {
+                                SelectionBarColumn(
+                                    imageVector = action.icon,
+                                    tabletMode = tabletMode,
+                                    title = stringResource(action.labelRes)
+                                ) {
+                                    selectedMedia.forEach { media ->
+                                        handler.rotateImage(media, 90)
+                                    }
+                                    selector.clearSelection()
+                                }
+                            }
+                            else -> {} // Top-zone actions don't appear in bottom bar
                         }
                     }
                 }
-                // Add to Collection Component
-                SelectionBarColumn(
-                    imageVector = Icons.Outlined.Collections,
-                    tabletMode = tabletMode,
-                    title = stringResource(R.string.add_to_collection)
-                ) {
-                    showCollectionSheet = true
-                }
-                // Copy Component
-                SelectionBarColumn(
-                    imageVector = Icons.Outlined.CopyAll,
-                    tabletMode = tabletMode,
-                    title = stringResource(R.string.copy)
-                ) {
-                    scope.launch {
-                        copySheetState.show()
-                    }
-                }
-                // Move Component
-                SelectionBarColumn(
-                    imageVector = Icons.AutoMirrored.Outlined.DriveFileMove,
-                    tabletMode = tabletMode,
-                    title = stringResource(R.string.move)
-                ) {
-                    scope.launch {
-                        moveSheetState.show()
-                    }
-                }
-                // Trash Component
-                val trashEnabled = rememberTrashEnabled()
-                val trashEnabledRes = remember(trashEnabled) {
-                    if (trashEnabled.value) R.string.trash else R.string.trash_delete
-                }
-                SelectionBarColumn(
-                    imageVector = Icons.Outlined.DeleteOutline,
-                    tabletMode = tabletMode,
-                    title = stringResource(id = trashEnabledRes),
-                    onItemLongClick = {
-                        scope.launch {
-                            shouldMoveToTrash = false
-                            trashSheetState.show()
-                        }
-                    },
-                    onItemClick = {
-                        scope.launch {
-                            shouldMoveToTrash = true
-                            trashSheetState.show()
-                        }
-                    }
-                )
             }
         }
     }
+
+    SelectVaultSheet(
+        state = vaultSheetState,
+        vaultState = vaults.value,
+        excludeVault = if (isInVault) vaultViewModel.currentVault.value else null,
+        onVaultSelected = { targetVault ->
+            scope.launch {
+                when (vaultSheetAction) {
+                    "copy", "move" -> {
+                        val isCopy = vaultSheetAction == "copy"
+                        val sourceVault = vaultViewModel.currentVault.value ?: return@launch
+                        val mediaToTransfer = selectedMedia.filterIsInstance<Media.UriMedia>()
+                        for (media in mediaToTransfer) {
+                            vaultViewModel.transferMedia(sourceVault, targetVault, media, copy = isCopy)
+                        }
+                        // Switch to target vault so the user sees the result
+                        vaultViewModel.currentVault.value = targetVault
+                    }
+                    else -> {
+                        // Regular hide: encrypt into selected vault
+                        vaultViewModel.encryptAndRequestDeletion(
+                            targetVault,
+                            selectedMedia.map { it.getUri() }
+                        )
+                    }
+                }
+                selector.clearSelection()
+            }
+        }
+    )
 
     if (albumsState.value.albums.isNotEmpty()) {
         MoveMediaSheet(
@@ -342,6 +552,67 @@ fun <T : Media> BoxScope.SelectionSheet(
             selector.clearSelection()
         }
     )
+
+    // Info bottom sheet — shows media details for a single selected item
+    if (showInfoSheet && selectedMedia.size == 1) {
+        val media = selectedMedia.first()
+        val metadata = remember(metadataState.value, media) {
+            metadataState.value.metadata.find { it.mediaId == media.id }
+        }
+        val mediaInfoList = rememberMediaInfo(
+            media = media,
+            exifMetadata = metadata,
+            onLabelClick = {}
+        )
+        ModalBottomSheet(
+            onDismissRequest = { showInfoSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.media_details),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                mediaInfoList.forEach { info ->
+                    MediaInfoRow(
+                        label = info.label,
+                        content = info.content,
+                        icon = info.icon,
+                        onClick = info.onClick,
+                        onLongClick = info.onLongClick
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun isActionVisible(
+    action: SelectionAction,
+    collectionId: Long?,
+    showFavoriteButton: Boolean,
+    isInVault: Boolean = false,
+): Boolean {
+    if (isInVault) {
+        // In vault: only allow close, select_all, trash (delete), restore (ADD_TO_VAULT)
+        return action in setOf(
+            SelectionAction.CLOSE,
+            SelectionAction.SELECT_ALL,
+            SelectionAction.TRASH,
+            SelectionAction.ADD_TO_VAULT,
+        )
+    }
+    return when (action.requiresCondition) {
+        ActionCondition.NONE -> true
+        ActionCondition.SUPPORTS_FAVORITES -> showFavoriteButton && SdkCompat.supportsFavorites
+        ActionCondition.IN_COLLECTION -> collectionId != null
+    }
 }
 
 @Composable
@@ -447,9 +718,66 @@ fun SelectionAddon(
                 text = text,
                 style = MaterialTheme.typography.titleMedium,
                 color = contentColor,
-                modifier = Modifier.weight(1f, fill = false)
+                maxLines = 1,
+                softWrap = false,
             )
         }
+    }
+}
+
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+private fun MiddleActionButton(
+    icon: ImageVector,
+    text: String,
+    surfaceColor: Color,
+    onClick: () -> Unit,
+) {
+    val allowBlur by rememberAllowBlur()
+    val shape = Shapes.extraLarge
+    val backgroundModifier = remember(allowBlur) {
+        if (!allowBlur) {
+            Modifier.background(
+                color = surfaceColor,
+                shape = shape
+            )
+        } else {
+            Modifier
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(backgroundModifier)
+            .clip(shape)
+            .shadow(
+                elevation = 4.dp,
+                shape = shape
+            )
+            .hazeEffect(
+                state = LocalHazeState.current,
+                style = HazeMaterials.regular(
+                    containerColor = surfaceColor
+                )
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Image(
+            modifier = Modifier.size(24.dp),
+            imageVector = icon,
+            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+            contentDescription = text
+        )
+        Spacer(modifier = Modifier.size(12.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
     }
 }
 

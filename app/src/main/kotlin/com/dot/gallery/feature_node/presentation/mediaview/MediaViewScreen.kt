@@ -151,7 +151,7 @@ fun <T> rememberedDerivedState(
     vararg keys: Any? = arrayOf(Unit),
     block: @DisallowComposableCalls () -> T
 ): State<T> {
-    return remember(keys) {
+    return remember(*keys) {
         derivedStateOf(block)
     }
 }

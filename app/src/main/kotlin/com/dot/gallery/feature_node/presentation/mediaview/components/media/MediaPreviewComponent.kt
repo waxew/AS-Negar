@@ -30,7 +30,7 @@ import dev.chrisbanes.haze.hazeSource
 @Stable
 @NonRestartableComposable
 @Composable
-fun <T: Media> MediaPreviewComponent(
+fun <T : Media> MediaPreviewComponent(
     media: T?,
     modifier: Modifier = Modifier,
     containerModifier: Modifier = Modifier,
@@ -64,59 +64,62 @@ fun <T: Media> MediaPreviewComponent(
             }
             // Translating content
             Box(
-                modifier = Modifier.fillMaxSize().then(containerModifier).offset { offset },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(containerModifier)
+                    .offset { offset },
             ) {
-            AnimatedVisibility(
-                modifier = Modifier.fillMaxSize(),
-                visible = media.isVideo,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                VideoPlayer(
-                    modifier = modifier,
-                    media = media,
-                    playWhenReady = playWhenReady,
-                    videoController = videoController,
-                    onItemClick = onItemClick,
-                    onSwipeDown = onSwipeDown
-                )
-            }
+                AnimatedVisibility(
+                    modifier = Modifier.fillMaxSize(),
+                    visible = media.isVideo,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    VideoPlayer(
+                        modifier = modifier,
+                        media = media,
+                        playWhenReady = playWhenReady,
+                        videoController = videoController,
+                        onItemClick = onItemClick,
+                        onSwipeDown = onSwipeDown
+                    )
+                }
 
-            AnimatedVisibility(
-                modifier = Modifier.fillMaxSize(),
-                visible = !media.isVideo && !isPanorama && !isPhotosphere,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                ZoomablePagerImage(
-                    modifier = modifier,
-                    media = media,
-                    uiEnabled = uiEnabled,
-                    rotationDisabled = rotationDisabled,
-                    onImageRotated = onImageRotated,
-                    onItemClick = onItemClick,
-                    onSwipeDown = onSwipeDown
-                )
-            }
+                AnimatedVisibility(
+                    modifier = Modifier.fillMaxSize(),
+                    visible = !media.isVideo && !isPanorama && !isPhotosphere,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    ZoomablePagerImage(
+                        modifier = modifier,
+                        media = media,
+                        uiEnabled = uiEnabled,
+                        rotationDisabled = rotationDisabled,
+                        onImageRotated = onImageRotated,
+                        onItemClick = onItemClick,
+                        onSwipeDown = onSwipeDown
+                    )
+                }
 
-            if (!media.isVideo && motionPhotoState != null) {
-                MotionPhotoSurface(state = motionPhotoState)
-            }
+                if (!media.isVideo && motionPhotoState != null) {
+                    MotionPhotoSurface(state = motionPhotoState)
+                }
 
-            AnimatedVisibility(
-                modifier = Modifier.fillMaxSize(),
-                visible = !media.isVideo && !isMotionPhoto && (isPanorama || isPhotosphere),
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                PanoramaImageViewer(
-                    media = media,
-                    isPhotosphere = isPhotosphere,
-                    modifier = modifier,
-                    onItemClick = onItemClick,
-                    currentVault = currentVault
-                )
-            }
+                AnimatedVisibility(
+                    modifier = Modifier.fillMaxSize(),
+                    visible = !media.isVideo && !isMotionPhoto && (isPanorama || isPhotosphere),
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    PanoramaImageViewer(
+                        media = media,
+                        isPhotosphere = isPhotosphere,
+                        modifier = modifier,
+                        onItemClick = onItemClick,
+                        currentVault = currentVault
+                    )
+                }
             }
         }
     }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,11 +70,11 @@ import com.dot.gallery.feature_node.domain.model.rememberMediaDateCaption
 import com.dot.gallery.feature_node.domain.util.canMakeActions
 import com.dot.gallery.feature_node.domain.util.fileExtension
 import com.dot.gallery.feature_node.domain.util.getCategory
+import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.domain.util.isRaw
 import com.dot.gallery.feature_node.domain.util.isTrashed
 import com.dot.gallery.feature_node.domain.util.isVideo
-import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.domain.util.readUriOnly
 import com.dot.gallery.feature_node.presentation.exif.MetadataEditSheet
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoShotsSection
@@ -84,8 +83,8 @@ import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedStat
 import com.dot.gallery.feature_node.presentation.util.GlideInvalidation
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
-import com.dot.gallery.feature_node.presentation.util.printDebug
 import com.dot.gallery.feature_node.presentation.util.launchWriteRequest
+import com.dot.gallery.feature_node.presentation.util.printDebug
 import com.dot.gallery.feature_node.presentation.util.rememberActivityResult
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.rememberMediaInfo
@@ -505,28 +504,30 @@ fun <T : Media> MediaViewSheetDetails(
                                     onClick = it.onClick
                                 )
                             }
-                            MediaInfoRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                label = stringResource(R.string.view_all_metadata),
-                                content = stringResource(R.string.metadata),
-                                icon = Icons.Outlined.Info,
-                                iconBackgroundModifier = Modifier
-                                    .then(iconBackgroundModifier)
-                                    .hazeEffect(
-                                        state = LocalHazeState.current,
-                                        style = iconBackgroundHazeStyle
-                                    ),
-                                onClick = {
-                                    allMetadataEventHandler.navigate(
-                                        Screen.MetadataViewScreen.uriAndType(
-                                            mediaUri = currentMedia.getUri().toString(),
-                                            isVideo = currentMedia.isVideo
+                            if (!currentMedia.isEncrypted) {
+                                MediaInfoRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                    label = stringResource(R.string.view_all_metadata),
+                                    content = stringResource(R.string.metadata),
+                                    icon = Icons.Outlined.Info,
+                                    iconBackgroundModifier = Modifier
+                                        .then(iconBackgroundModifier)
+                                        .hazeEffect(
+                                            state = LocalHazeState.current,
+                                            style = iconBackgroundHazeStyle
+                                        ),
+                                    onClick = {
+                                        allMetadataEventHandler.navigate(
+                                            Screen.MetadataViewScreen.uriAndType(
+                                                mediaUri = currentMedia.getUri().toString(),
+                                                isVideo = currentMedia.isVideo
+                                            )
                                         )
-                                    )
-                                }
-                            )
+                                    }
+                                )
+                            }
                             if (category != null) {
                                 val mediaCategoryCounter by handler.getClassifiedMediaCountAtCategory(
                                     category!!
