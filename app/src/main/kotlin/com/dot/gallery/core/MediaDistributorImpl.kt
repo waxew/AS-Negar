@@ -211,6 +211,18 @@ class MediaDistributorImpl @Inject constructor(
                 initialValue = emptyList()
             )
 
+    override val collectionAlbumIdsFlow: StateFlow<Set<Long>> =
+        repository.getAllAlbumIdsInCollections()
+            .map { it.toSet() }
+            .stateIn(
+                scope = appScope,
+                started = sharingMethod,
+                initialValue = emptySet()
+            )
+
+    override fun collectionAlbumIdsInCollection(collectionId: Long): Flow<List<Long>> =
+        repository.getAlbumIdsInCollection(collectionId)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override val albumsFlow: StateFlow<AlbumState> = hasPermission.flatMapLatest { granted ->
         if (!granted) flowOf(AlbumState())
@@ -226,6 +238,7 @@ class MediaDistributorImpl @Inject constructor(
             mergeAlbumsByName,
             mergedSubfolderAlbumsFlow,
             collectionsFlow,
+            collectionAlbumIdsFlow,
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val result = values[0] as Resource<List<Album>>
@@ -247,6 +260,8 @@ class MediaDistributorImpl @Inject constructor(
             val mergedSubfolders = values[9] as List<MergedSubfolderAlbum>
             @Suppress("UNCHECKED_CAST")
             val collections = values[10] as List<CollectionWithCount>
+            @Suppress("UNCHECKED_CAST")
+            val collectionAlbumIds = values[11] as Set<Long>
             val newOrder = settings?.albumMediaOrder ?: albumOrder
             val data = newOrder.sortAlbums(result.data ?: emptyList()).map { album ->
                 val thumbnail = thumbnails.find { it.albumId == album.id }
@@ -287,8 +302,16 @@ class MediaDistributorImpl @Inject constructor(
             AlbumState(
                 albums = mergedData,
                 albumsWithBlacklisted = data,
-                albumsUnpinned = mergedData.filter { !it.isPinned && it.id !in groupedMergedIds },
-                albumsPinned = mergedData.filter { it.isPinned }.sortedBy { it.label },
+                albumsUnpinned = mergedData.filter { album ->
+                    !album.isPinned && album.id !in groupedMergedIds &&
+                        (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
+                         else album.id !in collectionAlbumIds)
+                },
+                albumsPinned = mergedData.filter { album ->
+                    album.isPinned &&
+                        (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
+                         else album.id !in collectionAlbumIds)
+                }.sortedBy { it.label },
                 albumGroups = albumGroups,
                 collections = collections,
                 isLoading = false,
@@ -585,7 +608,7 @@ class MediaDistributorImpl @Inject constructor(
             mapMediaToItem(
                 data = sorter.sortMedia(collectionMedia),
                 error = allMediaResult.message ?: "",
-                albumId = -1L,
+                albumId = collectionId,
                 groupByMonth = settings?.groupTimelineByMonth == true,
                 groupSimilarMedia = shouldGroupSimilar,
                 defaultDateFormat = defaultDateFormat,

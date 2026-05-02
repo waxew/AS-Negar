@@ -71,6 +71,8 @@ interface MediaDistributor {
      * Collections
      */
     val collectionsFlow: StateFlow<List<CollectionWithCount>>
+    val collectionAlbumIdsFlow: StateFlow<Set<Long>>
+    fun collectionAlbumIdsInCollection(collectionId: Long): Flow<List<Long>>
     fun collectionMediaFlow(collectionId: Long): StateFlow<MediaState<Media.UriMedia>>
 
     /**

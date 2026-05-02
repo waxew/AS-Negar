@@ -13,6 +13,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.dot.gallery.feature_node.domain.model.Collection
+import com.dot.gallery.feature_node.domain.model.CollectionAlbum
 import com.dot.gallery.feature_node.domain.model.CollectionMedia
 import kotlinx.coroutines.flow.Flow
 
@@ -99,13 +100,34 @@ interface CollectionDao {
     """)
     fun getThumbnailMediaId(collectionId: Long): Flow<Long?>
 
+    // ============ CollectionAlbum operations ============
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addAlbumToCollection(collectionAlbum: CollectionAlbum)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addAlbumsToCollection(collectionAlbums: List<CollectionAlbum>)
+
+    @Query("DELETE FROM collection_albums WHERE collectionId = :collectionId AND albumId = :albumId")
+    suspend fun removeAlbumFromCollection(collectionId: Long, albumId: Long)
+
+    @Query("SELECT DISTINCT albumId FROM collection_albums")
+    fun getAllAlbumIdsInCollections(): Flow<List<Long>>
+
+    @Query("SELECT albumId FROM collection_albums WHERE collectionId = :collectionId")
+    fun getAlbumIdsInCollection(collectionId: Long): Flow<List<Long>>
+
     // Collections with count for UI display
     @Query("""
         SELECT c.*, COUNT(cm.mediaId) as mediaCount,
                COALESCE(
                    c.coverMediaId,
                    (SELECT cm2.mediaId FROM collection_media cm2 WHERE cm2.collectionId = c.id ORDER BY cm2.addedAt DESC LIMIT 1)
-               ) as thumbnailMediaId
+               ) as thumbnailMediaId,
+               COALESCE(
+                   (SELECT SUM(m.size) FROM collection_media cm3 INNER JOIN media m ON cm3.mediaId = m.id WHERE cm3.collectionId = c.id),
+                   0
+               ) as totalSize
         FROM collections c
         LEFT JOIN collection_media cm ON c.id = cm.collectionId
         GROUP BY c.id
@@ -126,7 +148,8 @@ data class CollectionWithMediaCount(
     val createdAt: Long,
     val updatedAt: Long,
     val mediaCount: Int,
-    val thumbnailMediaId: Long?
+    val thumbnailMediaId: Long?,
+    val totalSize: Long
 ) {
     fun toCollection() = Collection(
         id = id,
@@ -141,6 +164,7 @@ data class CollectionWithMediaCount(
     fun toCollectionWithCount() = com.dot.gallery.feature_node.domain.model.CollectionWithCount(
         collection = toCollection(),
         mediaCount = mediaCount,
-        thumbnailMediaId = thumbnailMediaId
+        thumbnailMediaId = thumbnailMediaId,
+        totalSize = totalSize
     )
 }
