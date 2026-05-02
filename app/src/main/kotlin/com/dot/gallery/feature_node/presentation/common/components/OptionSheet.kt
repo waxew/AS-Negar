@@ -47,9 +47,13 @@ import com.dot.gallery.feature_node.presentation.common.components.OptionPositio
 import com.dot.gallery.feature_node.presentation.common.components.OptionPosition.TOP
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
+import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.feature_node.presentation.util.AppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
 @Composable
 fun OptionSheet(
@@ -221,13 +225,35 @@ fun LazyListScope.SettingsOptionLayout(
 }
 
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun OptionLayout(
     modifier: Modifier = Modifier,
     optionList: SnapshotStateList<OptionItem>
 ) {
+    val isBlurEnabled by rememberAllowBlur()
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+    val blurBackgroundModifier = remember(isBlurEnabled) {
+        if (!isBlurEnabled) {
+            Modifier.background(
+                color = surfaceColor,
+                shape = OptionShape.Alone
+            )
+        } else {
+            Modifier
+        }
+    }
+    val hazeStyle = HazeMaterials.regular(
+        containerColor = MaterialTheme.colorScheme.surface
+    )
     Column(
-        modifier = modifier,
+        modifier = modifier
+            .clip(OptionShape.Alone)
+            .then(blurBackgroundModifier)
+            .hazeEffect(
+                state = LocalHazeState.current,
+                style = hazeStyle
+            ),
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         optionList.forEachIndexed { index, item ->
@@ -257,8 +283,9 @@ fun OptionLayout(
                 },
                 summaryContainer = summary,
                 enabled = item.enabled,
-                containerColor = item.containerColor
-                    ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = if (isBlurEnabled) Color.Transparent
+                    else item.containerColor
+                        ?: MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = item.contentColor
                     ?: MaterialTheme.colorScheme.onSurface,
                 position = position,

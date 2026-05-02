@@ -52,7 +52,6 @@ import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.isHeaderKey
-import com.dot.gallery.feature_node.domain.model.isIgnoredKey
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.roundDpToPx
 import com.dot.gallery.feature_node.presentation.util.roundSpToPx
@@ -71,6 +70,7 @@ fun <T : Media> PinchZoomGridScope.MediaGridView(
     canScroll: Boolean = true,
     allowHeaders: Boolean = true,
     enableStickyHeaders: Boolean = false,
+    hasToolbarOffset: Boolean = true,
     showMonthlyHeader: Boolean = false,
     aboveGridContent: @Composable (() -> Unit)? = null,
     isScrolling: MutableState<Boolean>,
@@ -107,13 +107,9 @@ fun <T : Media> PinchZoomGridScope.MediaGridView(
     }
 
     if (enableStickyHeaders) {
-        val headers by rememberedDerivedState(mediaState.value) {
-            mediaState.value.headers.toMutableStateList()
-        }
         val stickyHeaderItem by rememberStickyHeaderItem(
             gridState = gridState,
-            headers = headers,
-            mappedData = mappedData
+            mediaState = mediaState
         )
 
         val hideSearchBarSetting by rememberAutoHideSearchBar()
@@ -140,14 +136,11 @@ fun <T : Media> PinchZoomGridScope.MediaGridView(
         StickyHeaderGrid(
             state = gridState,
             modifier = Modifier.fillMaxSize(),
-            headerMatcher = { item -> item.key.isHeaderKey || item.key.isIgnoredKey },
+            headerMatcher = { item -> item.key.isHeaderKey },
             searchBarOffset = { if (showSearchBar) 28.roundSpToPx(density) + searchBarPaddingPx else 0 },
-            toolbarOffset = { if (showSearchBar) 0 else 64.roundDpToPx(density) + searchBarHeightPx },
+            toolbarOffset = { if (showSearchBar) 0 else if (hasToolbarOffset) 64.roundDpToPx(density) + searchBarHeightPx else 0 },
             stickyHeader = {
-                val show by remember(
-                    mediaState,
-                    stickyHeaderItem
-                ) {
+                val show by remember {
                     derivedStateOf {
                         mediaState.value.media.isNotEmpty() && stickyHeaderItem != null
                     }

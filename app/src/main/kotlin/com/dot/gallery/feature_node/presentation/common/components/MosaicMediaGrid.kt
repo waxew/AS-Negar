@@ -11,6 +11,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,6 +44,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -63,10 +68,12 @@ import com.dot.gallery.feature_node.domain.model.isBigHeaderKey
 import com.dot.gallery.feature_node.domain.model.isHeaderKey
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.mediaSharedElement
+import com.dot.gallery.feature_node.presentation.util.mosaicGridDragHandler
 import com.dot.gallery.feature_node.presentation.util.rememberFeedbackManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
@@ -236,6 +243,59 @@ fun <T : Media> MosaicMediaGrid(
     val isSelectionActive by selector.isSelectionActive.collectAsStateWithLifecycle()
     val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
 
+    val autoScrollSpeed = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(autoScrollSpeed.floatValue) {
+        if (autoScrollSpeed.floatValue != 0f) {
+            while (isActive) {
+                gridState.scrollBy(autoScrollSpeed.floatValue)
+                delay(10)
+            }
+        }
+    }
+    val scrollGestureActive = remember { mutableStateOf(false) }
+
+    val orderedGridKeys = remember(displayItems) {
+        displayItems.mapNotNull { item ->
+            when (item) {
+                is MosaicDisplayItem.HeaderItem -> null
+                else -> item.key
+            }
+        }
+    }
+    val gridKeyToMediaIds = remember(displayItems) {
+        buildMap<String, List<Long>> {
+            for (item in displayItems) {
+                when (item) {
+                    is MosaicDisplayItem.HeaderItem -> {}
+                    is MosaicDisplayItem.BigTileItem -> put(item.key, listOf(item.mediaItem.media.id))
+                    is MosaicDisplayItem.QuadTileItem -> put(item.key, item.mediaItems.map { it.media.id })
+                    is MosaicDisplayItem.PairTileItem -> put(item.key, item.mediaItems.map { it.media.id })
+                    is MosaicDisplayItem.SingleItem -> put(item.key, listOf(item.mediaItem.media.id))
+                }
+            }
+        }
+    }
+
+    val groupAwareUpdateSelection: (Set<Long>) -> Unit = remember(mediaState) {
+        { ids ->
+            val groups = mediaState.value.mediaGroups
+            if (groups.isEmpty()) {
+                selector.rawUpdateSelection(ids)
+            } else {
+                val expanded = mutableSetOf<Long>()
+                for (id in ids) {
+                    val group = groups[id]
+                    if (group != null) {
+                        group.forEach { expanded.add(it.id) }
+                    } else {
+                        expanded.add(id)
+                    }
+                }
+                selector.rawUpdateSelection(expanded)
+            }
+        }
+    }
+
     BackHandler(
         enabled = isSelectionActive && allowSelection
     ) {
@@ -247,7 +307,22 @@ fun <T : Media> MosaicMediaGrid(
         bottomContent()
         LazyVerticalGrid(
             state = gridState,
-            modifier = modifier.fillMaxSize().testTag("media_grid_mosaic"),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag("media_grid_mosaic")
+                .mosaicGridDragHandler(
+                    lazyGridState = gridState,
+                    haptics = LocalHapticFeedback.current,
+                    selectedIds = selectedMedia,
+                    updateSelectedIds = groupAwareUpdateSelection,
+                    autoScrollSpeed = autoScrollSpeed,
+                    autoScrollThreshold = with(LocalDensity.current) { 40.dp.toPx() },
+                    scrollGestureActive = scrollGestureActive,
+                    layoutDirection = LocalLayoutDirection.current,
+                    contentPadding = paddingValues,
+                    orderedGridKeys = orderedGridKeys,
+                    gridKeyToMediaIds = gridKeyToMediaIds
+                ),
             columns = GridCells.Fixed(MOSAIC_COLUMNS),
             contentPadding = paddingValues,
             userScrollEnabled = canScroll,

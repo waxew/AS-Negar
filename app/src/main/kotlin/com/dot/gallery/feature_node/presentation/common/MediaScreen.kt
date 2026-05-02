@@ -221,12 +221,10 @@ fun <T: Media> MediaScreen(
                         mediaState.value.headers.toMutableStateList()
                     }
                 }
-                val mosaicPaddingValues = remember(paddingValues, it) {
-                    PaddingValues(
-                        top = it.calculateTopPadding(),
-                        bottom = paddingValues.calculateBottomPadding() + 128.dp
-                    )
-                }
+                val mosaicPaddingValues = PaddingValues(
+                    top = it.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding() + 128.dp
+                )
                 TimelineScroller(
                     modifier = Modifier
                         .padding(mosaicPaddingValues)
@@ -270,14 +268,12 @@ fun <T: Media> MediaScreen(
                     modifier = Modifier.hazeSource(LocalHazeState.current)
                 ) {
                     MediaGridView(
-                        modifier = Modifier.padding(top = it.calculateTopPadding()),
                         mediaState = mediaState,
                         metadataState = metadataState,
-                        paddingValues = remember(paddingValues, it) {
-                            PaddingValues(
-                                bottom = paddingValues.calculateBottomPadding() + 128.dp
-                            )
-                        },
+                        paddingValues = PaddingValues(
+                            top = it.calculateTopPadding(),
+                            bottom = paddingValues.calculateBottomPadding() + 128.dp
+                        ),
                         searchBarPaddingTop = remember(paddingValues) {
                             paddingValues.calculateTopPadding()
                         },

@@ -149,17 +149,15 @@ fun LocationTimelineScreen(
             ) {
                 val hideTimelineOnAlbum by rememberHideTimelineOnAlbum()
                 MediaGridView(
-                    modifier = Modifier.padding(top = it.calculateTopPadding()),
                     mediaState = mediaState,
                     metadataState = metadataState,
                     allowSelection = true,
                     showSearchBar = false,
                     enableStickyHeaders = !hideTimelineOnAlbum,
-                    paddingValues = remember(paddingValues) {
-                        PaddingValues(
-                            bottom = paddingValues.calculateBottomPadding() + 128.dp
-                        )
-                    },
+                    paddingValues = PaddingValues(
+                        top = it.calculateTopPadding(),
+                        bottom = paddingValues.calculateBottomPadding() + 128.dp
+                    ),
                     canScroll = canScroll,
                     allowHeaders = !hideTimelineOnAlbum,
                     showMonthlyHeader = false,

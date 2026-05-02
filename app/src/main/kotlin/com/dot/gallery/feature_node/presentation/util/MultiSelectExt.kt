@@ -23,6 +23,100 @@ private val String?.mediaIdFromKey: Long?
         else removePrefix("media_").substringBefore("_").toLongOrNull()
     }
 
+private fun LazyGridState.hitKeyAt(
+    raw: Offset,
+    padL: Float,
+    padT: Float
+): String? {
+    val contentOffset = raw - Offset(padL, padT)
+    return layoutInfo.visibleItemsInfo
+        .find { info ->
+            info.size.toIntRect()
+                .contains((contentOffset.round() - info.offset))
+        }
+        ?.key as? String
+}
+
+fun Modifier.mosaicGridDragHandler(
+    lazyGridState: LazyGridState,
+    haptics: HapticFeedback,
+    selectedIds: State<Set<Long>>,
+    updateSelectedIds: (Set<Long>) -> Unit,
+    autoScrollSpeed: MutableState<Float>,
+    autoScrollThreshold: Float,
+    scrollGestureActive: MutableState<Boolean>,
+    layoutDirection: LayoutDirection,
+    contentPadding: PaddingValues,
+    orderedGridKeys: List<String>,
+    gridKeyToMediaIds: Map<String, List<Long>>
+) = pointerInput(Unit) {
+    val padL = contentPadding.calculateLeftPadding(layoutDirection).toPx()
+    val padT = contentPadding.calculateTopPadding().toPx()
+
+    var initialIndex: Int? = null
+    var currentIndex: Int? = null
+
+    detectDragGesturesAfterLongPress(
+        onDragStart = { raw ->
+            scrollGestureActive.value = true
+            lazyGridState.hitKeyAt(raw, padL, padT)?.let { key ->
+                val idx = orderedGridKeys.indexOf(key)
+                val ids = gridKeyToMediaIds[key] ?: emptyList()
+                if (idx >= 0 && ids.isNotEmpty()) {
+                    val idsSet = ids.toSet()
+                    if (!selectedIds.value.containsAll(idsSet)) {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        initialIndex = idx
+                        currentIndex = idx
+                        updateSelectedIds(selectedIds.value + idsSet)
+                    }
+                }
+            }
+        },
+        onDragCancel = {
+            scrollGestureActive.value = false
+            initialIndex = null
+            autoScrollSpeed.value = 0f
+        },
+        onDragEnd = {
+            scrollGestureActive.value = false
+            initialIndex = null
+            autoScrollSpeed.value = 0f
+        },
+        onDrag = { change, _ ->
+            val raw = change.position
+            if (initialIndex != null) {
+                val distB = lazyGridState.layoutInfo.viewportSize.height - raw.y
+                val distT = raw.y
+                autoScrollSpeed.value = when {
+                    distB < autoScrollThreshold -> autoScrollThreshold - distB
+                    distT < autoScrollThreshold -> -(autoScrollThreshold - distT)
+                    else -> 0f
+                }
+
+                lazyGridState.hitKeyAt(raw, padL, padT)?.let { key ->
+                    val newIdx = orderedGridKeys.indexOf(key)
+                    if (newIdx >= 0 && newIdx != currentIndex) {
+                        val start = initialIndex!!
+                        val oldEnd = currentIndex!!
+                        val oldRange = if (oldEnd >= start) start..oldEnd else oldEnd..start
+                        val newRange = if (newIdx >= start) start..newIdx else newIdx..start
+
+                        val oldIds = oldRange.flatMapTo(mutableSetOf()) {
+                            gridKeyToMediaIds[orderedGridKeys.getOrNull(it)] ?: emptyList()
+                        }
+                        val newIds = newRange.flatMapTo(mutableSetOf()) {
+                            gridKeyToMediaIds[orderedGridKeys.getOrNull(it)] ?: emptyList()
+                        }
+
+                        updateSelectedIds(selectedIds.value - oldIds + newIds)
+                        currentIndex = newIdx
+                    }
+                }
+            }
+        },
+    )
+}
 
 fun Modifier.photoGridDragHandler(
     lazyGridState: LazyGridState,
@@ -39,20 +133,8 @@ fun Modifier.photoGridDragHandler(
     // pre-compute the corresponding IDs
     val mediaIdsInOrder = allKeys.mapNotNull { it.mediaIdFromKey }
 
-    // padding in px
     val padL = contentPadding.calculateLeftPadding(layoutDirection).toPx()
     val padT = contentPadding.calculateTopPadding().toPx()
-
-    // helper: find the raw key under the finger
-    fun LazyGridState.hitKeyAt(raw: Offset): String? {
-        val contentOffset = raw - Offset(padL, padT)
-        return layoutInfo.visibleItemsInfo
-            .find { info ->
-                info.size.toIntRect()
-                    .contains((contentOffset.round() - info.offset))
-            }
-            ?.key as? String
-    }
 
     var initialMediaIndex: Int? = null
     var currentMediaIndex: Int? = null
@@ -60,7 +142,7 @@ fun Modifier.photoGridDragHandler(
     detectDragGesturesAfterLongPress(
         onDragStart = { raw ->
             scrollGestureActive.value = true
-            lazyGridState.hitKeyAt(raw)?.let { key ->
+            lazyGridState.hitKeyAt(raw, padL, padT)?.let { key ->
                 val idx = allKeys.indexOf(key)
                 val id = key.mediaIdFromKey
                 if (idx >= 0 && id != null && id !in selectedIds.value) {
@@ -92,7 +174,7 @@ fun Modifier.photoGridDragHandler(
                     else -> 0f
                 }
 
-                lazyGridState.hitKeyAt(raw)?.let { key ->
+                lazyGridState.hitKeyAt(raw, padL, padT)?.let { key ->
                     val newIdx = allKeys.indexOf(key)
                     if (newIdx >= 0 && newIdx != currentMediaIndex) {
                         val start = initialMediaIndex!!
