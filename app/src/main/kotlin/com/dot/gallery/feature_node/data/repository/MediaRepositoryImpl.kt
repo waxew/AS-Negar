@@ -86,6 +86,7 @@ import com.dot.gallery.feature_node.presentation.picker.AllowedMedia.BOTH
 import com.dot.gallery.feature_node.presentation.picker.AllowedMedia.PHOTOS
 import com.dot.gallery.feature_node.presentation.picker.AllowedMedia.VIDEOS
 import com.dot.gallery.feature_node.presentation.util.printError
+import com.dot.gallery.feature_node.presentation.util.printInfo
 import com.dot.gallery.feature_node.presentation.util.printWarning
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -608,6 +609,57 @@ class MediaRepositoryImpl(
             }
         }
 
+    override suspend fun <T : Media> transferMedia(
+        sourceVault: Vault,
+        targetVault: Vault,
+        media: T,
+        copy: Boolean
+    ): Boolean = withContext(Dispatchers.IO) {
+        with(keychainHolder) {
+            checkVaultFolder(sourceVault)
+            checkVaultFolder(targetVault)
+            if (!isTransferable(targetVault)) {
+                writeVaultInfo(targetVault, transferable = true)
+            }
+            return@withContext try {
+                val sourceFile = sourceVault.mediaFile(media.id)
+                if (!sourceFile.exists()) {
+                    printError("Transfer failed: source file does not exist for ${media.label} (id=${media.id})")
+                    return@withContext false
+                }
+                val targetFile = targetVault.mediaFile(media.id).apply { if (exists()) delete() }
+                // Decrypt from source, re-encrypt into target
+                val buffer = java.io.ByteArrayOutputStream()
+                if (isPortableFile(sourceFile)) {
+                    decryptPortableStream(sourceVault, sourceFile, buffer)
+                } else {
+                    val legacy = sourceFile.decryptKotlin<EncryptedMedia>()
+                    buffer.write(legacy.bytes)
+                }
+                val decryptedBytes = buffer.toByteArray()
+                if (decryptedBytes.isEmpty()) {
+                    printError("Transfer failed: decrypted data is empty for ${media.label}")
+                    return@withContext false
+                }
+                java.io.ByteArrayInputStream(decryptedBytes).use { input ->
+                    encryptPortableStream(targetVault, input, targetFile)
+                }
+                targetFile.setLastModified(System.currentTimeMillis())
+                database.getVaultDao().addMediaToVault(media.toEncryptedMedia2(targetVault.uuid))
+                if (!copy) {
+                    sourceFile.delete()
+                    database.getVaultDao().deleteMediaFromVault(sourceVault.uuid, media.id)
+                }
+                printInfo("Transferred ${media.label} from ${sourceVault.name} to ${targetVault.name} (copy=$copy)")
+                true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                printError("Failed to transfer file: ${media.label}: ${e.message}")
+                false
+            }
+        }
+    }
+
     override suspend fun <T : Media> deleteEncryptedMedia(vault: Vault, media: T): Boolean =
         withContext(Dispatchers.IO) {
             with(keychainHolder) {
@@ -1075,6 +1127,21 @@ class MediaRepositoryImpl(
 
     override suspend fun cleanupOrphanedCollectionMedia(validMediaIds: List<Long>) =
         collectionDao.cleanupOrphanedCollectionMedia(validMediaIds)
+
+    override suspend fun addAlbumsToCollection(collectionId: Long, albumIds: List<Long>) {
+        collectionDao.addAlbumsToCollection(
+            albumIds.map { com.dot.gallery.feature_node.domain.model.CollectionAlbum(collectionId, it) }
+        )
+    }
+
+    override suspend fun removeAlbumFromCollection(collectionId: Long, albumId: Long) =
+        collectionDao.removeAlbumFromCollection(collectionId, albumId)
+
+    override fun getAllAlbumIdsInCollections(): Flow<List<Long>> =
+        collectionDao.getAllAlbumIdsInCollections()
+
+    override fun getAlbumIdsInCollection(collectionId: Long): Flow<List<Long>> =
+        collectionDao.getAlbumIdsInCollection(collectionId)
 
     companion object {
         private fun relativePath(newPath: String) = ContentValues().apply {

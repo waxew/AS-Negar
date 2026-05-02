@@ -5,6 +5,7 @@
 
 package com.dot.gallery.feature_node.domain.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
@@ -18,6 +19,7 @@ import kotlinx.serialization.Serializable
  * @param name Display name of the category
  * @param searchTerms Comma-separated search terms used for matching (e.g., "sunset, sunrise, golden hour")
  * @param embedding Optional pre-computed text embedding for the category (for faster matching)
+ * @param referenceImageIds List of media IDs used as image-to-image reference for matching
  * @param threshold Minimum similarity score (0-1) for media to be included in this category
  * @param isUserCreated Whether this category was created by the user or auto-generated
  * @param isPinned Whether this category is pinned/favorited by the user
@@ -32,6 +34,8 @@ data class Category(
     val name: String,
     val searchTerms: String,
     val embedding: FloatArray? = null,
+    @ColumnInfo(defaultValue = "[]")
+    val referenceImageIds: List<Long> = emptyList(),
     val threshold: Float = DEFAULT_THRESHOLD,
     val isUserCreated: Boolean = false,
     val isPinned: Boolean = false,
@@ -51,6 +55,7 @@ data class Category(
             if (other.embedding == null) return false
             if (!embedding.contentEquals(other.embedding)) return false
         } else if (other.embedding != null) return false
+        if (referenceImageIds != other.referenceImageIds) return false
         if (threshold != other.threshold) return false
         if (isUserCreated != other.isUserCreated) return false
         if (isPinned != other.isPinned) return false
@@ -65,6 +70,7 @@ data class Category(
         result = 31 * result + name.hashCode()
         result = 31 * result + searchTerms.hashCode()
         result = 31 * result + (embedding?.contentHashCode() ?: 0)
+        result = 31 * result + referenceImageIds.hashCode()
         result = 31 * result + threshold.hashCode()
         result = 31 * result + isUserCreated.hashCode()
         result = 31 * result + isPinned.hashCode()

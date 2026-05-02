@@ -167,6 +167,8 @@ interface MediaRepository {
 
     suspend fun <T: Media> restoreMedia(vault: Vault, media: T): Boolean
 
+    suspend fun <T: Media> transferMedia(sourceVault: Vault, targetVault: Vault, media: T, copy: Boolean): Boolean
+
     suspend fun <T: Media> deleteEncryptedMedia(vault: Vault, media: T): Boolean
 
     suspend fun deleteAllEncryptedMedia(
@@ -343,5 +345,13 @@ interface MediaRepository {
     fun getCollectionIdsForMedia(mediaId: Long): Flow<List<Long>>
 
     suspend fun cleanupOrphanedCollectionMedia(validMediaIds: List<Long>)
+
+    suspend fun addAlbumsToCollection(collectionId: Long, albumIds: List<Long>)
+
+    suspend fun removeAlbumFromCollection(collectionId: Long, albumId: Long)
+
+    fun getAllAlbumIdsInCollections(): Flow<List<Long>>
+
+    fun getAlbumIdsInCollection(collectionId: Long): Flow<List<Long>>
 
 }

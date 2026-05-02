@@ -16,6 +16,7 @@ import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
 import com.dot.gallery.feature_node.domain.model.Collection
+import com.dot.gallery.feature_node.domain.model.CollectionAlbum
 import com.dot.gallery.feature_node.domain.model.CollectionMedia
 import com.dot.gallery.feature_node.domain.model.EditedMedia
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
@@ -56,9 +57,10 @@ import com.dot.gallery.feature_node.domain.util.Converters
         AlbumGroupMember::class,
         MergedSubfolderAlbum::class,
         Collection::class,
-        CollectionMedia::class
+        CollectionMedia::class,
+        CollectionAlbum::class
     ],
-    version = 20,
+    version = 22,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -80,6 +82,8 @@ import com.dot.gallery.feature_node.domain.util.Converters
         AutoMigration(from = 17, to = 18),
         AutoMigration(from = 18, to = 19),
         AutoMigration(from = 19, to = 20),
+        AutoMigration(from = 20, to = 21),
+        AutoMigration(from = 21, to = 22),
     ]
 )
 @TypeConverters(Converters::class)

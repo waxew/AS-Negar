@@ -70,6 +70,8 @@ class MockedMediaDistributor: MediaDistributor {
         gpsLocationNameCountry: String
     ): Flow<MediaState<Media.UriMedia>> = emptyFlow()
     override val collectionsFlow: StateFlow<List<CollectionWithCount>> = MutableStateFlow(emptyList())
+    override val collectionAlbumIdsFlow: StateFlow<Set<Long>> = MutableStateFlow(emptySet())
+    override fun collectionAlbumIdsInCollection(collectionId: Long): Flow<List<Long>> = emptyFlow()
     override fun collectionMediaFlow(collectionId: Long): StateFlow<MediaState<Media.UriMedia>> = MutableStateFlow(MediaState())
 }
 

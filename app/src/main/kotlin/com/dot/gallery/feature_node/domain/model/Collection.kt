@@ -30,5 +30,6 @@ data class Collection(
 data class CollectionWithCount(
     val collection: Collection,
     val mediaCount: Int,
-    val thumbnailMediaId: Long?
+    val thumbnailMediaId: Long?,
+    val totalSize: Long = 0
 )
