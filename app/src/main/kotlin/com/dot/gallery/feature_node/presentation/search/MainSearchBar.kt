@@ -97,7 +97,9 @@ fun MainSearchBar(
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .skipToLookaheadSize()
     ) {
         val adaptiveInfo = currentWindowAdaptiveInfo()
         val useMaxWidth = remember(adaptiveInfo.windowSizeClass) {

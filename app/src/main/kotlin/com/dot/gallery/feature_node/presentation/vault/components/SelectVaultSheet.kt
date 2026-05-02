@@ -13,8 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.toMutableStateList
@@ -40,10 +38,12 @@ import kotlinx.coroutines.launch
 fun SelectVaultSheet(
     state: AppBottomSheetState,
     vaultState: VaultState,
+    excludeVault: Vault? = null,
     onVaultSelected: (Vault) -> Unit
 ) {
-    val vaults by remember(vaultState) {
-        derivedStateOf { vaultState.vaults }
+    val vaults = remember(vaultState, excludeVault) {
+        if (excludeVault != null) vaultState.vaults.filter { it.uuid != excludeVault.uuid }
+        else vaultState.vaults
     }
     val scope = rememberCoroutineScope()
     val vaultOptions = remember(vaults, state) {

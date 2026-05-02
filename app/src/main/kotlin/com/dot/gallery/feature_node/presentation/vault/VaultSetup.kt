@@ -13,9 +13,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,10 +59,17 @@ fun VaultSetup(
         title = stringResource(R.string.vault_setup_title),
         subtitle = stringResource(R.string.vault_setup_subtitle),
         bottomBar = {
-            OutlinedButton(onClick = navigateUp) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
-            Button(
+            SetupButton(
+                onClick = navigateUp,
+                modifier = Modifier.weight(1f),
+                applyHorizontalPadding = false,
+                applyBottomPadding = false,
+                applyInsets = false,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                text = stringResource(id = R.string.action_cancel)
+            )
+            SetupButton(
                 onClick = {
                     vm.setVault(
                         vault = newVault,
@@ -79,10 +85,13 @@ fun VaultSetup(
                         }
                     )
                 },
-                enabled = isBiometricAvailable && nameError.isEmpty() && newVault.name.isNotEmpty()
-            ) {
-                Text(text = stringResource(id = R.string.get_started))
-            }
+                enabled = isBiometricAvailable && nameError.isEmpty() && newVault.name.isNotEmpty(),
+                modifier = Modifier.weight(1f),
+                applyHorizontalPadding = false,
+                applyBottomPadding = false,
+                applyInsets = false,
+                text = stringResource(id = R.string.get_started)
+            )
         },
         content = {
             OutlinedTextField(

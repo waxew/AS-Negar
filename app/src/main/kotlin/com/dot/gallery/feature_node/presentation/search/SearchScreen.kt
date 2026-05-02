@@ -19,11 +19,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -33,6 +37,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ImageSearch
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -71,19 +77,26 @@ import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
+import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.Settings.Search.rememberSearchHistory
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.navigateUp
 import com.dot.gallery.core.presentation.components.EmptyMedia
 import com.dot.gallery.core.presentation.components.SelectionSheet
+import com.dot.gallery.feature_node.domain.model.Media
+import com.dot.gallery.feature_node.domain.model.MediaItem
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
+import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.presentation.classifier.components.CategoryCarousel
 import com.dot.gallery.feature_node.presentation.classifier.components.LocationCarousel
 import com.dot.gallery.feature_node.presentation.classifier.components.SearchCarousel
 import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
+import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGrid
 import com.dot.gallery.feature_node.presentation.common.components.SettingsOptionLayout
+import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -559,10 +572,19 @@ fun SearchScreen(
                         distributor.metadataFlow.collectAsStateWithLifecycle(MediaMetadataState())
                     var canScroll by rememberSaveable { mutableStateOf(true) }
                     var lastCellIndex by rememberGridSize()
+                    val timelineLayoutType by rememberTimelineLayoutType()
+
+                    var sortByRelevance by rememberSaveable { mutableStateOf(true) }
+                    val isRelevanceSearch = searchResults.isRelevanceSearch
+                    val useRelevanceOrder = isRelevanceSearch && sortByRelevance
+
+                    val dpCacheWindow = LazyLayoutCacheWindow(ahead = 200.dp, behind = 100.dp)
                     val pinchState = rememberPinchZoomGridState(
                         cellsList = cellsList,
                         initialCellsIndex = lastCellIndex,
-                        gridState = rememberLazyGridState()
+                        gridState = rememberLazyGridState(
+                            cacheWindow = dpCacheWindow
+                        )
                     )
 
                     LaunchedEffect(pinchState.isZooming) {
@@ -571,43 +593,138 @@ fun SearchScreen(
                             lastCellIndex = cellsList.indexOf(pinchState.currentCells)
                         }
                     }
-                    PinchZoomGridLayout(
-                        state = pinchState,
-                        modifier = Modifier.hazeSource(LocalHazeState.current)
-                    ) {
-                        BackHandler {
-                            viewModel.clearQuery()
+
+                    BackHandler {
+                        viewModel.clearQuery()
+                    }
+
+                    val dateGroupedState = rememberedDerivedState { searchResults.results }
+                    val relevanceOrderedState = rememberedDerivedState(searchResults.results) {
+                        val results = searchResults.results
+                        val flatMapped = results.media.map { media ->
+                            MediaItem.MediaViewItem<Media.UriMedia>(
+                                key = "media_${media.id}_${media.label}",
+                                media = media
+                            )
                         }
-                        val mediaState = rememberedDerivedState { searchResults.results }
-                        MediaGridView(
+                        results.copy(
+                            mappedMedia = flatMapped,
+                            mappedMediaWithMonthly = flatMapped,
+                            headers = emptyList()
+                        )
+                    }
+                    val mediaState = if (useRelevanceOrder) relevanceOrderedState else dateGroupedState
+
+                    val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && !useRelevanceOrder
+
+                    val sortChipsContent: @Composable (() -> Unit)? = if (isRelevanceSearch) {
+                        {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                                    .height(48.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                FilterChip(
+                                    selected = sortByRelevance,
+                                    onClick = { sortByRelevance = true },
+                                    label = { Text(stringResource(R.string.sort_most_accurate)) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                )
+                                FilterChip(
+                                    selected = !sortByRelevance,
+                                    onClick = { sortByRelevance = false },
+                                    label = { Text(stringResource(R.string.sort_by_date)) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                )
+                            }
+                        }
+                    } else null
+
+                    if (isMosaicLayout) {
+                        val mosaicGridState = rememberLazyGridState(
+                            cacheWindow = dpCacheWindow
+                        )
+                        val mappedData by remember(mediaState) {
+                            derivedStateOf {
+                                mediaState.value.mappedMedia.toMutableStateList()
+                            }
+                        }
+                        val headers by remember(mediaState) {
+                            derivedStateOf {
+                                mediaState.value.headers.toMutableStateList()
+                            }
+                        }
+                        val mosaicPaddingValues = remember(contentPadding) {
+                            PaddingValues(
+                                bottom = contentPadding.calculateBottomPadding() + 128.dp
+                            )
+                        }
+                        TimelineScroller(
                             modifier = Modifier
-                                .animateContentSize()
-                                .padding(12.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                                    shape = RoundedCornerShape(32.dp)
-                                )
-                                .clip(RoundedCornerShape(32.dp)),
-                            mediaState = mediaState,
-                            metadataState = metadataState,
-                            allowSelection = true,
-                            showSearchBar = false,
-                            enableStickyHeaders = false,
-                            paddingValues = remember(contentPadding) {
-                                PaddingValues(
-                                    bottom = contentPadding.calculateBottomPadding() + 128.dp
-                                )
-                            },
-                            canScroll = canScroll,
-                            allowHeaders = false,
-                            showMonthlyHeader = false,
-                            aboveGridContent = null,
-                            isScrolling = isScrolling,
-                            emptyContent = { EmptyMedia() },
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedContentScope = animatedContentScope
+                                .padding(mosaicPaddingValues)
+                                .padding(top = 32.dp)
+                                .padding(vertical = 32.dp),
+                            mappedData = mappedData,
+                            headers = headers,
+                            state = mosaicGridState,
                         ) {
-                            eventHandler.navigate(Screen.MediaViewScreen.idAndQuery(it.id))
+                            MosaicMediaGrid(
+                                modifier = Modifier.hazeSource(LocalHazeState.current),
+                                gridState = mosaicGridState,
+                                mediaState = mediaState,
+                                metadataState = metadataState,
+                                mappedData = mappedData,
+                                paddingValues = mosaicPaddingValues,
+                                allowSelection = true,
+                                canScroll = true,
+                                allowHeaders = true,
+                                aboveGridContent = sortChipsContent,
+                                isScrolling = isScrolling,
+                                emptyContent = { EmptyMedia() },
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedContentScope = animatedContentScope,
+                                onMediaClick = {
+                                    eventHandler.navigate(Screen.MediaViewScreen.idAndQuery(it.id))
+                                },
+                            )
+                        }
+                    } else {
+                        PinchZoomGridLayout(
+                            state = pinchState,
+                            modifier = Modifier.hazeSource(LocalHazeState.current)
+                        ) {
+                            MediaGridView(
+                                mediaState = mediaState,
+                                metadataState = metadataState,
+                                allowSelection = true,
+                                showSearchBar = false,
+                                enableStickyHeaders = !useRelevanceOrder,
+                                hasToolbarOffset = false,
+                                paddingValues = remember(contentPadding) {
+                                    PaddingValues(
+                                        bottom = contentPadding.calculateBottomPadding() + 128.dp
+                                    )
+                                },
+                                canScroll = canScroll,
+                                allowHeaders = !useRelevanceOrder,
+                                showMonthlyHeader = false,
+                                aboveGridContent = sortChipsContent,
+                                isScrolling = isScrolling,
+                                emptyContent = { EmptyMedia() },
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedContentScope = animatedContentScope
+                            ) {
+                                eventHandler.navigate(Screen.MediaViewScreen.idAndQuery(it.id))
+                            }
                         }
                     }
                 }

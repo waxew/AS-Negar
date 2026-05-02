@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -29,8 +30,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -74,9 +74,11 @@ import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.navigateUp
+import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.presentation.components.EmptyMedia
 import com.dot.gallery.core.presentation.components.ModalSheet
 import com.dot.gallery.core.presentation.components.NavigationBackButton
+import com.dot.gallery.core.presentation.components.SelectionSheet
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
@@ -84,6 +86,7 @@ import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.VaultState
 import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
 import com.dot.gallery.feature_node.presentation.picker.PickerActivityContract
+import com.dot.gallery.feature_node.presentation.util.selectedMedia
 import com.dot.gallery.feature_node.presentation.util.rememberActivityResult
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.presentation.vault.components.DeleteVaultSheet
@@ -218,7 +221,7 @@ fun VaultDisplay(
                 Text(text = "${progress.roundToInt()}%")
             }
 
-            Button(
+            SetupButton(
                 onClick = {
                     scope.launch {
                         val indexesToDrop = (progress * toAddMedia.size / 100).roundToInt()
@@ -226,30 +229,40 @@ fun VaultDisplay(
                         bottomSheetState.hide()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-            ) {
-                Text(text = stringResource(R.string.action_cancel))
-            }
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                applyHorizontalPadding = false,
+                applyBottomPadding = false,
+                applyInsets = false,
+                text = stringResource(R.string.action_cancel)
+            )
         }
     )
+
+    val selector = LocalMediaSelector.current
+    val selectionState = selector.isSelectionActive.collectAsStateWithLifecycle()
+    val selectedMediaSet = selector.selectedMedia.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    pickerLauncher.launch(Unit)
-                }
+            AnimatedVisibility(
+                visible = !selectionState.value,
+                enter = enterAnimation,
+                exit = exitAnimation
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = stringResource(R.string.add_media_to_vault_cd)
-                )
+                FloatingActionButton(
+                    onClick = {
+                        pickerLauncher.launch(Unit)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = stringResource(R.string.add_media_to_vault_cd)
+                    )
+                }
             }
         },
         topBar = {
@@ -312,12 +325,13 @@ fun VaultDisplay(
                 scrollBehavior = scrollBehavior
             )
         }
-    ) {
+    ) { scaffoldPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
         PinchZoomGridLayout(state = pinchState) {
             MediaGridView(
                 mediaState = mediaState,
                 metadataState = metadataState,
-                paddingValues = it,
+                paddingValues = scaffoldPadding,
                 showSearchBar = false,
                 allowSelection = true,
                 canScroll = canScroll,
@@ -433,6 +447,22 @@ fun VaultDisplay(
                     eventHandler.navigate(VaultScreens.EncryptedMediaViewScreen.id(encryptedMedia.id))
                 },
             )
+        }
+
+        androidx.compose.animation.AnimatedVisibility(
+            modifier = Modifier.align(Alignment.BottomEnd),
+            visible = selectionState.value,
+            enter = com.dot.gallery.core.Constants.Animation.enterAnimation,
+            exit = com.dot.gallery.core.Constants.Animation.exitAnimation
+        ) {
+            val selectedMediaList = mediaState.value.media.selectedMedia(selectedSet = selectedMediaSet)
+            SelectionSheet(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                allMedia = mediaState.value,
+                selectedMedia = selectedMediaList,
+                isInVault = true,
+            )
+        }
         }
     }
 

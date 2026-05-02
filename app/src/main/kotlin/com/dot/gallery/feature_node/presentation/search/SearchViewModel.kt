@@ -50,6 +50,7 @@ import javax.inject.Inject
 data class SearchResultsState(
     val hasSearched: Boolean = false,
     val isSearching: Boolean = false,
+    val isRelevanceSearch: Boolean = false,
     val progress: Float = 0f,
     val results: MediaState<Media.UriMedia> = MediaState(isLoading = false)
 )
@@ -379,6 +380,7 @@ class SearchViewModel @Inject constructor(
                         SearchResultsState(
                             hasSearched = true,
                             isSearching = false,
+                            isRelevanceSearch = true,
                             progress = 1f,
                             results = mediaState
                         )
@@ -659,6 +661,7 @@ class SearchViewModel @Inject constructor(
                     SearchResultsState(
                         hasSearched = true,
                         isSearching = false,
+                        isRelevanceSearch = true,
                         progress = 0.5f,
                         results = mapMediaToItem(
                             data = results.map { it.second },
@@ -677,6 +680,7 @@ class SearchViewModel @Inject constructor(
                 SearchResultsState(
                     hasSearched = true,
                     isSearching = false,
+                    isRelevanceSearch = true,
                     progress = 1f,
                     results = mapMediaToItem(
                         data = results.map { it.second },
@@ -706,9 +710,9 @@ class SearchViewModel @Inject constructor(
         val merged = (this + newList)
             .groupBy { it.second.id }
             .map { (_, pairs) -> pairs.maxBy { it.first } }
+            .sortedByDescending { it.first }
         clear()
         addAll(merged)
-        sortedByDescending { it.first }
     }
 
     private suspend fun <T> List<T>.parseFuzzySearch(query: String): List<Pair<Float, T>> {

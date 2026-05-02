@@ -200,6 +200,12 @@ open class VaultViewModel @Inject constructor(
         onSuccess()
     }
 
+    suspend fun transferMedia(sourceVault: Vault, targetVault: Vault, media: UriMedia, copy: Boolean): Boolean {
+        return withContext(Dispatchers.IO) {
+            repository.transferMedia(sourceVault, targetVault, media, copy)
+        }
+    }
+
     fun deleteMedia(vault: Vault, media: UriMedia, onSuccess: () -> Unit) {
         // Hide/delete encrypted media directly (could also be a worker if long running)
         viewModelScope.launch(Dispatchers.IO) {
