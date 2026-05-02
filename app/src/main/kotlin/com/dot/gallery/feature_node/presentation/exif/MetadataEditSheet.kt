@@ -15,8 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -193,18 +192,19 @@ fun <T: Media> MetadataEditSheet(
                 ) {
                     val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
                     val tertiaryOnContainer = MaterialTheme.colorScheme.onTertiaryContainer
-                    Button(
+                    SetupButton(
                         onClick = {
                             scope.launch { state.hide() }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = tertiaryContainer,
-                            contentColor = tertiaryOnContainer
-                        )
-                    ) {
-                        Text(text = stringResource(R.string.action_cancel))
-                    }
-                    Button(
+                        containerColor = tertiaryContainer,
+                        contentColor = tertiaryOnContainer,
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.action_cancel)
+                    )
+                    SetupButton(
                         onClick = {
                             scope.launch(Dispatchers.Main) {
                                 request.launchWriteRequest(
@@ -212,13 +212,16 @@ fun <T: Media> MetadataEditSheet(
                                     doUpdate
                                 )
                             }
-                        }
-                    ) {
-                        Text(text = stringResource(R.string.action_confirm))
-                    }
+                        },
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.action_confirm)
+                    )
                 }
             }
-            Spacer(modifier = Modifier.navigationBarsPadding())
+            Spacer(modifier = Modifier)
         }
     }
 }

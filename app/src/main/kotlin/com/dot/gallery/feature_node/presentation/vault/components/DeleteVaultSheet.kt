@@ -11,8 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -60,7 +59,6 @@ fun DeleteVaultSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 32.dp, vertical = 16.dp)
-                    .navigationBarsPadding()
             ) {
                 Text(
                     text = buildAnnotatedString {
@@ -103,30 +101,34 @@ fun DeleteVaultSheet(
                 ) {
                     val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
                     val tertiaryOnContainer = MaterialTheme.colorScheme.onTertiaryContainer
-                    Button(
+                    SetupButton(
                         onClick = {
                             scope.launch {
                                 state.hide()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = tertiaryContainer,
-                            contentColor = tertiaryOnContainer
-                        )
-                    ) {
-                        Text(text = stringResource(R.string.action_cancel))
-                    }
+                        containerColor = tertiaryContainer,
+                        contentColor = tertiaryOnContainer,
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.action_cancel)
+                    )
 
-                    Button(
+                    SetupButton(
                         onClick = {
                             onConfirm()
                             scope.launch {
                                 state.hide()
                             }
-                        }
-                    ) {
-                        Text(text = stringResource(R.string.yes))
-                    }
+                        },
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.yes)
+                    )
                 }
             }
         }

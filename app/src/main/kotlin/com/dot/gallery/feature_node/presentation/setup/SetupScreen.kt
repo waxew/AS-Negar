@@ -18,9 +18,8 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.PermMedia
 import androidx.compose.material.icons.rounded.SignalWifi4Bar
 import androidx.compose.material.icons.rounded.VideoFile
-import androidx.compose.material3.Button
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -88,21 +87,29 @@ fun SetupScreen(
         subtitle = appName,
         contentPadding = 0.dp,
         bottomBar = {
-            OutlinedButton(
-                onClick = { (context as Activity).finish() }
-            ) {
-                Text(text = stringResource(id = R.string.action_cancel))
-            }
+            SetupButton(
+                onClick = { (context as Activity).finish() },
+                modifier = Modifier.weight(1f),
+                applyHorizontalPadding = false,
+                applyBottomPadding = false,
+                applyInsets = false,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                text = stringResource(id = R.string.action_cancel)
+            )
 
-            Button(
+            SetupButton(
                 onClick = {
                     scope.launch {
                         mediaPermissions.launchMultiplePermissionRequest()
                     }
-                }
-            ) {
-                Text(text = stringResource(R.string.get_started))
-            }
+                },
+                modifier = Modifier.weight(1f),
+                applyHorizontalPadding = false,
+                applyBottomPadding = false,
+                applyInsets = false,
+                text = stringResource(R.string.get_started)
+            )
         },
         content = {
             Text(

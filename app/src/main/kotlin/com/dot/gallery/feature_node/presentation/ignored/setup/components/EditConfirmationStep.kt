@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -85,15 +85,10 @@ fun EditConfirmationStep(
             )
         },
         bottomBar = {
-            Button(
+            SetupButton(
                 onClick = onConfirm,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding()
-            ) {
-                Text(text = stringResource(R.string.action_save))
-            }
+                text = stringResource(R.string.action_save)
+            )
         }
     ) {
         LazyVerticalGrid(

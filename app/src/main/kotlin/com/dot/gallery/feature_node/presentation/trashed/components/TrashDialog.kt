@@ -30,8 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -320,36 +319,42 @@ fun <T : Media> TrashDialog(
                     horizontalArrangement = Arrangement
                         .spacedBy(24.dp, Alignment.CenterHorizontally)
                 ) {
-                    AnimatedVisibility(visible = !confirmed) {
-                        Button(
+                    AnimatedVisibility(
+                        visible = !confirmed,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        SetupButton(
                             onClick = {
                                 scope.launch {
                                     appBottomSheetState.hide()
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = tertiaryContainer,
-                                contentColor = tertiaryOnContainer
-                            )
-                        ) {
-                            Text(text = stringResource(R.string.action_cancel))
-                        }
+                            containerColor = tertiaryContainer,
+                            contentColor = tertiaryOnContainer,
+                            applyHorizontalPadding = false,
+                            applyBottomPadding = false,
+                            applyInsets = false,
+                            text = stringResource(R.string.action_cancel)
+                        )
                     }
-                    Button(
+                    SetupButton(
                         enabled = !confirmed,
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             confirmed = true
                             scope.launch {
                                 onConfirm.invoke(dataCopy)
                                 appBottomSheetState.hide()
                             }
-                        }
-                    ) {
-                        Text(text = mainButtonText)
-                    }
+                        },
+                        applyHorizontalPadding = false,
+                        applyBottomPadding = false,
+                        applyInsets = false,
+                        text = mainButtonText
+                    )
                 }
             }
-            Spacer(modifier = Modifier.navigationBarsPadding())
+            Spacer(modifier = Modifier)
         }
     }
 }

@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -72,15 +72,10 @@ fun EditLocationStep(
             )
         },
         bottomBar = {
-            Button(
+            SetupButton(
                 onClick = onNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding()
-            ) {
-                Text(text = stringResource(R.string.action_continue))
-            }
+                text = stringResource(R.string.action_continue)
+            )
         }
     ) { paddingValues ->
         LazyColumn(

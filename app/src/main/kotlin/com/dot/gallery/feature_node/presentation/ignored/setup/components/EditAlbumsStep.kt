@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material3.Button
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -113,16 +113,11 @@ fun EditAlbumsStep(
             )
         },
         bottomBar = {
-            Button(
+            SetupButton(
                 onClick = onNext,
                 enabled = canProceed,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding()
-            ) {
-                Text(text = stringResource(R.string.action_continue))
-            }
+                text = stringResource(R.string.action_continue)
+            )
         }
     ) { paddingValues ->
         LazyVerticalGrid(

@@ -31,13 +31,12 @@ import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.FilterNone
 import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material.icons.outlined.PhotoAlbum
-import androidx.compose.material3.Button
+import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -235,22 +234,27 @@ private fun TypeSelectionStepContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.Cancel) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-                Button(
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    text = stringResource(R.string.action_cancel)
+                )
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateNext) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.continue_string))
-                }
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(R.string.continue_string)
+                )
             }
         }
     ) { paddingValues ->
@@ -417,23 +421,28 @@ private fun SingleAlbumSelectionContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateBack) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.go_back))
-                }
-                Button(
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    text = stringResource(R.string.go_back)
+                )
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateNext) },
                     enabled = uiState.canProceed,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.continue_string))
-                }
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(R.string.continue_string)
+                )
             }
         }
     ) { paddingValues ->
@@ -532,23 +541,28 @@ private fun MultipleAlbumSelectionContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateBack) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.go_back))
-                }
-                Button(
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    text = stringResource(R.string.go_back)
+                )
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateNext) },
                     enabled = uiState.canProceed,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.continue_string) + if (selectedAlbums.isNotEmpty()) " (${selectedAlbums.size})" else "")
-                }
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(R.string.continue_string) + if (selectedAlbums.isNotEmpty()) " (${selectedAlbums.size})" else ""
+                )
             }
         }
     ) { paddingValues ->
@@ -651,23 +665,28 @@ private fun RegexInputContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateBack) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.go_back))
-                }
-                Button(
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    text = stringResource(R.string.go_back)
+                )
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateNext) },
                     enabled = localRegex.isNotEmpty() && !error,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.continue_string))
-                }
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(R.string.continue_string)
+                )
             }
         }
     ) { paddingValues ->
@@ -834,29 +853,28 @@ private fun ConfirmationStepContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.NavigateBack) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.go_back))
-                }
-                Button(
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    text = stringResource(R.string.go_back)
+                )
+                SetupButton(
                     onClick = { onAction(IgnoredSetupAction.Confirm) },
                     enabled = uiState.matchedAlbums.isNotEmpty(),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.apply))
-                }
+                    modifier = Modifier.weight(1f),
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(R.string.apply)
+                )
             }
         }
     ) { paddingValues ->
