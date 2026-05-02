@@ -5,30 +5,30 @@
 
 package com.dot.gallery.feature_node.presentation.exif
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,15 +36,18 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dot.gallery.R
+import com.dot.gallery.core.Position
+import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.presentation.components.NavigationBackButton
-import com.dot.gallery.feature_node.presentation.mediaview.components.MediaInfoRow
+import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,18 +72,18 @@ fun MetadataViewScreen(
         }
     }
 
+    val scrollBehavior =
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(R.string.all_metadata))
-                },
-                navigationIcon = {
-                    NavigationBackButton()
-                },
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.all_metadata)) },
+                navigationIcon = { NavigationBackButton() },
+                scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->
@@ -118,11 +121,15 @@ fun MetadataViewScreen(
                 )
             }
         } else {
+            val layoutDirection = LocalLayoutDirection.current
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .animateContentSize()
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = paddingValues.calculateStartPadding(layoutDirection),
+                    end = paddingValues.calculateEndPadding(layoutDirection),
+                    top = 16.dp + paddingValues.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding()
+                )
             ) {
                 state.directories.forEachIndexed { index, directory ->
                     val dirKey = "${index}_${directory.name}"
@@ -139,23 +146,23 @@ fun MetadataViewScreen(
                     }
                     if (isExpanded) {
                         items(
-                            items = directory.tags,
-                            key = { "${dirKey}_${it.name}" }
-                        ) { tag ->
-                            MediaInfoRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp)
-                                    .animateItem(),
-                                label = tag.name,
-                                content = tag.description
-                            )
-                        }
-                        item(key = "divider_$dirKey") {
-                            HorizontalDivider(
-                                modifier = Modifier
-                                    .padding(horizontal = 24.dp, vertical = 4.dp)
-                                    .animateItem()
+                            count = directory.tags.size,
+                            key = { tagIndex -> "${dirKey}_${tagIndex}_${directory.tags[tagIndex].name}" }
+                        ) { tagIndex ->
+                            val tag = directory.tags[tagIndex]
+                            val position = when {
+                                directory.tags.size == 1 -> Position.Alone
+                                tagIndex == 0 -> Position.Top
+                                tagIndex == directory.tags.lastIndex -> Position.Bottom
+                                else -> Position.Middle
+                            }
+                            SettingsItem(
+                                item = SettingsEntity.Preference(
+                                    title = tag.name,
+                                    summary = tag.description,
+                                    screenPosition = position
+                                ),
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -177,30 +184,16 @@ private fun MetadataDirectoryHeader(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.List,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
+        Text(
+            text = "$name ($tagCount)",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "$tagCount tags",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
         Icon(
             imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
             contentDescription = null,
