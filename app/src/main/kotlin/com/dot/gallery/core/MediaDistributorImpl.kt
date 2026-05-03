@@ -34,6 +34,7 @@ import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.EventHandler
 import com.dot.gallery.feature_node.domain.util.MediaOrder
 import com.dot.gallery.feature_node.domain.util.OrderType
+import com.dot.gallery.feature_node.domain.util.MediaGroupType
 import com.dot.gallery.feature_node.domain.util.mapLocked
 import com.dot.gallery.feature_node.domain.util.mapPinned
 import com.dot.gallery.feature_node.domain.util.removeBlacklisted
@@ -117,6 +118,18 @@ class MediaDistributorImpl @Inject constructor(
     override val groupSimilarMedia: StateFlow<Boolean> =
         repository.getSetting(Settings.Misc.GROUP_SIMILAR_MEDIA, true)
             .stateIn(appScope, sharingMethod, true)
+
+    override val enabledGroupTypes: StateFlow<Set<MediaGroupType>> = combine(
+        repository.getSetting(Settings.Misc.GROUP_RAW_JPG, true),
+        repository.getSetting(Settings.Misc.GROUP_EDITED_COPIES, true),
+        repository.getSetting(Settings.Misc.GROUP_BURST_SEQUENCES, true)
+    ) { rawJpg, editedCopies, burstSequences ->
+        buildSet {
+            if (rawJpg) add(MediaGroupType.RAW_JPG)
+            if (editedCopies) add(MediaGroupType.EDITS)
+            if (burstSequences) add(MediaGroupType.BURST)
+        }
+    }.stateIn(appScope, sharingMethod, MediaGroupType.entries.toSet())
 
     override val mergeAlbumsByName: StateFlow<Boolean> =
         repository.getSetting(Settings.Album.MERGE_ALBUMS_BY_NAME, true)
@@ -338,15 +351,20 @@ class MediaDistributorImpl @Inject constructor(
                 blacklistedAlbumsFlow,
                 dateFormatsFlow,
                 albumMediaSortFlow,
-                groupSimilarMedia
+                groupSimilarMedia,
+                enabledGroupTypes
             ) { values ->
                 val allMediaResult = values[0] as Resource<List<Media.UriMedia>>
                 val albumState = values[1] as AlbumState
                 val settings = values[2] as TimelineSettings?
+                @Suppress("UNCHECKED_CAST")
                 val blacklistedAlbums = values[3] as List<IgnoredAlbum>
+                @Suppress("UNCHECKED_CAST")
                 val dateFormats = values[4] as Triple<String, String, String>
                 val albumSort = values[5] as Settings.Album.LastSort
                 val shouldGroupSimilar = values[6] as Boolean
+                @Suppress("UNCHECKED_CAST")
+                val groupTypes = values[7] as Set<MediaGroupType>
 
                 val (defaultDateFormat, extendedDateFormat, weeklyDateFormat) = dateFormats
                 val allMedia = allMediaResult.data ?: emptyList()
@@ -377,6 +395,7 @@ class MediaDistributorImpl @Inject constructor(
                         albumId = albumId,
                         groupByMonth = settings?.groupTimelineByMonth == true,
                         groupSimilarMedia = shouldGroupSimilar,
+                        enabledGroupTypes = groupTypes,
                         defaultDateFormat = defaultDateFormat,
                         extendedDateFormat = extendedDateFormat,
                         weeklyDateFormat = weeklyDateFormat
@@ -412,15 +431,21 @@ class MediaDistributorImpl @Inject constructor(
             lockedAlbumsFlow,
             dateFormatsFlow,
             albumMediaSortFlow,
-            groupSimilarMedia
+            groupSimilarMedia,
+            enabledGroupTypes
         ) { values ->
             val result = values[0] as Resource<List<Media.UriMedia>>
             val settings = values[1] as TimelineSettings?
+            @Suppress("UNCHECKED_CAST")
             val blacklistedAlbums = values[2] as List<IgnoredAlbum>
+            @Suppress("UNCHECKED_CAST")
             val lockedAlbums = values[3] as List<LockedAlbum>
+            @Suppress("UNCHECKED_CAST")
             val dateFormats = values[4] as Triple<String, String, String>
             val albumSort = values[5] as Settings.Album.LastSort
             val shouldGroupSimilar = values[6] as Boolean
+            @Suppress("UNCHECKED_CAST")
+            val groupTypes = values[7] as Set<MediaGroupType>
             
             val (defaultDateFormat, extendedDateFormat, weeklyDateFormat) = dateFormats
             
@@ -452,6 +477,7 @@ class MediaDistributorImpl @Inject constructor(
                 albumId = albumId,
                 groupByMonth = settings?.groupTimelineByMonth == true,
                 groupSimilarMedia = shouldGroupSimilar,
+                enabledGroupTypes = groupTypes,
                 defaultDateFormat = defaultDateFormat,
                 extendedDateFormat = extendedDateFormat,
                 weeklyDateFormat = weeklyDateFormat
@@ -585,14 +611,19 @@ class MediaDistributorImpl @Inject constructor(
             settingsFlow,
             dateFormatsFlow,
             albumMediaSortFlow,
-            groupSimilarMedia
+            groupSimilarMedia,
+            enabledGroupTypes
         ) { values ->
+            @Suppress("UNCHECKED_CAST")
             val mediaIds = values[0] as List<Long>
             val allMediaResult = values[1] as Resource<List<Media.UriMedia>>
             val settings = values[2] as TimelineSettings?
+            @Suppress("UNCHECKED_CAST")
             val dateFormats = values[3] as Triple<String, String, String>
             val albumSort = values[4] as Settings.Album.LastSort
             val shouldGroupSimilar = values[5] as Boolean
+            @Suppress("UNCHECKED_CAST")
+            val groupTypes = values[6] as Set<MediaGroupType>
 
             val (defaultDateFormat, extendedDateFormat, weeklyDateFormat) = dateFormats
             val allMedia = allMediaResult.data ?: emptyList()
@@ -611,6 +642,7 @@ class MediaDistributorImpl @Inject constructor(
                 albumId = collectionId,
                 groupByMonth = settings?.groupTimelineByMonth == true,
                 groupSimilarMedia = shouldGroupSimilar,
+                enabledGroupTypes = groupTypes,
                 defaultDateFormat = defaultDateFormat,
                 extendedDateFormat = extendedDateFormat,
                 weeklyDateFormat = weeklyDateFormat

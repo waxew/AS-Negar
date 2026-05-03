@@ -56,9 +56,13 @@ import com.dot.gallery.core.Position
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberAllowGifAnimation
 import com.dot.gallery.core.Settings.Misc.rememberFavoriteIconPosition
+import com.dot.gallery.core.Settings.Misc.rememberGroupBurstSequences
+import com.dot.gallery.core.Settings.Misc.rememberGroupEditedCopies
+import com.dot.gallery.core.Settings.Misc.rememberGroupRawJpg
 import com.dot.gallery.core.Settings.Misc.rememberGroupSimilarMedia
 import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.SettingsEntity
+import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
@@ -91,6 +95,9 @@ fun SettingsTimelineAlbumsScreen() {
     var groupByMonth by Settings.Misc.rememberTimelineGroupByMonth()
     var timelineLayoutType by rememberTimelineLayoutType()
     var groupSimilarMedia by rememberGroupSimilarMedia()
+    var groupRawJpg by rememberGroupRawJpg()
+    var groupEditedCopies by rememberGroupEditedCopies()
+    var groupBurstSequences by rememberGroupBurstSequences()
     var allowGifAnimation by rememberAllowGifAnimation()
     var hideTimelineOnAlbum by Settings.Album.rememberHideTimelineOnAlbum()
     var mergeAlbumsByName by Settings.Album.rememberMergeAlbumsByName()
@@ -134,6 +141,37 @@ fun SettingsTimelineAlbumsScreen() {
                 onCheckedChange = { groupSimilarMedia = it },
                 description = stringResource(R.string.group_similar_media_description),
                 preview = { checked -> GroupSimilarPreview(checked) },
+                customContent = {
+                    Column(modifier = Modifier.padding(top = 16.dp)) {
+                        SettingsItem(
+                            item = SettingsEntity.SwitchPreference(
+                                title = stringResource(R.string.group_raw_jpg_title),
+                                summary = stringResource(R.string.group_raw_jpg_summary),
+                                isChecked = groupRawJpg,
+                                onCheck = { groupRawJpg = it },
+                                screenPosition = Position.Top
+                            )
+                        )
+                        SettingsItem(
+                            item = SettingsEntity.SwitchPreference(
+                                title = stringResource(R.string.group_edited_copies_title),
+                                summary = stringResource(R.string.group_edited_copies_summary),
+                                isChecked = groupEditedCopies,
+                                onCheck = { groupEditedCopies = it },
+                                screenPosition = Position.Middle
+                            )
+                        )
+                        SettingsItem(
+                            item = SettingsEntity.SwitchPreference(
+                                title = stringResource(R.string.group_burst_sequences_title),
+                                summary = stringResource(R.string.group_burst_sequences_summary),
+                                isChecked = groupBurstSequences,
+                                onCheck = { groupBurstSequences = it },
+                                screenPosition = Position.Bottom
+                            )
+                        )
+                    }
+                },
             )
         }
         DETAIL_GIF_ANIMATION -> {

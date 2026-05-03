@@ -7,6 +7,7 @@ import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.LocationMedia
+import com.dot.gallery.feature_node.domain.util.MediaGroupType
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
@@ -29,6 +30,7 @@ interface MediaDistributor {
     val dateFormatsFlow: StateFlow<Triple<String, String, String>>
     var groupByMonth: Boolean
     val groupSimilarMedia: StateFlow<Boolean>
+    val enabledGroupTypes: StateFlow<Set<MediaGroupType>>
     val mergeAlbumsByName: StateFlow<Boolean>
 
     /**

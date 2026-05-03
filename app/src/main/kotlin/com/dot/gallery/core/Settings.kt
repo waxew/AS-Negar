@@ -380,6 +380,24 @@ object Settings {
         fun rememberGroupSimilarMedia() =
             rememberPreference(key = GROUP_SIMILAR_MEDIA, defaultValue = true)
 
+        val GROUP_RAW_JPG = booleanPreferencesKey("group_raw_jpg")
+
+        @Composable
+        fun rememberGroupRawJpg() =
+            rememberPreference(key = GROUP_RAW_JPG, defaultValue = true)
+
+        val GROUP_EDITED_COPIES = booleanPreferencesKey("group_edited_copies")
+
+        @Composable
+        fun rememberGroupEditedCopies() =
+            rememberPreference(key = GROUP_EDITED_COPIES, defaultValue = true)
+
+        val GROUP_BURST_SEQUENCES = booleanPreferencesKey("group_burst_sequences")
+
+        @Composable
+        fun rememberGroupBurstSequences() =
+            rememberPreference(key = GROUP_BURST_SEQUENCES, defaultValue = true)
+
         private val ALLOW_BLUR = booleanPreferencesKey("allow_blur")
 
         @Composable

@@ -26,6 +26,7 @@ import com.dot.gallery.feature_node.domain.model.UIEvent
 import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.VaultState
 import com.dot.gallery.feature_node.domain.util.EventHandler
+import com.dot.gallery.feature_node.domain.util.MediaGroupType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -47,6 +48,7 @@ class MockedMediaDistributor: MediaDistributor {
     override val dateFormatsFlow: StateFlow<Triple<String, String, String>> = MutableStateFlow(Triple("", "", ""))
     override var groupByMonth: Boolean = false
     override val groupSimilarMedia: StateFlow<Boolean> = MutableStateFlow(false)
+    override val enabledGroupTypes: StateFlow<Set<MediaGroupType>> = MutableStateFlow(MediaGroupType.entries.toSet())
     override val mergeAlbumsByName: StateFlow<Boolean> = MutableStateFlow(false)
     override val settingsFlow: StateFlow<TimelineSettings?> = MutableStateFlow(null)
     override val albumsFlow: StateFlow<AlbumState> = MutableStateFlow(AlbumState())

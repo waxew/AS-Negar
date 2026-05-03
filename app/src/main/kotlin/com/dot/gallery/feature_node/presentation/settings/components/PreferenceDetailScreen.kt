@@ -95,6 +95,7 @@ fun <T> SwitchPreferenceDetailScreen(
     useColumnLayout: Boolean = false,
     options: List<PreferenceOption<T>> = emptyList(),
     onOptionSelected: ((T) -> Unit)? = null,
+    customContent: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
 ) {
     val scrollBehavior =
@@ -217,6 +218,25 @@ fun <T> SwitchPreferenceDetailScreen(
                 )
             }
 
+            // Custom content (visible when switch is on)
+            if (customContent != null) {
+                item(key = "custom_content") {
+                    AnimatedVisibility(
+                        visible = isChecked,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 600.dp)
+                                .fillMaxWidth()
+                        ) {
+                            customContent()
+                        }
+                    }
+                }
+            }
+
             // Extra options
             if (options.isNotEmpty()) {
                 items(
@@ -269,6 +289,7 @@ fun SwitchPreferenceDetailScreen(
     description: String,
     preview: (@Composable (isChecked: Boolean) -> Unit)? = null,
     useColumnLayout: Boolean = false,
+    customContent: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
 ) {
     SwitchPreferenceDetailScreen<Unit>(
@@ -281,6 +302,7 @@ fun SwitchPreferenceDetailScreen(
         useColumnLayout = useColumnLayout,
         options = emptyList(),
         onOptionSelected = null,
+        customContent = customContent,
         enabled = enabled,
     )
 }

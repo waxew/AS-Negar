@@ -26,6 +26,8 @@ import com.dot.gallery.feature_node.domain.model.MediaItem
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.MediaOrder
+import com.dot.gallery.feature_node.domain.util.MediaGroupType
+import com.dot.gallery.feature_node.domain.util.classifyGroupType
 import com.dot.gallery.feature_node.domain.util.groupKey
 import com.dot.gallery.feature_node.domain.util.selectRepresentative
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
@@ -125,6 +127,7 @@ fun <T : Media> Flow<Resource<List<T>>>.mapMedia(
     groupByMonth: Boolean = false,
     withMonthHeader: Boolean = true,
     groupSimilarMedia: Boolean = false,
+    enabledGroupTypes: Set<MediaGroupType> = MediaGroupType.entries.toSet(),
     updateDatabase: () -> Unit,
     defaultDateFormat: String,
     extendedDateFormat: String,
@@ -138,6 +141,7 @@ fun <T : Media> Flow<Resource<List<T>>>.mapMedia(
         groupByMonth = groupByMonth,
         withMonthHeader = withMonthHeader,
         groupSimilarMedia = groupSimilarMedia,
+        enabledGroupTypes = enabledGroupTypes,
         defaultDateFormat = defaultDateFormat,
         extendedDateFormat = extendedDateFormat,
         weeklyDateFormat = weeklyDateFormat
@@ -151,6 +155,7 @@ suspend fun <T : Media> MutableStateFlow<MediaState<T>>.collectMedia(
     groupByMonth: Boolean = false,
     withMonthHeader: Boolean = true,
     groupSimilarMedia: Boolean = false,
+    enabledGroupTypes: Set<MediaGroupType> = MediaGroupType.entries.toSet(),
     defaultDateFormat: String,
     extendedDateFormat: String,
     weeklyDateFormat: String
@@ -163,6 +168,7 @@ suspend fun <T : Media> MutableStateFlow<MediaState<T>>.collectMedia(
             groupByMonth = groupByMonth,
             withMonthHeader = withMonthHeader,
             groupSimilarMedia = groupSimilarMedia,
+            enabledGroupTypes = enabledGroupTypes,
             defaultDateFormat = defaultDateFormat,
             extendedDateFormat = extendedDateFormat,
             weeklyDateFormat = weeklyDateFormat
@@ -177,6 +183,7 @@ suspend fun <T : Media> mapMediaToItem(
     groupByMonth: Boolean = false,
     withMonthHeader: Boolean = true,
     groupSimilarMedia: Boolean = false,
+    enabledGroupTypes: Set<MediaGroupType> = MediaGroupType.entries.toSet(),
     defaultDateFormat: String,
     extendedDateFormat: String,
     weeklyDateFormat: String
@@ -207,17 +214,24 @@ suspend fun <T : Media> mapMediaToItem(
         headers.add(dateHeader)
         val groupedMedia = if (groupSimilarMedia) {
             val groups = data.groupBy { it.groupKey }
-            groups.values.map { group ->
-                val representative = group.selectRepresentative()
-                pagerMediaList.add(representative)
-                if (group.size > 1) {
+            groups.values.flatMap { group ->
+                if (group.size > 1 && group.classifyGroupType() in enabledGroupTypes) {
+                    val representative = group.selectRepresentative()
+                    pagerMediaList.add(representative)
                     mediaGroupsMap[representative.id] = group
+                    listOf(
+                        MediaItem.MediaViewItem(
+                            key = "media_${representative.id}_${representative.label}",
+                            media = representative,
+                            stackCount = group.size
+                        )
+                    )
+                } else {
+                    group.fastMap { media ->
+                        pagerMediaList.add(media)
+                        MediaItem.MediaViewItem("media_${media.id}_${media.label}", media)
+                    }
                 }
-                MediaItem.MediaViewItem(
-                    key = "media_${representative.id}_${representative.label}",
-                    media = representative,
-                    stackCount = group.size
-                )
             }
         } else {
             data.fastMap {
