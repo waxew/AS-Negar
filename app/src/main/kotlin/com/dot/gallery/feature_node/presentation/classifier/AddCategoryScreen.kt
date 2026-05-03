@@ -424,7 +424,7 @@ internal fun CategoryInputControls(
                 value = threshold,
                 onValueChange = onThresholdChange,
                 valueRange = Category.MIN_THRESHOLD..Category.MAX_THRESHOLD,
-                steps = 6,
+                steps = 12,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

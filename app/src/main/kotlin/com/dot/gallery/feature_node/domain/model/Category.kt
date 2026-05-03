@@ -82,7 +82,7 @@ data class Category(
     companion object {
         const val DEFAULT_THRESHOLD = 0.20f
         const val MIN_THRESHOLD = 0.15f
-        const val MAX_THRESHOLD = 0.5f
+        const val MAX_THRESHOLD = 0.8f
 
         // Default system categories
         val DEFAULT_CATEGORIES = listOf(

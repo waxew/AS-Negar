@@ -53,10 +53,10 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -68,14 +68,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -93,7 +92,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -114,7 +112,6 @@ import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
 import com.dot.gallery.core.navigate
-import com.dot.gallery.core.presentation.components.DragHandle
 import com.dot.gallery.core.presentation.components.EmptyMedia
 import com.dot.gallery.core.presentation.components.NavigationBackButton
 import com.dot.gallery.feature_node.domain.model.Category
@@ -185,25 +182,9 @@ fun CategoryEditorScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showRefImagePicker by remember { mutableStateOf(false) }
+    var showPreviewSheet by remember { mutableStateOf(false) }
     var showFineTune by rememberSaveable { mutableStateOf(false) }
     var lastCellIndex by rememberGridSize()
-
-    val scaffoldState = rememberBottomSheetScaffoldState(
-        bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            skipHiddenState = false
-        )
-    )
-
-    val density = LocalDensity.current
-    val dragHandleAlpha by remember {
-        derivedStateOf {
-            val offset = runCatching { scaffoldState.bottomSheetState.requireOffset() }.getOrElse { Float.MAX_VALUE }
-            val fadeThreshold = with(density) { 200.dp.toPx() }
-            (offset / fadeThreshold).coerceIn(0f, 1f)
-        }
-    }
-
     val isValid = categoryName.isNotBlank() && (searchTerms.isNotBlank() || referenceImageIds.isNotEmpty())
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
@@ -248,32 +229,23 @@ fun CategoryEditorScreen(
         )
     }
 
-    // Reference image picker sheet (reuses the search screen's image picker)
-    if (showRefImagePicker) {
-        ImageSearchPickerSheet(
-            onMediaSelected = { media ->
-                showRefImagePicker = false
-                viewModel.addReferenceImage(media.id)
-            },
-            onDismiss = { showRefImagePicker = false }
-        )
-    }
-
-    Box(
-        modifier = Modifier.padding(
-            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
-        )
-    ) {
-        BottomSheetScaffold(
-            scaffoldState = scaffoldState,
-            sheetPeekHeight = 0.dp,
-            sheetDragHandle = { DragHandle(alpha = dragHandleAlpha) },
-            sheetContent = {
-                // Full preview sheet
+    // Full preview bottom sheet
+    if (showPreviewSheet && previewMedia.isNotEmpty()) {
+        val previewSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showPreviewSheet = false },
+            sheetState = previewSheetState,
+            dragHandle = null
+        ) {
+            Column(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .fillMaxSize()
+            ) {
+                // Header
                 Box(
                     modifier = Modifier
-                        .statusBarsPadding()
+                        .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .padding(bottom = 16.dp)
                         .clip(RoundedCornerShape(50))
@@ -287,6 +259,7 @@ fun CategoryEditorScreen(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
+                // Full grid using the same MediaGridView as search results
                 val sheetDpCacheWindow = LazyLayoutCacheWindow(ahead = 200.dp, behind = 100.dp)
                 val sheetPinchState = rememberPinchZoomGridState(
                     cellsList = cellsList,
@@ -313,224 +286,234 @@ fun CategoryEditorScreen(
                         },
                         sharedTransitionScope = sharedTransitionScope,
                         animatedContentScope = animatedContentScope
-                    ) { media ->
-                        eventHandler.navigate(
-                            Screen.MediaViewScreen.idAndQuery(media.id)
-                        )
-                    }
+                    )
                 }
             }
-        ) {
-            Scaffold(
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                topBar = {
-                    LargeTopAppBar(
-                        modifier = Modifier.hazeEffect(
-                            state = LocalHazeState.current,
-                            style = LocalHazeStyle.current
-                        ),
-                        title = {
-                            Text(
-                                text = if (isEditMode) stringResource(R.string.edit_category)
-                                else stringResource(R.string.new_category),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        navigationIcon = {
-                            NavigationBackButton(forcedAction = onNavigateBack)
-                        },
-                        actions = {
-                            if (isEditMode) {
-                                IconButton(onClick = { showDeleteDialog = true }) {
-                                    Icon(
-                                        Icons.Outlined.Delete,
-                                        contentDescription = stringResource(R.string.action_delete),
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                        },
-                        scrollBehavior = scrollBehavior,
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            scrolledContainerColor = MaterialTheme.colorScheme.surface,
-                        ),
+        }
+    }
+
+    // Reference image picker sheet (reuses the search screen's image picker)
+    if (showRefImagePicker) {
+        ImageSearchPickerSheet(
+            onMediaSelected = { media ->
+                showRefImagePicker = false
+                viewModel.addReferenceImage(media.id)
+            },
+            onDismiss = { showRefImagePicker = false }
+        )
+    }
+
+    Scaffold(
+        modifier = Modifier
+            .padding(
+                start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
+            )
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            LargeTopAppBar(
+                modifier = Modifier.hazeEffect(
+                    state = LocalHazeState.current,
+                    style = LocalHazeStyle.current
+                ),
+                title = {
+                    Text(
+                        text = if (isEditMode) stringResource(R.string.edit_category)
+                        else stringResource(R.string.new_category),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
                     )
                 },
-                floatingActionButton = {
-                    AnimatedVisibility(
-                        visible = isValid && !isSaving,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        FloatingActionButton(
-                            onClick = {
-                                keyboardController?.hide()
-                                viewModel.saveCategory {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            if (isEditMode) categoryUpdatedMsg else categoryCreatedMsg
-                                        )
-                                    }
-                                    onNavigateBack()
-                                }
-                            },
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ) {
+                navigationIcon = {
+                    NavigationBackButton(forcedAction = onNavigateBack)
+                },
+                actions = {
+                    if (isEditMode) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(
-                                imageVector = Icons.Outlined.Check,
-                                contentDescription = if (isEditMode) stringResource(R.string.save) else stringResource(R.string.create),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                Icons.Outlined.Delete,
+                                contentDescription = stringResource(R.string.action_delete),
+                                tint = MaterialTheme.colorScheme.error
                             )
                         }
                     }
-                }
-            ) { innerPadding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(
-                            top = innerPadding.calculateTopPadding(),
-                            bottom = paddingValues.calculateBottomPadding() + 128.dp
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = isValid && !isSaving,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        keyboardController?.hide()
+                        viewModel.saveCategory {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (isEditMode) categoryUpdatedMsg else categoryCreatedMsg
+                                )
+                            }
+                            onNavigateBack()
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 ) {
-                    // ============ 1. Category Name ============
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.category_name),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        OutlinedTextField(
-                            value = categoryName,
-                            onValueChange = { viewModel.updateCategoryName(it) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                Text(
-                                    text = stringResource(R.string.category_name_hint),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            },
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.Words,
-                                imeAction = ImeAction.Next
-                            )
-                        )
-                    }
-
-                    // ============ 2. Quick Start Suggestions (create mode only, when name is empty) ============
-                    if (!isEditMode && categoryName.isBlank() && searchTerms.isBlank()) {
-                        TemplateChipsSection(
-                            onTemplateSelected = { template ->
-                                viewModel.applyTemplate(template)
-                            }
-                        )
-                    }
-
-                    // ============ 3. Description / Search Terms ============
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.describe_content),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.describe_content_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedTextField(
-                            value = searchTerms,
-                            onValueChange = { viewModel.updateSearchTerms(it) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                Text(
-                                    text = stringResource(R.string.describe_content_example),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            },
-                            minLines = 2,
-                            maxLines = 4,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.None,
-                                imeAction = ImeAction.Done
-                            )
-                        )
-                    }
-
-                    // ============ 4. Reference Images (image-to-image) ============
-                    ReferenceImagesSection(
-                        referenceImageIds = referenceImageIds,
-                        allMedia = allMedia,
-                        onAddClick = { showRefImagePicker = true },
-                        onRemove = { viewModel.removeReferenceImage(it) },
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = if (isEditMode) stringResource(R.string.save) else stringResource(R.string.create),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-
-                    // ============ 5. Sensitivity Presets ============
-                    SensitivitySection(
-                        threshold = threshold,
-                        onThresholdChange = { viewModel.updateThreshold(it) },
-                        showFineTune = showFineTune,
-                        onToggleFineTune = { showFineTune = !showFineTune },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-
-                    // ============ 5. Inline Preview Grid ============
-                    InlinePreviewSection(
-                        previewMedia = previewMedia,
-                        previewCount = previewCount,
-                        isLoading = isLoading,
-                        searchTerms = searchTerms,
-                        onSeeAllClick = {
-                            if (previewCount > 0) {
-                                scope.launch { scaffoldState.bottomSheetState.expand() }
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding() + 128.dp
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // ============ 1. Category Name ============
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.category_name),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                OutlinedTextField(
+                    value = categoryName,
+                    onValueChange = { viewModel.updateCategoryName(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.category_name_hint),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next
+                    )
+                )
+            }
+
+            // ============ 2. Quick Start Suggestions (create mode only, when name is empty) ============
+            if (!isEditMode && categoryName.isBlank() && searchTerms.isBlank()) {
+                TemplateChipsSection(
+                    onTemplateSelected = { template ->
+                        viewModel.applyTemplate(template)
+                    }
+                )
+            }
+
+            // ============ 3. Description / Search Terms ============
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.describe_content),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.describe_content_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = searchTerms,
+                    onValueChange = { viewModel.updateSearchTerms(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.describe_content_example),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    minLines = 2,
+                    maxLines = 4,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        imeAction = ImeAction.Done
+                    )
+                )
+            }
+
+            // ============ 4. Reference Images (image-to-image) ============
+            ReferenceImagesSection(
+                referenceImageIds = referenceImageIds,
+                allMedia = allMedia,
+                onAddClick = { showRefImagePicker = true },
+                onRemove = { viewModel.removeReferenceImage(it) },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            // ============ 5. Sensitivity Presets ============
+            SensitivitySection(
+                threshold = threshold,
+                onThresholdChange = { viewModel.updateThreshold(it) },
+                showFineTune = showFineTune,
+                onToggleFineTune = { showFineTune = !showFineTune },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            // ============ 6. Inline Preview Grid ============
+            InlinePreviewSection(
+                previewMedia = previewMedia,
+                previewCount = previewCount,
+                isLoading = isLoading,
+                searchTerms = searchTerms,
+                onCardClick = {
+                    if (previewCount > 0) showPreviewSheet = true
+                },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -601,7 +584,7 @@ private enum class SensitivityPreset(
     BROAD(Category.MIN_THRESHOLD, R.string.sensitivity_broad, R.string.sensitivity_broad_desc),
     BALANCED(Category.DEFAULT_THRESHOLD, R.string.sensitivity_balanced, R.string.sensitivity_balanced_desc),
     STRICT(0.30f, R.string.sensitivity_strict, R.string.sensitivity_strict_desc),
-    EXACT(0.40f, R.string.sensitivity_exact, R.string.sensitivity_exact_desc);
+    EXACT(0.50f, R.string.sensitivity_exact, R.string.sensitivity_exact_desc);
 
     companion object {
         fun fromThreshold(threshold: Float): SensitivityPreset? {
@@ -725,7 +708,7 @@ private fun SensitivitySection(
                     value = threshold,
                     onValueChange = onThresholdChange,
                     valueRange = Category.MIN_THRESHOLD..Category.MAX_THRESHOLD,
-                    steps = 6,
+                    steps = 12,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -756,7 +739,7 @@ private fun InlinePreviewSection(
     previewCount: Int,
     isLoading: Boolean,
     searchTerms: String,
-    onSeeAllClick: () -> Unit,
+    onCardClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -764,6 +747,7 @@ private fun InlinePreviewSection(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(enabled = previewCount > 0, onClick = onCardClick)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -841,14 +825,10 @@ private fun InlinePreviewSection(
                 }
             }
 
-            // "See all N matches" button
+            // "See all" indicator
             if (previewCount > 6) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onSeeAllClick)
-                        .padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
