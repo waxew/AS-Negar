@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 
 interface SearchHelper {
 
+    val isAvailable: Boolean
+
     fun sortByCosineDistance(
         searchEmbedding: FloatArray,
         imageEmbeddingsList: List<FloatArray>,

@@ -10,6 +10,8 @@ import androidx.work.WorkManager
 import com.dot.gallery.R
 import com.dot.gallery.core.MediaDistributor
 import com.dot.gallery.core.Settings
+import com.dot.gallery.core.ml.ModelManager
+import com.dot.gallery.core.ml.ModelStatus
 import com.dot.gallery.feature_node.domain.model.LocationMedia
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadata
@@ -61,9 +63,18 @@ class SearchViewModel @Inject constructor(
     workManager: WorkManager,
     private val searchHelper: SearchHelper,
     repository: MediaRepository,
+    modelManager: ModelManager,
     @param:ApplicationContext
     private val context: Context
 ) : ViewModel() {
+
+    val isModelAvailable: StateFlow<Boolean> = modelManager.status
+        .map { it == ModelStatus.READY }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = modelManager.isReady
+        )
 
     private val imageRecords = mediaDistributor.imageEmbeddingsFlow
         .stateIn(
@@ -354,6 +365,17 @@ class SearchViewModel @Inject constructor(
                     return@launch
                 }
 
+                if (!searchHelper.isAvailable) {
+                    _searchResultsState.tryEmit(
+                        SearchResultsState(
+                            hasSearched = true,
+                            isSearching = false,
+                            progress = 1f,
+                            results = MediaState(error = context.getString(R.string.ai_models_not_installed), isLoading = false)
+                        )
+                    )
+                    return@launch
+                }
                 val croppedBitmap = centerCrop(bitmap, 224)
                 searchHelper.setupVisionSession().use { session ->
                     val imageEmbedding = searchHelper.getImageEmbedding(session, croppedBitmap)
@@ -644,35 +666,37 @@ class SearchViewModel @Inject constructor(
                 )
                 return@launch
             }
-            searchHelper.setupTextSession().use { session ->
-                val textEmbedding = searchHelper.getTextEmbedding(session, query)
-                val searchResultsPair = searchHelper.sortByCosineDistance(
-                    searchEmbedding = textEmbedding,
-                    imageEmbeddingsList = imageRecords.value.map { it.embedding },
-                    imageIdxList = imageRecords.value.map { it.id }
-                )
-                val searchResultsMedia = searchResultsPair.mapNotNull { (id, score) ->
-                    val media = allMedia.find { it.id == id }
-                    if (media != null) score to media else null
-                }
+            if (searchHelper.isAvailable) {
+                searchHelper.setupTextSession().use { session ->
+                    val textEmbedding = searchHelper.getTextEmbedding(session, query)
+                    val searchResultsPair = searchHelper.sortByCosineDistance(
+                        searchEmbedding = textEmbedding,
+                        imageEmbeddingsList = imageRecords.value.map { it.embedding },
+                        imageIdxList = imageRecords.value.map { it.id }
+                    )
+                    val searchResultsMedia = searchResultsPair.mapNotNull { (id, score) ->
+                        val media = allMedia.find { it.id == id }
+                        if (media != null) score to media else null
+                    }
 
-                results.mergeWithHighestScore(searchResultsMedia)
-                _searchResultsState.tryEmit(
-                    SearchResultsState(
-                        hasSearched = true,
-                        isSearching = false,
-                        isRelevanceSearch = true,
-                        progress = 0.5f,
-                        results = mapMediaToItem(
-                            data = results.map { it.second },
-                            error = "",
-                            albumId = -1L,
-                            defaultDateFormat = dateFormats.value.first,
-                            extendedDateFormat = dateFormats.value.second,
-                            weeklyDateFormat = dateFormats.value.third
+                    results.mergeWithHighestScore(searchResultsMedia)
+                    _searchResultsState.tryEmit(
+                        SearchResultsState(
+                            hasSearched = true,
+                            isSearching = false,
+                            isRelevanceSearch = true,
+                            progress = 0.5f,
+                            results = mapMediaToItem(
+                                data = results.map { it.second },
+                                error = "",
+                                albumId = -1L,
+                                defaultDateFormat = dateFormats.value.first,
+                                extendedDateFormat = dateFormats.value.second,
+                                weeklyDateFormat = dateFormats.value.third
+                            )
                         )
                     )
-                )
+                }
             }
             val fuzzySearchResults = allMedia.parseFuzzySearch(query)
             results.mergeWithHighestScore(fuzzySearchResults)

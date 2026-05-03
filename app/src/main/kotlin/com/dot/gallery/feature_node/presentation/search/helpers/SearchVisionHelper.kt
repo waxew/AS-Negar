@@ -2,11 +2,11 @@ package com.dot.gallery.feature_node.presentation.search.helpers
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtProvider
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.providers.NNAPIFlags
-import android.content.Context
 import android.graphics.Bitmap
+import com.dot.gallery.core.ml.ModelManager
+import com.dot.gallery.core.ml.ModelsNotAvailableException
 import com.dot.gallery.feature_node.presentation.search.tokenizer.ClipTokenizer
 import com.dot.gallery.feature_node.presentation.search.util.centerCrop
 import com.dot.gallery.feature_node.presentation.search.util.normalizeL2
@@ -16,43 +16,35 @@ import java.nio.IntBuffer
 import java.util.Collections
 import java.util.EnumSet
 
-class SearchVisionHelper(private val context: Context) {
-    private val tokenizer = ClipTokenizer(context)
+class SearchVisionHelper(private val modelManager: ModelManager) {
+    private val tokenizer by lazy {
+        ClipTokenizer(
+            vocabFile = modelManager.getModelFile("vocab.json"),
+            mergesFile = modelManager.getModelFile("merges.txt")
+        )
+    }
     private val ortEnv = OrtEnvironment.getEnvironment()
 
     fun setupVisionSession() = createOrtSessionWithFallback("visual_quant.onnx")
     fun setupTextSession() = createOrtSessionWithFallback("textual_quant.onnx")
 
     private fun createOrtSessionWithFallback(modelName: String): OrtSession {
+        if (!modelManager.isReady) throw ModelsNotAvailableException()
+
         val options = OrtSession.SessionOptions()
 
         try {
             printDebug("Available providers: ${OrtEnvironment.getAvailableProviders()}")
-            // Try NNAPI first
-            if (OrtEnvironment.getAvailableProviders().contains(OrtProvider.NNAPI)) {
-                printDebug("Using NNAPI for inference")
-                options.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16))
-            }
-            // Optionally try QNN (Qualcomm)
-            else if (OrtEnvironment.getAvailableProviders().contains(OrtProvider.QNN)) {
-                printDebug("Using QNN for inference")
-                val qnnOptions = mapOf(
-                    "backend_type" to "htp",
-                    "qnn_context_cache_enable" to "1",
-                    "qnn_context_priority" to "high",
-                    "enable_htp_fp16_precision" to "1"
-                )
-                options.addQnn(qnnOptions)
-            }
-
+            // Try NNAPI (available on API 27+, our min is 29)
+            printDebug("Using NNAPI for inference")
+            options.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16))
         } catch (e: Exception) {
-            printDebug("NNAPI or QNN not available, falling back to CPU: ${e.message}")
-            // No need to add anything; CPU is default fallback
+            printDebug("NNAPI not available, falling back to CPU: ${e.message}")
         }
 
-        // Load model into session
-        val modelBytes = context.assets.open(modelName).use { it.readBytes() }
-        return ortEnv.createSession(modelBytes, options)
+        // Load model from filesDir using path-based API (memory-mapped, avoids OOM)
+        val modelFile = modelManager.getModelFile(modelName)
+        return ortEnv.createSession(modelFile.absolutePath, options)
     }
 
     fun getTextEmbedding(session: OrtSession, text: String): FloatArray {

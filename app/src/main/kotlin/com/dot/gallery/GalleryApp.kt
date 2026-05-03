@@ -12,6 +12,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.dot.gallery.core.MediaDistributor
+import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.core.decoder.supportHeifDecoder
 import com.dot.gallery.core.decoder.supportJxlDecoder
 import com.dot.gallery.core.decoder.supportVaultDecoder
@@ -35,6 +36,10 @@ import com.github.panpf.sketch.resize.Precision
 import com.github.panpf.sketch.util.appCacheDirectory
 import dagger.hilt.android.HiltAndroidApp
 import okio.FileSystem
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -93,6 +98,10 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
     @Inject
     lateinit var mediaDistributor: MediaDistributor
 
+    @Inject
+    lateinit var modelManager: ModelManager
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         // Isolated-process services inherit this Application class but must NOT
@@ -110,6 +119,11 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
 
         // Schedule periodic cleanup of stale decrypted temp files.
         TempVaultCleanupWorker.schedule(workManager)
+
+        // Initialize ML models (copies from assets on withMl, checks presence on noMl)
+        appScope.launch {
+            modelManager.initializeModels()
+        }
     }
 
 }

@@ -27,6 +27,7 @@ import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_12_13
 import com.dot.gallery.feature_node.data.repository.MediaRepositoryImpl
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.EventHandler
+import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.feature_node.presentation.search.SearchHelper
 import com.dot.gallery.feature_node.presentation.search.SearchHelperImpl
 import com.dot.gallery.core.decryption.DecryptManager
@@ -111,7 +112,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSearchHelper(@ApplicationContext context: Context): SearchHelper = SearchHelperImpl(context)
+    fun provideModelManager(@ApplicationContext context: Context): ModelManager = ModelManager(context)
+
+    @Provides
+    @Singleton
+    fun provideSearchHelper(modelManager: ModelManager): SearchHelper = SearchHelperImpl(modelManager)
 
     @Provides
     @Singleton

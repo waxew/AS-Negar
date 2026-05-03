@@ -148,6 +148,8 @@ class EditCategoryViewModel @Inject constructor(
             return
         }
 
+        if (!searchHelper.isAvailable) return
+
         try {
             withContext(Dispatchers.IO) {
                 // Initialize session if needed

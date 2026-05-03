@@ -8,22 +8,24 @@
 
 package com.dot.gallery.feature_node.presentation.search.tokenizer
 
-import android.content.Context
 import android.util.JsonReader
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileInputStream
 import java.io.InputStreamReader
 import kotlin.io.useLines
 import kotlin.use
 
 class ClipTokenizer(
-    private val appContext: Context,
+    private val vocabFile: File,
+    private val mergesFile: File,
 ) {
 
     private val encoder: Map<String, Int> = getVocab()
 
     private fun getVocab(): Map<String, Int> {
         val vocab = hashMapOf<String, Int>().apply {
-            appContext.assets.open("vocab.json").use {
+            FileInputStream(vocabFile).use {
                 val vocabReader = JsonReader(InputStreamReader(it, "UTF-8"))
                 vocabReader.beginObject()
                 while (vocabReader.hasNext()) {
@@ -42,7 +44,7 @@ class ClipTokenizer(
 
     private fun getMerges(): HashMap<Pair<String, String>, Int> {
         val merges = hashMapOf<Pair<String, String>, Int>().apply {
-            appContext.assets.open("merges.txt").use {
+            FileInputStream(mergesFile).use {
                 val mergesReader = BufferedReader(InputStreamReader(it))
                 mergesReader.useLines { seq ->
                     seq.drop(1).forEachIndexed { i, s ->

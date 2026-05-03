@@ -233,6 +233,11 @@ class CategoryEditorViewModel @Inject constructor(
 
         _isLoading.value = true
 
+        if (!searchHelper.isAvailable) {
+            _isLoading.value = false
+            return
+        }
+
         try {
             withContext(Dispatchers.IO) {
                 // Build text embedding if we have search terms

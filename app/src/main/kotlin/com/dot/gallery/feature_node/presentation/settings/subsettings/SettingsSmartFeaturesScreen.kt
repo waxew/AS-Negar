@@ -1,70 +1,80 @@
 package com.dot.gallery.feature_node.presentation.settings.subsettings
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
-import androidx.work.WorkQuery
 import com.dot.gallery.R
 import com.dot.gallery.core.LocalEventHandler
-import com.dot.gallery.core.Position
-import com.dot.gallery.core.Settings
-import com.dot.gallery.core.SettingsEntity
+import com.dot.gallery.core.ml.ModelStatus
 import com.dot.gallery.core.navigate
-import com.dot.gallery.core.workers.forceMetadataCollect
-import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
-import com.dot.gallery.feature_node.presentation.settings.components.rememberPreference
-import com.dot.gallery.feature_node.presentation.settings.components.rememberSwitchPreference
+import com.dot.gallery.core.presentation.components.NavigationBackButton
+import com.dot.gallery.feature_node.presentation.settings.components.settings
 import com.dot.gallery.feature_node.presentation.util.Screen
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.SettingsBackupRestore
-import kotlinx.coroutines.flow.map
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsSmartFeaturesScreen() {
-    @Composable
-    fun settings(): SnapshotStateList<SettingsEntity> {
-        val context = LocalContext.current
-        val handler = LocalEventHandler.current
-        var noClassification by Settings.Misc.rememberNoClassification()
-        val noClassificationPref = rememberPreference(
-            noClassification,
-            title = stringResource(R.string.categories),
-            summary = stringResource(R.string.categorise_your_media),
-            onClick = {
-                handler.navigate(Screen.CategoriesScreen())
-            },
-            screenPosition = Position.Alone
-        )
+fun SettingsSmartFeaturesScreen(
+    viewModel: SmartFeaturesViewModel = hiltViewModel()
+) {
+    val handler = LocalEventHandler.current
+    val hasInternet = viewModel.hasInternetPermission
+    val modelStatus by viewModel.modelStatus.collectAsStateWithLifecycle()
+    val isMetadataWorkerRunning by viewModel.isMetadataWorkerRunning.collectAsStateWithLifecycle()
+    val metadataProgress by viewModel.metadataProgress.collectAsStateWithLifecycle()
 
-        val databaseHeader = remember(context) {
-            SettingsEntity.Header(
-                title = context.getString(R.string.database)
+    val scrollBehavior =
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.ai_category)) },
+                navigationIcon = { NavigationBackButton() },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
-
-        // Observe MetadataCollectionWorker state
-        val workManager = remember(context) { WorkManager.getInstance(context) }
-        val workInfos by remember(workManager) {
-            workManager.getWorkInfosFlow(
-                WorkQuery.fromUniqueWorkNames("MetadataCollection")
-            ).map { infos ->
-                infos.filter { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
+    ) { padding ->
+        // Resolve strings outside the non-composable settings{} DSL
+        val smartFeaturesHeader = stringResource(R.string.ai_category)
+        val aiModelsManagerTitle = if (hasInternet) stringResource(R.string.ai_models_manager) else ""
+        val modelSummary = if (hasInternet) when (modelStatus) {
+            ModelStatus.READY -> stringResource(R.string.ai_models_ready_summary)
+            ModelStatus.NOT_INSTALLED -> stringResource(R.string.ai_models_download_summary)
+            ModelStatus.DOWNLOADING, ModelStatus.COPYING -> stringResource(R.string.ai_models_downloading)
+            ModelStatus.ERROR -> stringResource(R.string.ai_models_error)
+        } else ""
+        val categoriesTitle = if (hasInternet) stringResource(R.string.categories) else ""
+        val categoriesSummary = if (hasInternet) {
+            if (modelStatus == ModelStatus.READY) {
+                stringResource(R.string.categorise_your_media)
+            } else {
+                stringResource(R.string.ai_models_unavailable)
             }
-        }.collectAsStateWithLifecycle(emptyList())
-
-        val isMetadataWorkerRunning = workInfos.isNotEmpty()
-        val metadataProgress = workInfos
-            .firstOrNull { it.state == WorkInfo.State.RUNNING }
-            ?.progress?.getInt("progress", -1) ?: -1
-
+        } else ""
+        val databaseHeader = stringResource(R.string.database)
+        val refreshMetadataTitle = stringResource(R.string.refresh_metadata)
         val metadataSummary = when {
             isMetadataWorkerRunning && metadataProgress in 1..99 ->
                 stringResource(R.string.metadata_collecting_progress, metadataProgress)
@@ -73,48 +83,54 @@ fun SettingsSmartFeaturesScreen() {
             else ->
                 stringResource(R.string.metadata_idle)
         }
+        val storageHeader = stringResource(R.string.edit_backups_storage)
+        val editBackupsTitle = stringResource(R.string.edit_backups)
+        val editBackupsSummary = stringResource(R.string.edit_backups_summary)
 
-        val refreshMetadataPref = rememberPreference(
-            isMetadataWorkerRunning, metadataProgress,
-            title = stringResource(R.string.refresh_metadata),
-            summary = metadataSummary,
-            enabled = !isMetadataWorkerRunning,
-            onClick = {
-                workManager.forceMetadataCollect()
-            },
-            screenPosition = Position.Alone
-        )
-
-        val storageHeader = remember(context) {
-            SettingsEntity.Header(
-                title = context.getString(R.string.edit_backups_storage)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = padding.calculateStartPadding(LocalLayoutDirection.current),
+                end = padding.calculateEndPadding(LocalLayoutDirection.current),
+                top = 16.dp + padding.calculateTopPadding(),
+                bottom = padding.calculateBottomPadding()
             )
-        }
-
-        val editBackupsPref = rememberPreference(
-            title = stringResource(R.string.edit_backups),
-            summary = stringResource(R.string.edit_backups_summary),
-            icon = Icons.Outlined.SettingsBackupRestore,
-            onClick = {
-                handler.navigate(Screen.EditBackupsViewerScreen())
-            },
-            screenPosition = Position.Alone
-        )
-
-        return remember(
-            noClassificationPref, databaseHeader, refreshMetadataPref,
-            storageHeader, editBackupsPref
         ) {
-            mutableStateListOf(
-                noClassificationPref,
-                databaseHeader, refreshMetadataPref,
-                storageHeader, editBackupsPref
-            )
+            settings {
+                if (hasInternet) {
+                    Header(smartFeaturesHeader)
+
+                    Preference(
+                        title = aiModelsManagerTitle,
+                        summary = modelSummary,
+                        onClick = { handler.navigate(Screen.AIModelsManagerScreen()) }
+                    )
+
+                    Preference(
+                        title = categoriesTitle,
+                        summary = categoriesSummary,
+                        enabled = modelStatus == ModelStatus.READY,
+                        onClick = { handler.navigate(Screen.CategoriesScreen()) }
+                    )
+                }
+
+                Header(databaseHeader)
+
+                Preference(
+                    title = refreshMetadataTitle,
+                    summary = metadataSummary,
+                    enabled = !isMetadataWorkerRunning,
+                    onClick = { viewModel.refreshMetadata() }
+                )
+
+                Header(storageHeader)
+
+                Preference(
+                    title = editBackupsTitle,
+                    summary = editBackupsSummary,
+                    onClick = { handler.navigate(Screen.EditBackupsViewerScreen()) }
+                )
+            }
         }
     }
-
-    BaseSettingsScreen(
-        title = stringResource(R.string.ai_category),
-        settingsList = settings(),
-    )
 }

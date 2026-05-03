@@ -131,6 +131,11 @@ class AddCategoryViewModel @Inject constructor(
 
         _isLoading.value = true
         
+        if (!searchHelper.isAvailable) {
+            _isLoading.value = false
+            return
+        }
+
         try {
             withContext(Dispatchers.IO) {
                 // Initialize session if needed

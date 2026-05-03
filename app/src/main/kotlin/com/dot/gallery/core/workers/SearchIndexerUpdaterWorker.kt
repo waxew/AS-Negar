@@ -8,6 +8,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.dot.gallery.BuildConfig
+import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.getUri
@@ -31,16 +32,21 @@ import kotlinx.coroutines.yield
 @HiltWorker
 class SearchIndexerUpdaterWorker @AssistedInject constructor(
     private val repository: MediaRepository,
+    private val modelManager: ModelManager,
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
-    private val visionHelper by lazy { SearchVisionHelper(appContext) }
+    private val visionHelper by lazy { SearchVisionHelper(modelManager) }
 
     override suspend fun doWork(): Result = runCatching {
         setProgress(workDataOf("progress" to -1f))
         delay(2000)
         if (!BuildConfig.ENABLE_INDEXING) return Result.success()
+        if (!modelManager.isReady) {
+            printInfo("ML models not installed, skipping indexing")
+            return Result.success()
+        }
         if (!currentCoroutineContext().isActive) return Result.success()
         printInfo("Starting indexing media items")
         val media = repository.getCompleteMedia().map { it.data ?: emptyList() }.firstOrNull()

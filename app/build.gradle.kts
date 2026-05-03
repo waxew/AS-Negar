@@ -133,13 +133,6 @@ android {
 
     sourceSets {
         getByName("main") {
-            // For APK builds, include ML assets directly since asset packs are AAB-only
-            val isBundleBuild = gradle.startParameter.taskNames.any {
-                it.contains("bundle", ignoreCase = true)
-            }
-            if (!isBundleBuild) {
-                assets.srcDirs("src/main/assets", "../ml-models/src/main/assets")
-            }
             // Conditional maps/nomaps source set
             if (includeMaps) {
                 kotlin.srcDir("src/maps/kotlin")
@@ -147,9 +140,19 @@ android {
                 kotlin.srcDir("src/nomaps/kotlin")
             }
         }
+        // For withMl APK builds, include ML model assets directly
+        // (asset packs are AAB-only, so for APK builds we inline them)
+        val isBundleBuild = gradle.startParameter.taskNames.any {
+            it.contains("bundle", ignoreCase = true)
+        }
+        if (!isBundleBuild) {
+            maybeCreate("withMl").apply {
+                assets.srcDirs("../ml-models/src/main/assets")
+            }
+        }
     }
 
-    flavorDimensions += listOf("abi")
+    flavorDimensions += listOf("abi", "ml")
     productFlavors {
         abiVersionCodes.forEach { (abi, _) ->
             create(abi) {
@@ -160,6 +163,14 @@ android {
                     ndk.abiFilters.add(abi)
                 }
             }
+        }
+        create("withMl") {
+            dimension = "ml"
+            buildConfigField("Boolean", "ML_MODELS_BUNDLED", "true")
+        }
+        create("noMl") {
+            dimension = "ml"
+            buildConfigField("Boolean", "ML_MODELS_BUNDLED", "false")
         }
     }
 
@@ -310,8 +321,8 @@ dependencies {
     // Composable - Scrollbar
     implementation(libs.lazycolumnscrollbar)
 
-    // ONNX Runtime
-    implementation(libs.onnxruntime.android.qnn)
+    // ONNX Runtime (CPU + NNAPI)
+    implementation(libs.onnxruntime.android)
 
     // Haze
     implementation(libs.haze)

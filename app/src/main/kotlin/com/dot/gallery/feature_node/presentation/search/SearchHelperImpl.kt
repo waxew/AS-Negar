@@ -1,22 +1,22 @@
 package com.dot.gallery.feature_node.presentation.search
 
 import ai.onnxruntime.OrtSession
-import android.content.Context
 import android.graphics.Bitmap
+import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.feature_node.presentation.search.helpers.SearchVisionHelper
 import com.dot.gallery.feature_node.presentation.search.util.dot
 import com.dot.gallery.feature_node.presentation.util.printDebug
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class SearchHelperImpl @Inject constructor(
-    @param:ApplicationContext
-    private val appContext: Context,
+    private val modelManager: ModelManager,
 ) : SearchHelper {
 
-    private val helper by lazy { SearchVisionHelper(appContext) }
+    override val isAvailable: Boolean get() = modelManager.isReady
+
+    private val helper by lazy { SearchVisionHelper(modelManager) }
 
     override fun sortByCosineDistance(
         searchEmbedding: FloatArray,

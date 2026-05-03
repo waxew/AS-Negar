@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
 import com.dot.gallery.core.MediaDistributor
 import com.dot.gallery.core.Resource
+import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.core.workers.startCategoryClassification
 import com.dot.gallery.feature_node.data.data_source.CategoryWithMediaCount
@@ -32,8 +33,11 @@ data class CategoryMedia(
 class LibraryViewModel @Inject constructor(
     private val repository: MediaRepository,
     private val mediaDistributor: MediaDistributor,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    private val modelManager: ModelManager
 ) : ViewModel() {
+
+    val hasInternetPermission: Boolean get() = modelManager.hasInternetPermission
 
     val locations = mediaDistributor.locationsMediaFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

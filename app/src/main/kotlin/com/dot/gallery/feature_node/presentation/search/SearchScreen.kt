@@ -122,6 +122,7 @@ fun SearchScreen(
     val searchResults by viewModel.searchResultsState.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val selectedImageMedia by viewModel.selectedImageMedia.collectAsStateWithLifecycle()
+    val isModelAvailable by viewModel.isModelAvailable.collectAsStateWithLifecycle()
     var searchHistory by rememberSearchHistory()
 
     // Image-to-image search UI state
@@ -297,7 +298,7 @@ fun SearchScreen(
                                         }
                                     }
                                     AnimatedVisibility(
-                                        visible = selectedImageMedia == null && !searchResults.isSearching,
+                                        visible = isModelAvailable && selectedImageMedia == null && !searchResults.isSearching,
                                         enter = fadeIn() + slideInHorizontally { it },
                                         exit = fadeOut() + slideOutHorizontally { it }
                                     ) {

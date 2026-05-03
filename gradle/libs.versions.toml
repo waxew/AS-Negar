@@ -33,7 +33,7 @@ material3 = "1.5.0-alpha18"
 media3Exoplayer = "1.10.0"
 metadataExtractor = "2.20.0"
 navigation-runtime-ktx = "2.9.8"
-onnxruntimeAndroidQnn = "1.25.1"
+onnxruntimeAndroid = "1.25.1"
 pinchzoomgrid = "0.0.5"
 profileinstaller = "1.4.1"
 room = "2.8.4"
@@ -117,7 +117,7 @@ jxl-coder-coil = { module = "io.github.awxkee:jxl-coder-coil", version.ref = "jx
 lazycolumnscrollbar = { module = "com.github.nanihadesuka:LazyColumnScrollbar", version.ref = "lazycolumnscrollbar" }
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
 metadata-extractor = { module = "com.drewnoakes:metadata-extractor", version.ref = "metadataExtractor" }
-onnxruntime-android-qnn = { module = "com.microsoft.onnxruntime:onnxruntime-android-qnn", version.ref = "onnxruntimeAndroidQnn" }
+onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntimeAndroid" }
 pinchzoomgrid = { module = "io.github.dokar3:pinchzoomgrid", version.ref = "pinchzoomgrid" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
