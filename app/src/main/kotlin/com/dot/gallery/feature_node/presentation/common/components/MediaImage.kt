@@ -40,15 +40,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
-import com.dot.gallery.core.Settings.Misc.rememberAllowGifAnimation
 import com.dot.gallery.core.Settings.Misc.rememberFavoriteIconPosition
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.load.resource.gif.GifDrawable
 import com.dot.gallery.core.LocalMediaSelector
+import com.dot.gallery.core.presentation.components.LocalMediaImageRenderer
 import com.dot.gallery.core.presentation.components.CheckBox
 import com.dot.gallery.core.presentation.components.util.advancedShadow
 import com.dot.gallery.feature_node.domain.model.Media
@@ -59,14 +55,13 @@ import com.dot.gallery.feature_node.domain.util.isFavorite
 import com.dot.gallery.feature_node.domain.util.isVideo
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.VideoDurationHeader
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
-import com.dot.gallery.feature_node.presentation.util.GlideInvalidation
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
-@OptIn(ExperimentalGlideComposeApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun <T : Media> MediaImage(
     modifier: Modifier = Modifier,
@@ -113,7 +108,6 @@ fun <T : Media> MediaImage(
         RoundedCornerShape(selectedShapeSize)
     }
     val allowBlur by rememberAllowBlur()
-    val allowGifAnimation by rememberAllowGifAnimation()
     val badgeHazeState = rememberHazeState(blurEnabled = allowBlur)
 
     Box(
@@ -138,7 +132,8 @@ fun <T : Media> MediaImage(
             .then(modifier)
     ) {
 
-        GlideImage(
+        val renderer = LocalMediaImageRenderer.current
+        renderer.RenderImage(
             modifier = Modifier
                 .fillMaxSize()
                 .align(Alignment.Center)
@@ -158,15 +153,7 @@ fun <T : Media> MediaImage(
             model = media.getUri(),
             contentDescription = media.label,
             contentScale = ContentScale.Crop,
-            requestBuilderTransform = {
-                var newRequest = it.centerCrop().diskCacheStrategy(DiskCacheStrategy.ALL)
-                newRequest = newRequest.thumbnail(newRequest.clone().sizeMultiplier(0.4f))
-                    .signature(GlideInvalidation.signature(media))
-                if (allowGifAnimation && media.label.contains(".gif", ignoreCase = true)) {
-                    newRequest = newRequest.decode(GifDrawable::class.java)
-                }
-                newRequest
-            }
+            signature = media
         )
 
         if (media.isVideo) {

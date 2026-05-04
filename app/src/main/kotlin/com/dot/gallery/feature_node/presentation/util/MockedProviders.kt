@@ -4,8 +4,14 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import com.dot.gallery.core.MediaDistributor
+import com.dot.gallery.core.presentation.components.MediaImageRenderer
 import com.dot.gallery.core.MediaHandler
 import com.dot.gallery.core.MediaSelector
 import com.dot.gallery.core.util.SetupMediaProviders
@@ -43,7 +49,7 @@ class MockedEventHandler: EventHandler {
     override fun pushEvent(event: UIEvent) {}
 }
 
-class MockedMediaDistributor: MediaDistributor {
+open class MockedMediaDistributor: MediaDistributor {
     override val hasPermission: MutableStateFlow<Boolean> = MutableStateFlow(true)
     override val dateFormatsFlow: StateFlow<Triple<String, String, String>> = MutableStateFlow(Triple("", "", ""))
     override var groupByMonth: Boolean = false
@@ -171,6 +177,31 @@ class MockedMediaSelector: MediaSelector {
     override fun rawUpdateSelection(list: Set<Long>) = Unit
 }
 
+/**
+ * A [MediaImageRenderer] that renders colored placeholder boxes instead of real images.
+ * Uses a fixed palette of theme-derived colors, cycling based on [model]'s hashCode.
+ */
+val MockedMediaImageRenderer = object : MediaImageRenderer {
+    @Composable
+    override fun RenderImage(
+        modifier: Modifier,
+        model: Any?,
+        contentScale: ContentScale,
+        contentDescription: String?,
+        signature: Any?
+    ) {
+        val colors = listOf(
+            Color(0xFFBBDEFB), // light blue
+            Color(0xFFC8E6C9), // light green
+            Color(0xFFFFCDD2), // light red
+            Color(0xFFFFF9C4), // light yellow
+            Color(0xFFD1C4E9), // light purple
+        )
+        val color = colors[(model?.hashCode()?.let { Math.abs(it) } ?: 0) % colors.size]
+        Box(modifier = modifier.background(color))
+    }
+}
+
 @Composable
 fun SetupMockedMediaProviders(content: @Composable () -> Unit) {
     SetupMediaProviders(
@@ -178,6 +209,7 @@ fun SetupMockedMediaProviders(content: @Composable () -> Unit) {
         mediaDistributor = MockedMediaDistributor(),
         mediaHandler = MockedMediaHandler(),
         mediaSelector = MockedMediaSelector(),
+        mediaImageRenderer = MockedMediaImageRenderer,
         content = content
     )
 }
