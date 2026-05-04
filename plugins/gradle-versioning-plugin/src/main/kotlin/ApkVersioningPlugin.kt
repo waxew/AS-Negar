@@ -34,7 +34,10 @@ class ApkVersioningPlugin : Plugin<Project> {
 
                 // Only override versionCode when flavor codes are configured
                 val computedVersionCode = if (codes.isNotEmpty()) {
-                    val flavorOffset = codes[flavorName] ?: 0
+                    // Support multi-dimension flavors: sum offsets from each individual
+                    // product flavor rather than looking up the combined flavorName.
+                    val flavorOffset = variant.productFlavors
+                        .sumOf { (_, name) -> codes[name] ?: 0 }
                     val code = flavorOffset + baseVersionCode * multiplier
                     variant.outputs.forEach { output ->
                         output.versionCode.set(code)
