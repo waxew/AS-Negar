@@ -6,11 +6,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalGridApi
+import androidx.compose.foundation.layout.Grid
+import androidx.compose.foundation.layout.GridTrackSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.core.Position
@@ -47,19 +56,14 @@ import com.dot.gallery.feature_node.presentation.common.components.OptionPositio
 import com.dot.gallery.feature_node.presentation.common.components.OptionPosition.TOP
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
-import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.feature_node.presentation.util.AppBottomSheetState
-import com.dot.gallery.feature_node.presentation.util.LocalHazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 
 @Composable
 fun OptionSheet(
     state: AppBottomSheetState,
     onDismiss: (() -> Unit)? = null,
     headerContent: @Composable (ColumnScope.() -> Unit)? = null,
+    style: OptionLayoutStyle = OptionLayoutStyle.Column,
     vararg optionList: SnapshotStateList<OptionItem>
 ) {
     ModalSheet(
@@ -71,6 +75,7 @@ fun OptionSheet(
             optionList.forEach { list ->
                 OptionLayout(
                     modifier = Modifier.fillMaxWidth(),
+                    style = style,
                     optionList = list
                 )
             }
@@ -225,34 +230,61 @@ fun LazyListScope.SettingsOptionLayout(
 }
 
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
+enum class OptionLayoutStyle {
+    Grid,
+    Column
+}
+
+private val GridItemShape = RoundedCornerShape(20.dp)
+
 @Composable
 fun OptionLayout(
     modifier: Modifier = Modifier,
+    optionList: SnapshotStateList<OptionItem>,
+    style: OptionLayoutStyle = OptionLayoutStyle.Column
+) {
+    when (style) {
+        OptionLayoutStyle.Grid -> OptionGridLayout(modifier, optionList)
+        OptionLayoutStyle.Column -> OptionColumnLayout(modifier, optionList)
+    }
+}
+
+@OptIn(ExperimentalGridApi::class)
+@Composable
+private fun OptionGridLayout(
+    modifier: Modifier = Modifier,
     optionList: SnapshotStateList<OptionItem>
 ) {
-    val isBlurEnabled by rememberAllowBlur()
-    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
-    val blurBackgroundModifier = remember(isBlurEnabled) {
-        if (!isBlurEnabled) {
-            Modifier.background(
-                color = surfaceColor,
-                shape = OptionShape.Alone
+    Grid(
+        config = {
+            repeat(2) { column(GridTrackSize.MinMax(min = 0.dp, max = 1.fr)) }
+            columnGap(8.dp)
+            rowGap(8.dp)
+        },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        val isOdd = optionList.size % 2 != 0
+        optionList.forEachIndexed { index, item ->
+            val isLastOdd = isOdd && index == optionList.lastIndex
+            OptionGridItem(
+                item = item,
+                modifier = if (isLastOdd) Modifier.gridItem(columnSpan = 2) else Modifier
             )
-        } else {
-            Modifier
         }
     }
-    val hazeStyle = HazeMaterials.regular(
-        containerColor = MaterialTheme.colorScheme.surface
-    )
+}
+
+@Composable
+private fun OptionColumnLayout(
+    modifier: Modifier = Modifier,
+    optionList: SnapshotStateList<OptionItem>
+) {
     Column(
         modifier = modifier
             .clip(OptionShape.Alone)
-            .then(blurBackgroundModifier)
-            .hazeEffect(
-                state = LocalHazeState.current,
-                style = hazeStyle
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = OptionShape.Alone
             ),
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
@@ -274,24 +306,77 @@ fun OptionLayout(
                 }
             }
             OptionButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .hazeSource(LocalHazeState.current),
+                modifier = Modifier.fillMaxWidth(),
                 icon = item.icon,
                 textContainer = {
                     Text(text = item.text)
                 },
                 summaryContainer = summary,
                 enabled = item.enabled,
-                containerColor = if (isBlurEnabled) Color.Transparent
-                    else item.containerColor
-                        ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = item.containerColor
+                    ?: MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = item.contentColor
                     ?: MaterialTheme.colorScheme.onSurface,
                 position = position,
                 onClick = {
                     item.onClick(item.summary.toString())
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun OptionGridItem(
+    item: OptionItem,
+    modifier: Modifier = Modifier
+) {
+    val containerColor = item.containerColor
+        ?: MaterialTheme.colorScheme.surfaceContainerHigh
+    val contentColor = item.contentColor
+        ?: MaterialTheme.colorScheme.onSurface
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .defaultMinSize(minHeight = 80.dp)
+            .background(containerColor, GridItemShape)
+            .clip(GridItemShape)
+            .clickable(enabled = item.enabled) { item.onClick(item.summary.toString()) }
+            .alpha(if (item.enabled) 1f else 0.4f)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (item.icon != null) {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        Text(
+            text = item.text,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Medium
+            ),
+            color = contentColor,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (!item.summary.isNullOrBlank()) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = item.summary,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -434,6 +519,7 @@ private fun OptionLayoutAlonePreview() {
             val list = remember {
                 mutableStateListOf(
                     OptionItem(
+                        icon = Icons.Outlined.Delete,
                         text = "Alone Option",
                         onClick = {}
                     )
@@ -452,11 +538,13 @@ private fun OptionLayoutTwoItemsPreview() {
             val list = remember {
                 mutableStateListOf(
                     OptionItem(
-                        text = "Top Option",
+                        icon = Icons.Outlined.Delete,
+                        text = "First Option",
                         onClick = {}
                     ),
                     OptionItem(
-                        text = "Bottom Option",
+                        icon = Icons.Outlined.Delete,
+                        text = "Second Option",
                         onClick = {}
                     )
                 )
@@ -468,33 +556,7 @@ private fun OptionLayoutTwoItemsPreview() {
 
 @Preview(showBackground = true)
 @Composable
-private fun OptionLayoutMultipleItemsPreview() {
-    MaterialTheme {
-        Box(Modifier.padding(16.dp)) {
-            val list = remember {
-                mutableStateListOf(
-                    OptionItem(
-                        text = "Top Option",
-                        onClick = {}
-                    ),
-                    OptionItem(
-                        text = "Middle Option",
-                        onClick = {}
-                    ),
-                    OptionItem(
-                        text = "Bottom Option",
-                        onClick = {}
-                    )
-                )
-            }
-            OptionLayout(optionList = list)
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun OptionLayoutMixedPreview() {
+private fun OptionLayoutGridPreview() {
     MaterialTheme {
         Box(Modifier.padding(16.dp)) {
             val customContainerColor = MaterialTheme.colorScheme.primaryContainer
@@ -503,27 +565,27 @@ private fun OptionLayoutMixedPreview() {
                 mutableStateListOf(
                     OptionItem(
                         icon = Icons.Outlined.Delete,
-                        text = "Option with Icon",
-                        onClick = {}
-                    ),
-                    OptionItem(
-                        text = "Option with Summary",
-                        summary = "This is a summary",
+                        text = "Delete",
                         onClick = {}
                     ),
                     OptionItem(
                         icon = Icons.Outlined.Delete,
-                        text = "Option with Summary and icon",
-                        summary = "This is a summary",
+                        text = "Pin",
                         onClick = {}
                     ),
                     OptionItem(
-                        text = "Disabled Option",
-                        enabled = false,
+                        icon = Icons.Outlined.Delete,
+                        text = "Change cover",
                         onClick = {}
                     ),
                     OptionItem(
-                        text = "Custom Colors",
+                        icon = Icons.Outlined.Delete,
+                        text = "Lock album",
+                        onClick = {}
+                    ),
+                    OptionItem(
+                        icon = Icons.Outlined.Delete,
+                        text = "Odd Item",
                         containerColor = customContainerColor,
                         contentColor = customContentColor,
                         onClick = {}

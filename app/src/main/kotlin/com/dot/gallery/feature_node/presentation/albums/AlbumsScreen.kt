@@ -431,10 +431,14 @@ fun AlbumsScreen(
                                     album = item,
                                     onItemClick = onAlbumClick,
                                     onTogglePinClick = onAlbumLongClick,
-                                    onToggleIgnoreClick = onIgnoreAlbum,
                                     onMoveAlbumToTrash = {
                                         onMoveAlbumToTrash(trashResult, it)
-                                    }
+                                    },
+                                    onToggleIgnoreClick = onIgnoreAlbum,
+                                    onToggleLockClick = onLockAlbum,
+                                    onAddToGroup = onAddToGroup,
+                                    onToggleMergeSubfolders = onToggleMergeSubfolders,
+                                    isMergedSubfolder = item.id in mergedSubfolderIds
                                 )
                             }
                         }

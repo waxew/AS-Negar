@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
@@ -39,7 +40,6 @@ import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SdCard
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,16 +67,15 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.dot.gallery.R
 import com.dot.gallery.core.LocalMediaHandler
+import com.dot.gallery.core.presentation.components.LocalMediaImageRenderer
 import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.presentation.common.components.OptionItem
+import com.dot.gallery.feature_node.presentation.common.components.OptionLayoutStyle
 import com.dot.gallery.feature_node.presentation.common.components.OptionSheet
 import com.dot.gallery.feature_node.presentation.picker.PickerActivityContract
-import com.dot.gallery.feature_node.presentation.util.GlideInvalidation
+import com.dot.gallery.feature_node.presentation.util.AppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.formatSize
 import com.dot.gallery.feature_node.presentation.util.printError
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
@@ -86,7 +84,6 @@ import com.dot.gallery.ui.theme.Shapes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun AlbumComponent(
     modifier: Modifier = Modifier,
@@ -111,273 +108,18 @@ fun AlbumComponent(
             .alpha(if (isEnabled) 1f else 0.4f)
             .padding(horizontal = 8.dp),
     ) {
-        val trashTitle = stringResource(R.string.move_album_to_trash)
-        val pinTitle = stringResource(R.string.pin)
-        val changeThumbnailTitle = stringResource(R.string.change_thumbnail)
-        val ignoredTitle = stringResource(id = R.string.add_to_ignored)
-        val lockTitle = stringResource(if (album.isLocked) R.string.unlock_album else R.string.lock_album)
-        val addToGroupTitle = stringResource(R.string.add_to_group)
-        val removeFromGroupTitle = stringResource(R.string.remove_album_from_group)
-        val mergeSubfoldersTitle = stringResource(
-            if (isMergedSubfolder) R.string.unmerge_subfolders else R.string.merge_subfolders
-        )
-        val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
-        val onSecondaryContainer = MaterialTheme.colorScheme.onSecondaryContainer
-        val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-        val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
-        val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
-        val onTertiaryContainer = MaterialTheme.colorScheme.onTertiaryContainer
-        var isSelectingThumbnail by rememberSaveable { mutableStateOf(false) }
-        val handler = LocalMediaHandler.current
-        val hasThumbnail by handler.hasAlbumThumbnail(album.id)
-            .collectAsStateWithLifecycle(initialValue = false)
-
-        val pickerLauncher = rememberLauncherForActivityResult(
-            PickerActivityContract(
-                allowMultiple = false,
-                mediaType = "image/*"
-            )
-        ) { uriList ->
-            scope.launch {
-                if (uriList.isNotEmpty()) {
-                    val newThumbnailUri = uriList.map { it.toUri() }.firstOrNull()
-                    if (newThumbnailUri != null) {
-                        handler.updateAlbumThumbnail(album.id, newThumbnailUri)
-                        delay(100)
-                        appBottomSheetState.hide()
-                    } else {
-                        printError("No thumbnail selected for album: ${album.label}")
-                    }
-                }
-            }
-        }
-
-        val changeThumbnailOptions = remember(hasThumbnail) {
-            listOf(
-                OptionItem(
-                    text = "Select a new thumbnail",
-                    icon = Icons.Outlined.FileOpen,
-                    onClick = { pickerLauncher.launch(Unit) }
-                ),
-                OptionItem(
-                    text = "Change to default",
-                    icon = Icons.Outlined.Restore,
-                    enabled = hasThumbnail,
-                    onClick = {
-                        scope.launch {
-                            handler.deleteAlbumThumbnail(album.id)
-                            appBottomSheetState.hide()
-                        }
-                    }
-                )
-            )
-        }
-        val optionList = remember(onMoveAlbumToTrash, onTogglePinClick, onToggleIgnoreClick, onToggleLockClick, album.isLocked) {
-            mutableListOf(
-                OptionItem(
-                    icon = Icons.Outlined.Delete,
-                    text = trashTitle,
-                    containerColor = primaryContainer,
-                    contentColor = onPrimaryContainer,
-                    enabled = onMoveAlbumToTrash != null,
-                    onClick = {
-                        scope.launch {
-                            appBottomSheetState.hide()
-                            onMoveAlbumToTrash?.invoke(album)
-                        }
-                    }
-                ),
-                OptionItem(
-                    icon = Icons.Outlined.PushPin,
-                    text = pinTitle,
-                    containerColor = secondaryContainer,
-                    contentColor = onSecondaryContainer,
-                    enabled = onTogglePinClick != null,
-                    onClick = {
-                        scope.launch {
-                            appBottomSheetState.hide()
-                            onTogglePinClick?.invoke(album)
-                        }
-                    }
-                ),
-                OptionItem(
-                    icon = Icons.Outlined.Wallpaper,
-                    text = changeThumbnailTitle,
-                    containerColor = tertiaryContainer,
-                    contentColor = onTertiaryContainer,
-                    onClick = { isSelectingThumbnail = true }
-                ),
-            ).apply {
-                if (onToggleLockClick != null) {
-                    add(
-                        OptionItem(
-                            icon = if (album.isLocked) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
-                            text = lockTitle,
-                            onClick = {
-                                scope.launch {
-                                    appBottomSheetState.hide()
-                                    onToggleLockClick(album)
-                                }
-                            }
-                        )
-                    )
-                }
-                if (onToggleIgnoreClick != null) {
-                    add(
-                        OptionItem(
-                            icon = Icons.Outlined.VisibilityOff,
-                            text = ignoredTitle,
-                            onClick = {
-                                scope.launch {
-                                    appBottomSheetState.hide()
-                                    onToggleIgnoreClick(album)
-                                }
-                            }
-                        )
-                    )
-                }
-                if (onAddToGroup != null) {
-                    add(
-                        OptionItem(
-                            icon = Icons.Outlined.CreateNewFolder,
-                            text = addToGroupTitle,
-                            onClick = {
-                                scope.launch {
-                                    appBottomSheetState.hide()
-                                    onAddToGroup(album)
-                                }
-                            }
-                        )
-                    )
-                }
-                if (onRemoveFromGroup != null) {
-                    add(
-                        OptionItem(
-                            icon = Icons.Outlined.RemoveCircleOutline,
-                            text = removeFromGroupTitle,
-                            onClick = {
-                                scope.launch {
-                                    appBottomSheetState.hide()
-                                    onRemoveFromGroup(album)
-                                }
-                            }
-                        )
-                    )
-                }
-                if (onToggleMergeSubfolders != null) {
-                    add(
-                        OptionItem(
-                            icon = Icons.Outlined.AccountTree,
-                            text = mergeSubfoldersTitle,
-                            onClick = {
-                                scope.launch {
-                                    appBottomSheetState.hide()
-                                    onToggleMergeSubfolders(album)
-                                }
-                            }
-                        )
-                    )
-                }
-            }
-        }
-        val deleteThumbnailTitle = stringResource(R.string.delete_thumbnail)
-        LaunchedEffect(onDeleteAlbumThumbnailClick) {
-            if (onDeleteAlbumThumbnailClick != null) {
-                optionList.add(
-                    OptionItem(
-                        text = deleteThumbnailTitle,
-                        onClick = {
-                            scope.launch {
-                                appBottomSheetState.hide()
-                                onDeleteAlbumThumbnailClick(album)
-                            }
-                        }
-                    )
-                )
-            }
-        }
-
-        val options = remember(isSelectingThumbnail, optionList) {
-            (if (isSelectingThumbnail) {
-                changeThumbnailOptions
-            } else {
-                optionList
-            }).toMutableStateList()
-        }
-
-        OptionSheet(
-            state = appBottomSheetState,
-            optionList = arrayOf(options),
-            headerContent = {
-                BackHandler(isSelectingThumbnail) {
-                    isSelectingThumbnail = false
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (album.isLocked) {
-                        Box(
-                            modifier = Modifier
-                                .size(98.dp)
-                                .clip(Shapes.large)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Lock,
-                                contentDescription = stringResource(R.string.locked),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    } else {
-                        GlideImage(
-                            modifier = Modifier
-                                .size(98.dp)
-                                .clip(Shapes.large),
-                            contentScale = ContentScale.Crop,
-                            model = album.uri,
-                            requestBuilderTransform = {
-                                it.signature(GlideInvalidation.signature(album))
-                            },
-                            contentDescription = album.label
-                        )
-                    }
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontStyle = MaterialTheme.typography.titleLarge.fontStyle,
-                                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                                    letterSpacing = MaterialTheme.typography.titleLarge.letterSpacing
-                                )
-                            ) {
-                                append(album.label)
-                            }
-                            append("\n")
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontStyle = MaterialTheme.typography.bodyMedium.fontStyle,
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                    letterSpacing = MaterialTheme.typography.bodyMedium.letterSpacing
-                                )
-                            ) {
-                                append(
-                                    stringResource(
-                                        R.string.s_items,
-                                        album.count
-                                    ) + " (${formatSize(album.size)})"
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
-                    )
-                }
-            }
+        AlbumOptionSheet(
+            album = album,
+            appBottomSheetState = appBottomSheetState,
+            onMoveAlbumToTrash = onMoveAlbumToTrash,
+            onTogglePinClick = onTogglePinClick,
+            onToggleIgnoreClick = onToggleIgnoreClick,
+            onToggleLockClick = onToggleLockClick,
+            onDeleteAlbumThumbnailClick = onDeleteAlbumThumbnailClick,
+            onAddToGroup = onAddToGroup,
+            onRemoveFromGroup = onRemoveFromGroup,
+            onToggleMergeSubfolders = onToggleMergeSubfolders,
+            isMergedSubfolder = isMergedSubfolder
         )
         Box(
             modifier = Modifier
@@ -437,7 +179,7 @@ fun AlbumComponent(
     }
 }
 
-@OptIn(ExperimentalGlideComposeApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AlbumRowComponent(
     modifier: Modifier = Modifier,
@@ -447,7 +189,11 @@ fun AlbumRowComponent(
     onItemClick: (Album) -> Unit,
     onMoveAlbumToTrash: ((Album) -> Unit)? = null,
     onTogglePinClick: ((Album) -> Unit)? = null,
-    onToggleIgnoreClick: ((Album) -> Unit)? = null
+    onToggleIgnoreClick: ((Album) -> Unit)? = null,
+    onToggleLockClick: ((Album) -> Unit)? = null,
+    onAddToGroup: ((Album) -> Unit)? = null,
+    onToggleMergeSubfolders: ((Album) -> Unit)? = null,
+    isMergedSubfolder: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
     val appBottomSheetState = rememberAppBottomSheetState()
@@ -456,119 +202,31 @@ fun AlbumRowComponent(
             .fillMaxWidth()
             .alpha(if (isEnabled) 1f else 0.4f)
             .height(64.dp)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 8.dp)
+            .clip(Shapes.large)
+            .combinedClickable(
+                enabled = isEnabled,
+                onClick = { onItemClick(album) },
+                onLongClick = if (onTogglePinClick != null) {
+                    {
+                        scope.launch {
+                            appBottomSheetState.show()
+                        }
+                    }
+                } else null
+            ),
     ) {
-        if (onTogglePinClick != null) {
-            val trashTitle = stringResource(R.string.move_album_to_trash)
-            val pinTitle = stringResource(R.string.pin)
-            val ignoredTitle = stringResource(id = R.string.add_to_ignored)
-            val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
-            val onSecondaryContainer = MaterialTheme.colorScheme.onSecondaryContainer
-            val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-            val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
-            val optionList = remember(onMoveAlbumToTrash, onTogglePinClick, onToggleIgnoreClick) {
-                mutableStateListOf(
-                    OptionItem(
-                        text = trashTitle,
-                        containerColor = primaryContainer,
-                        contentColor = onPrimaryContainer,
-                        enabled = onMoveAlbumToTrash != null,
-                        onClick = {
-                            scope.launch {
-                                appBottomSheetState.hide()
-                                onMoveAlbumToTrash?.invoke(album)
-                            }
-                        }
-                    ),
-                    OptionItem(
-                        text = pinTitle,
-                        containerColor = secondaryContainer,
-                        contentColor = onSecondaryContainer,
-                        onClick = {
-                            scope.launch {
-                                appBottomSheetState.hide()
-                                onTogglePinClick(album)
-                            }
-                        }
-                    )
-                ).apply {
-                    if (onToggleIgnoreClick != null) {
-                        add(
-                            OptionItem(
-                                icon = Icons.Outlined.VisibilityOff,
-                                text = ignoredTitle,
-                                onClick = {
-                                    scope.launch {
-                                        appBottomSheetState.hide()
-                                        onToggleIgnoreClick(album)
-                                    }
-                                }
-                            )
-                        )
-                    }
-                }
-            }
-
-            OptionSheet(
-                state = appBottomSheetState,
-                optionList = arrayOf(optionList),
-                headerContent = {
-                    if (album.isLocked) {
-                        Box(
-                            modifier = Modifier
-                                .size(98.dp)
-                                .clip(Shapes.large)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Lock,
-                                contentDescription = stringResource(R.string.locked),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    } else {
-                        GlideImage(
-                            modifier = Modifier
-                                .size(98.dp)
-                                .clip(Shapes.large),
-                            contentScale = ContentScale.Crop,
-                            model = album.uri.toString(),
-                            contentDescription = album.label
-                        )
-                    }
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontStyle = MaterialTheme.typography.titleLarge.fontStyle,
-                                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                                    letterSpacing = MaterialTheme.typography.titleLarge.letterSpacing
-                                )
-                            ) {
-                                append(album.label)
-                            }
-                            append("\n")
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontStyle = MaterialTheme.typography.bodyMedium.fontStyle,
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                    letterSpacing = MaterialTheme.typography.bodyMedium.letterSpacing
-                                )
-                            ) {
-                                append(stringResource(R.string.s_items, album.count) + " (${formatSize(album.size)})")
-                            }
-                        },
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
-                    )
-                }
-            )
-        }
+        AlbumOptionSheet(
+            album = album,
+            appBottomSheetState = appBottomSheetState,
+            onMoveAlbumToTrash = onMoveAlbumToTrash,
+            onTogglePinClick = onTogglePinClick,
+            onToggleIgnoreClick = onToggleIgnoreClick,
+            onToggleLockClick = onToggleLockClick,
+            onAddToGroup = onAddToGroup,
+            onToggleMergeSubfolders = onToggleMergeSubfolders,
+            isMergedSubfolder = isMergedSubfolder
+        )
         Box(
             modifier = Modifier
                 .aspectRatio(1f)
@@ -624,7 +282,280 @@ fun AlbumRowComponent(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalGlideComposeApi::class)
+@Composable
+fun AlbumOptionSheet(
+    album: Album,
+    appBottomSheetState: AppBottomSheetState,
+    onMoveAlbumToTrash: ((Album) -> Unit)? = null,
+    onTogglePinClick: ((Album) -> Unit)? = null,
+    onToggleIgnoreClick: ((Album) -> Unit)? = null,
+    onToggleLockClick: ((Album) -> Unit)? = null,
+    onDeleteAlbumThumbnailClick: ((Album) -> Unit)? = null,
+    onAddToGroup: ((Album) -> Unit)? = null,
+    onRemoveFromGroup: ((Album) -> Unit)? = null,
+    onToggleMergeSubfolders: ((Album) -> Unit)? = null,
+    isMergedSubfolder: Boolean = false
+) {
+    val scope = rememberCoroutineScope()
+    val trashTitle = stringResource(R.string.move_album_to_trash)
+    val pinTitle = stringResource(R.string.pin)
+    val changeThumbnailTitle = stringResource(R.string.change_thumbnail)
+    val ignoredTitle = stringResource(id = R.string.add_to_ignored)
+    val lockTitle = stringResource(if (album.isLocked) R.string.unlock_album else R.string.lock_album)
+    val addToGroupTitle = stringResource(R.string.add_to_group)
+    val removeFromGroupTitle = stringResource(R.string.remove_album_from_group)
+    val mergeSubfoldersTitle = stringResource(
+        if (isMergedSubfolder) R.string.unmerge_subfolders else R.string.merge_subfolders
+    )
+    var isSelectingThumbnail by rememberSaveable { mutableStateOf(false) }
+    val handler = LocalMediaHandler.current
+    val hasThumbnail by handler.hasAlbumThumbnail(album.id)
+        .collectAsStateWithLifecycle(initialValue = false)
+
+    val pickerLauncher = rememberLauncherForActivityResult(
+        PickerActivityContract(
+            allowMultiple = false,
+            mediaType = "image/*"
+        )
+    ) { uriList ->
+        scope.launch {
+            if (uriList.isNotEmpty()) {
+                val newThumbnailUri = uriList.map { it.toUri() }.firstOrNull()
+                if (newThumbnailUri != null) {
+                    handler.updateAlbumThumbnail(album.id, newThumbnailUri)
+                    delay(100)
+                    appBottomSheetState.hide()
+                } else {
+                    printError("No thumbnail selected for album: ${album.label}")
+                }
+            }
+        }
+    }
+
+    val changeThumbnailOptions = remember(hasThumbnail) {
+        listOf(
+            OptionItem(
+                text = "Select a new thumbnail",
+                icon = Icons.Outlined.FileOpen,
+                onClick = { pickerLauncher.launch(Unit) }
+            ),
+            OptionItem(
+                text = "Change to default",
+                icon = Icons.Outlined.Restore,
+                enabled = hasThumbnail,
+                onClick = {
+                    scope.launch {
+                        handler.deleteAlbumThumbnail(album.id)
+                        appBottomSheetState.hide()
+                    }
+                }
+            )
+        )
+    }
+    val optionList = remember(onMoveAlbumToTrash, onTogglePinClick, onToggleIgnoreClick, onToggleLockClick, album.isLocked) {
+        mutableListOf(
+            OptionItem(
+                icon = Icons.Outlined.Delete,
+                text = trashTitle,
+                enabled = onMoveAlbumToTrash != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onMoveAlbumToTrash?.invoke(album)
+                    }
+                }
+            ),
+            OptionItem(
+                icon = Icons.Outlined.PushPin,
+                text = pinTitle,
+                enabled = onTogglePinClick != null,
+                onClick = {
+                    scope.launch {
+                        appBottomSheetState.hide()
+                        onTogglePinClick?.invoke(album)
+                    }
+                }
+            ),
+            OptionItem(
+                icon = Icons.Outlined.Wallpaper,
+                text = changeThumbnailTitle,
+                onClick = { isSelectingThumbnail = true }
+            ),
+        ).apply {
+            if (onToggleLockClick != null) {
+                add(
+                    OptionItem(
+                        icon = if (album.isLocked) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
+                        text = lockTitle,
+                        onClick = {
+                            scope.launch {
+                                appBottomSheetState.hide()
+                                onToggleLockClick(album)
+                            }
+                        }
+                    )
+                )
+            }
+            if (onToggleIgnoreClick != null) {
+                add(
+                    OptionItem(
+                        icon = Icons.Outlined.VisibilityOff,
+                        text = ignoredTitle,
+                        onClick = {
+                            scope.launch {
+                                appBottomSheetState.hide()
+                                onToggleIgnoreClick(album)
+                            }
+                        }
+                    )
+                )
+            }
+            if (onAddToGroup != null) {
+                add(
+                    OptionItem(
+                        icon = Icons.Outlined.CreateNewFolder,
+                        text = addToGroupTitle,
+                        onClick = {
+                            scope.launch {
+                                appBottomSheetState.hide()
+                                onAddToGroup(album)
+                            }
+                        }
+                    )
+                )
+            }
+            if (onRemoveFromGroup != null) {
+                add(
+                    OptionItem(
+                        icon = Icons.Outlined.RemoveCircleOutline,
+                        text = removeFromGroupTitle,
+                        onClick = {
+                            scope.launch {
+                                appBottomSheetState.hide()
+                                onRemoveFromGroup(album)
+                            }
+                        }
+                    )
+                )
+            }
+            if (onToggleMergeSubfolders != null) {
+                add(
+                    OptionItem(
+                        icon = Icons.Outlined.AccountTree,
+                        text = mergeSubfoldersTitle,
+                        onClick = {
+                            scope.launch {
+                                appBottomSheetState.hide()
+                                onToggleMergeSubfolders(album)
+                            }
+                        }
+                    )
+                )
+            }
+        }
+    }
+    val deleteThumbnailTitle = stringResource(R.string.delete_thumbnail)
+    LaunchedEffect(onDeleteAlbumThumbnailClick) {
+        if (onDeleteAlbumThumbnailClick != null) {
+            optionList.add(
+                OptionItem(
+                    text = deleteThumbnailTitle,
+                    onClick = {
+                        scope.launch {
+                            appBottomSheetState.hide()
+                            onDeleteAlbumThumbnailClick(album)
+                        }
+                    }
+                )
+            )
+        }
+    }
+
+    val options = remember(isSelectingThumbnail, optionList) {
+        (if (isSelectingThumbnail) {
+            changeThumbnailOptions
+        } else {
+            optionList
+        }).toMutableStateList()
+    }
+
+    OptionSheet(
+        state = appBottomSheetState,
+        optionList = arrayOf(options),
+        style = OptionLayoutStyle.Grid,
+        headerContent = {
+            BackHandler(isSelectingThumbnail) {
+                isSelectingThumbnail = false
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (album.isLocked) {
+                    Box(
+                        modifier = Modifier
+                            .size(98.dp)
+                            .clip(Shapes.large)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Lock,
+                            contentDescription = stringResource(R.string.locked),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                } else {
+                    val renderer = LocalMediaImageRenderer.current
+                    renderer.RenderImage(
+                        modifier = Modifier
+                            .size(98.dp)
+                            .clip(Shapes.large),
+                        contentScale = ContentScale.Crop,
+                        model = album.uri,
+                        contentDescription = album.label,
+                        signature = album
+                    )
+                }
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontStyle = MaterialTheme.typography.titleLarge.fontStyle,
+                                fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                                letterSpacing = MaterialTheme.typography.titleLarge.letterSpacing
+                            )
+                        ) {
+                            append(album.label)
+                        }
+                        append("\n")
+                        withStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontStyle = MaterialTheme.typography.bodyMedium.fontStyle,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                letterSpacing = MaterialTheme.typography.bodyMedium.letterSpacing
+                            )
+                        ) {
+                            append(
+                                stringResource(
+                                    R.string.s_items,
+                                    album.count
+                                ) + " (${formatSize(album.size)})"
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                )
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AlbumImage(
     modifier: Modifier = Modifier,
@@ -700,7 +631,8 @@ fun AlbumImage(
                 .padding(48.dp)
         )
     } else {
-        GlideImage(
+        val renderer = LocalMediaImageRenderer.current
+        renderer.RenderImage(
             modifier = Modifier
                 .fillMaxSize()
                 .border(
@@ -724,12 +656,7 @@ fun AlbumImage(
             model = album.uri,
             contentDescription = album.label,
             contentScale = ContentScale.Crop,
-            requestBuilderTransform = {
-                val newRequest = it.centerCrop()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                newRequest.thumbnail(newRequest.clone().sizeMultiplier(0.4f))
-                    .signature(GlideInvalidation.signature(album))
-            }
+            signature = album
         )
     }
 }
