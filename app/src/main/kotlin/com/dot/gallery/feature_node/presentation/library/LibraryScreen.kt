@@ -1,5 +1,6 @@
 package com.dot.gallery.feature_node.presentation.library
 
+import com.dot.gallery.core.ml.ModelStatus
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -140,6 +141,7 @@ fun LibraryScreen(
     val totalLocationsCount by rememberedDerivedState { locations.size }
     val topLocations by rememberedDerivedState { locations.take(10) }
 
+    val modelStatus by viewModel.modelStatus.collectAsStateWithLifecycle()
     val hasInternet = viewModel.hasInternetPermission
     var noClassification by rememberNoClassification()
 
@@ -559,7 +561,7 @@ fun LibraryScreen(
                             }
                         }
                     }
-                    if (noCategoriesFound) {
+                    if (noCategoriesFound && modelStatus == ModelStatus.READY) {
                         item(
                             span = { GridItemSpan(maxLineSpan) },
                             key = "NoCategories"

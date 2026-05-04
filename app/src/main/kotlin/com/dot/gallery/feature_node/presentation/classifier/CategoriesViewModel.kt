@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.WorkInfo.State
 import androidx.work.WorkManager
 import com.dot.gallery.core.MediaDistributor
+import com.dot.gallery.core.ml.ModelManager
+import com.dot.gallery.core.ml.ModelStatus
 import com.dot.gallery.core.workers.CategoryWorker
 import com.dot.gallery.core.workers.VaultOperationWorker
 import com.dot.gallery.core.workers.enqueueVaultOperation
@@ -42,8 +44,11 @@ import javax.inject.Inject
 class CategoriesViewModel @Inject constructor(
     private val repository: MediaRepository,
     private val distributor: MediaDistributor,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    private val modelManager: ModelManager
 ) : ViewModel() {
+
+    val modelStatus: StateFlow<ModelStatus> = modelManager.status
 
     // ============ Locations ============
     

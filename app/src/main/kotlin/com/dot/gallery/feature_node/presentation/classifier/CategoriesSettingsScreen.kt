@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -29,6 +30,7 @@ import com.dot.gallery.R
 import com.dot.gallery.core.Position
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.Settings.Misc.rememberNoClassification
+import com.dot.gallery.core.ml.ModelStatus
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
 import com.dot.gallery.feature_node.presentation.settings.components.SwitchPreferenceDetailScreen
 
@@ -40,6 +42,8 @@ fun CategoriesSettingsScreen() {
     val categoryWorkerProgress by viewModel.categoryWorkerProgress.collectAsStateWithLifecycle()
     val categoryWorkerStatus by viewModel.categoryWorkerStatus.collectAsStateWithLifecycle()
     val categoriesWithCount by viewModel.categoriesWithCount.collectAsStateWithLifecycle()
+    val modelStatus by viewModel.modelStatus.collectAsStateWithLifecycle()
+    val isModelReady = modelStatus == ModelStatus.READY
 
     var noClassification by rememberNoClassification()
 
@@ -60,18 +64,24 @@ fun CategoriesSettingsScreen() {
                             stringResource(R.string.scanning_media)
                         else
                             stringResource(R.string.scan_for_new_categories),
+                        summary = if (!isModelReady)
+                            stringResource(R.string.ai_models_not_available)
+                        else null,
                         icon = Icons.Outlined.Scanner,
                         screenPosition = if (categoriesWithCount.isNotEmpty() && !isCategoryWorkerRunning)
                             Position.Top else Position.Alone
                     ),
-                    modifier = Modifier.combinedClickable(
-                        onLongClick = {
-                            if (isCategoryWorkerRunning) viewModel.stopCategoryClassification()
-                        },
-                        onClick = {
-                            if (!isCategoryWorkerRunning) viewModel.startCategoryClassification()
-                        }
-                    )
+                    modifier = Modifier
+                        .alpha(if (isModelReady) 1f else 0.5f)
+                        .combinedClickable(
+                            enabled = isModelReady,
+                            onLongClick = {
+                                if (isCategoryWorkerRunning) viewModel.stopCategoryClassification()
+                            },
+                            onClick = {
+                                if (!isCategoryWorkerRunning) viewModel.startCategoryClassification()
+                            }
+                        )
                 )
 
                 // Progress indicator when scanning

@@ -6,6 +6,7 @@ import androidx.work.WorkManager
 import com.dot.gallery.core.MediaDistributor
 import com.dot.gallery.core.Resource
 import com.dot.gallery.core.ml.ModelManager
+import com.dot.gallery.core.ml.ModelStatus
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.core.workers.startCategoryClassification
 import com.dot.gallery.feature_node.data.data_source.CategoryWithMediaCount
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -38,6 +40,8 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
 
     val hasInternetPermission: Boolean get() = modelManager.hasInternetPermission
+
+    val modelStatus: StateFlow<ModelStatus> = modelManager.status
 
     val locations = mediaDistributor.locationsMediaFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

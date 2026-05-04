@@ -507,6 +507,7 @@
     <string name="categories">Categories</string>
     <string name="classified_media">%1$s classified media</string>
     <string name="scan_for_new_categories">Scan for new categories</string>
+    <string name="ai_models_not_available">AI models are not downloaded. Download them from Settings → Smart Features.</string>
     <string name="scanning_media">Scanning media...</string>
     <string name="date_header_title">Date Header</string>
     <string name="media_view">Media View</string>
@@ -853,4 +854,51 @@
     <string name="select_albums_for_collection">Add albums</string>
     <string name="select_albums_for_collection_subtitle">Select albums to add their media to this collection</string>
     <string name="add_selected">Add selected</string>
+
+    <!-- Help & Tips Screen -->
+    <string name="help_title">Help &amp; tips</string>
+    <string name="help_summary">Tutorials, tips, and what\'s new</string>
+    <string name="help_whats_new">What\'s new</string>
+    <string name="help_whats_new_subtitle">Discover the latest Gallery features</string>
+    <string name="help_whats_new_in_version">What\'s new in v%s</string>
+    <string name="help_n_features_to_explore">%d new features to explore</string>
+    <string name="help_explore_whats_new">Explore what\'s new</string>
+    <string name="help_featured">Featured</string>
+    <string name="help_get_started">Get started</string>
+    <string name="help_make_most">Make the most of Gallery</string>
+    <string name="help_explore_tips">Explore more tips</string>
+    <string name="help_previous_releases">Previous releases</string>
+    <string name="help_done">Done</string>
+    <string name="help_try_it">Try it now</string>
+    <string name="help_open_settings">Open settings</string>
+    <string name="help_step_n">Step %d</string>
+    <string name="help_page_n_of_m">Page %1$d of %2$d</string>
+    <plurals name="help_pages_count">
+        <item quantity="one">%d page</item>
+        <item quantity="other">%d pages</item>
+    </plurals>
+    <string name="help_latest">Latest</string>
+    <string name="help_not_found">This tip could not be found.</string>
+    <string name="help_cat_basics">The basics</string>
+    <string name="help_cat_navigation">Navigation</string>
+    <string name="help_cat_personalization">Personalization</string>
+    <string name="help_cat_timeline_albums">Timeline &amp; album settings</string>
+    <string name="help_cat_viewing">Photo &amp; video viewing</string>
+    <string name="help_cat_viewer_actions">Media viewer actions</string>
+    <string name="help_cat_viewer_settings">Media viewer settings</string>
+    <string name="help_cat_editing">Photo editing</string>
+    <string name="help_cat_search">Search</string>
+    <string name="help_cat_ai">AI features</string>
+    <string name="help_cat_albums">Albums &amp; collections</string>
+    <string name="help_cat_vault">Vault</string>
+    <string name="help_cat_fav_trash">Favorites &amp; trash</string>
+    <string name="help_cat_locations">Location browsing</string>
+    <string name="help_cat_metadata">Metadata &amp; EXIF</string>
+    <string name="help_cat_settings_appearance">Settings: Appearance</string>
+    <string name="help_cat_settings_general">Settings: General</string>
+    <string name="help_cat_settings_navigation">Settings: Navigation</string>
+    <string name="help_cat_settings_smart">Settings: Smart features</string>
+    <string name="help_cat_gestures">Gestures &amp; shortcuts</string>
+    <string name="help_cat_selection_actions">Selection &amp; batch actions</string>
+    <string name="help_cat_accessibility">Accessibility &amp; advanced</string>
 </resources>
