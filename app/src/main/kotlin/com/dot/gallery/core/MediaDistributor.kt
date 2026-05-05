@@ -24,6 +24,12 @@ import kotlinx.coroutines.flow.StateFlow
 interface MediaDistributor {
 
     /**
+     * Pull-to-refresh
+     */
+    val isRefreshing: StateFlow<Boolean>
+    suspend fun invalidate()
+
+    /**
      * Common
      */
     val hasPermission: MutableStateFlow<Boolean>

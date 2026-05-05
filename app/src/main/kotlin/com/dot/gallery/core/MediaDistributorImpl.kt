@@ -41,10 +41,12 @@ import com.dot.gallery.feature_node.domain.util.removeBlacklisted
 import com.dot.gallery.feature_node.presentation.util.mapMediaToItem
 import com.dot.gallery.feature_node.presentation.util.mediaFlow
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.provider.MediaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -58,6 +60,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -77,6 +80,22 @@ class MediaDistributorImpl @Inject constructor(
     private val prioritySharingMethod = SharingStarted.Eagerly
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Pull-to-refresh
+     */
+    override val isRefreshing: MutableStateFlow<Boolean> = MutableStateFlow(false)
+
+    override suspend fun invalidate() {
+        isRefreshing.value = true
+        withContext(Dispatchers.IO) {
+            context.contentResolver.notifyChange(
+                MediaStore.Files.getContentUri("external"), null
+            )
+        }
+        delay(1500)
+        isRefreshing.value = false
+    }
 
     /**
      * Album Media Sort preference flow

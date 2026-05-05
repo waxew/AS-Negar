@@ -38,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +48,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -97,6 +99,7 @@ import dev.chrisbanes.haze.LocalHazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class,
@@ -117,6 +120,8 @@ fun AlbumTimelineScreen(
     var lastCellIndex by rememberGridSize()
     val eventHandler = LocalEventHandler.current
     val distributor = LocalMediaDistributor.current
+    val isRefreshing by distributor.isRefreshing.collectAsStateWithLifecycle()
+    val refreshScope = rememberCoroutineScope()
     val albumsState by distributor.albumsFlow.collectAsStateWithLifecycle()
     val currentAlbum = remember(albumsState, albumId) {
         albumsState.albums.find { it.id == albumId }
@@ -203,6 +208,10 @@ fun AlbumTimelineScreen(
                 )
             }
         ) { it ->
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { refreshScope.launch { distributor.invalidate() } },
+            ) {
             val hideTimelineOnAlbum by rememberHideTimelineOnAlbum()
             val timelineLayoutType by rememberTimelineLayoutType()
             val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && !hideTimelineOnAlbum
@@ -295,6 +304,7 @@ fun AlbumTimelineScreen(
                     }
                 }
             }
+            } // PullToRefreshBox
         }
         val selectedMediaList by selectedMedia(
             media = mediaState.value.media,

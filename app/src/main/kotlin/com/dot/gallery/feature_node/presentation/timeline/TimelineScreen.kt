@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +38,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -54,6 +56,7 @@ import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.BuildConfig
 import com.dot.gallery.core.Settings
@@ -85,6 +88,7 @@ import com.dot.gallery.feature_node.presentation.util.roundSpToPx
 import com.dot.gallery.feature_node.presentation.util.selectedMedia
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class,
@@ -104,6 +108,9 @@ fun TimelineScreen(
     val timelineLayoutType by rememberTimelineLayoutType()
     val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC
     val eventHandler = LocalEventHandler.current
+    val distributor = LocalMediaDistributor.current
+    val isRefreshing by distributor.isRefreshing.collectAsStateWithLifecycle()
+    val refreshScope = rememberCoroutineScope()
     var lastSeenVersion by rememberLastSeenVersion()
     val showWhatsNew = remember(lastSeenVersion) { lastSeenVersion != BuildConfig.VERSION_NAME }
     val whatsNewContent: @Composable (() -> Unit)? = if (showWhatsNew) {
@@ -165,7 +172,11 @@ fun TimelineScreen(
                 )
             }
         ) { it ->
-            if (isMosaicLayout) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { refreshScope.launch { distributor.invalidate() } },
+            ) {
+                if (isMosaicLayout) {
                 val mosaicGridState = rememberLazyGridState(
                     cacheWindow = dpCacheWindow
                 )
@@ -313,6 +324,7 @@ fun TimelineScreen(
                     )
                 }
             }
+            } // PullToRefreshBox
         }
         val selectedMediaList by selectedMedia(
             media = mediaState.value.media,

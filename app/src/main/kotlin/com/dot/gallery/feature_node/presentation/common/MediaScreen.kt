@@ -25,6 +25,7 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +35,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -50,6 +52,7 @@ import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.Constants.Target.TARGET_TRASH
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
@@ -75,6 +78,7 @@ import dev.chrisbanes.haze.LocalHazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
@@ -127,6 +131,9 @@ fun <T: Media> MediaScreen(
         }
     }
     val eventHandler = LocalEventHandler.current
+    val distributor = LocalMediaDistributor.current
+    val isRefreshing by distributor.isRefreshing.collectAsStateWithLifecycle()
+    val refreshScope = rememberCoroutineScope()
     val selector = LocalMediaSelector.current
     val selectionState = selector.isSelectionActive.collectAsStateWithLifecycle()
     val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
@@ -204,24 +211,28 @@ fun <T: Media> MediaScreen(
                 }
             }
         ) { it ->
-            val timelineLayoutType by rememberTimelineLayoutType()
-            val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && allowHeaders
-            if (isMosaicLayout) {
-                val mosaicGridState = rememberLazyGridState(
-                    cacheWindow = dpCacheWindow
-                )
-                val mappedData by remember(mediaState, showMonthlyHeader) {
-                    derivedStateOf {
-                        (if (showMonthlyHeader) mediaState.value.mappedMediaWithMonthly
-                        else mediaState.value.mappedMedia).toMutableStateList()
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { refreshScope.launch { distributor.invalidate() } },
+            ) {
+                val timelineLayoutType by rememberTimelineLayoutType()
+                val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && allowHeaders
+                if (isMosaicLayout) {
+                    val mosaicGridState = rememberLazyGridState(
+                        cacheWindow = dpCacheWindow
+                    )
+                    val mappedData by remember(mediaState, showMonthlyHeader) {
+                        derivedStateOf {
+                            (if (showMonthlyHeader) mediaState.value.mappedMediaWithMonthly
+                            else mediaState.value.mappedMedia).toMutableStateList()
+                        }
                     }
-                }
-                val headers by remember(mediaState) {
-                    derivedStateOf {
-                        mediaState.value.headers.toMutableStateList()
+                    val headers by remember(mediaState) {
+                        derivedStateOf {
+                            mediaState.value.headers.toMutableStateList()
+                        }
                     }
-                }
-                val mosaicPaddingValues = PaddingValues(
+                    val mosaicPaddingValues = PaddingValues(
                     top = it.calculateTopPadding(),
                     bottom = paddingValues.calculateBottomPadding() + 128.dp
                 )
@@ -302,6 +313,7 @@ fun <T: Media> MediaScreen(
                     )
                 }
             }
+            } // PullToRefreshBox
         }
         AnimatedVisibility(
             modifier = Modifier
