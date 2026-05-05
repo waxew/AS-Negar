@@ -43,7 +43,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.pinchzoomgrid.PinchZoomGridScope
 import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.LocalMediaSelector
@@ -60,7 +59,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun <T : Media> PinchZoomGridScope.MediaGridView(
+fun <T : Media> GridPinchZoomScope.MediaGridView(
     modifier: Modifier = Modifier,
     mediaState: State<MediaState<T>>,
     metadataState: State<MediaMetadataState>,

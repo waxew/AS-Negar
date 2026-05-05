@@ -69,8 +69,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
@@ -208,12 +208,12 @@ fun EditCategoryScreen(
                         )
                     }
                     val sheetDpCacheWindow = LazyLayoutCacheWindow(ahead = 200.dp, behind = 100.dp)
-                    val sheetPinchState = rememberPinchZoomGridState(
+                    val sheetPinchState = rememberGridPinchZoomState(
                         cellsList = cellsList,
                         initialCellsIndex = lastCellIndex,
                         gridState = rememberLazyGridState(cacheWindow = sheetDpCacheWindow)
                     )
-                    PinchZoomGridLayout(state = sheetPinchState) {
+                    GridPinchZoomLayout(state = sheetPinchState) {
                         MediaGridView(
                             mediaState = remember(previewMediaState) {
                                 mutableStateOf(previewMediaState.copy(isLoading = false))

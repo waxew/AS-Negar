@@ -70,8 +70,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.albumCellsList
 import com.dot.gallery.core.LocalEventHandler
@@ -114,7 +114,7 @@ fun CategoriesScreen(
     var lastCellIndex by rememberAlbumGridSize()
     var canScroll by rememberSaveable { mutableStateOf(true) }
 
-    val pinchState = rememberPinchZoomGridState(
+    val pinchState = rememberGridPinchZoomState(
         cellsList = albumCellsList,
         initialCellsIndex = lastCellIndex
     )
@@ -169,9 +169,10 @@ fun CategoriesScreen(
             }
         }
     ) { paddingValues ->
-        PinchZoomGridLayout(
+        GridPinchZoomLayout(
             state = pinchState,
-            modifier = Modifier.hazeSource(LocalHazeState.current)
+            modifier = Modifier.hazeSource(LocalHazeState.current),
+            indicatorTopPadding = paddingValues.calculateTopPadding() + 16.dp,
         ) {
             LazyVerticalGrid(
                 state = gridState,

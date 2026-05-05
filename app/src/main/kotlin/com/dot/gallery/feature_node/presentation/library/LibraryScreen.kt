@@ -69,8 +69,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.albumCellsList
 import com.dot.gallery.core.LocalEventHandler
@@ -116,7 +116,7 @@ fun LibraryScreen(
     val viewModel = hiltViewModel<LibraryViewModel>()
     var lastCellIndex by rememberAlbumGridSize()
 
-    val pinchState = rememberPinchZoomGridState(
+    val pinchState = rememberGridPinchZoomState(
         cellsList = albumCellsList,
         initialCellsIndex = lastCellIndex
     )
@@ -200,9 +200,10 @@ fun LibraryScreen(
             }
         }
     ) { it ->
-        PinchZoomGridLayout(
+        GridPinchZoomLayout(
             state = pinchState,
-            modifier = Modifier.hazeSource(LocalHazeState.current)
+            modifier = Modifier.hazeSource(LocalHazeState.current),
+            indicatorTopPadding = it.calculateTopPadding() + 16.dp,
         ) {
             LaunchedEffect(gridState.isScrollInProgress) {
                 isScrolling.value = gridState.isScrollInProgress

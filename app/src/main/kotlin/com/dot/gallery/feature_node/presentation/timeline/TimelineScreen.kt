@@ -50,8 +50,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.Constants.cellsList
@@ -63,6 +63,7 @@ import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberAutoHideSearchBar
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
 import com.dot.gallery.core.Settings.Misc.rememberLastSeenVersion
+import com.dot.gallery.core.Settings.Misc.rememberMosaicGridSize
 import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.EmptyMedia
@@ -75,8 +76,10 @@ import com.dot.gallery.feature_node.domain.model.isHeaderKey
 import com.dot.gallery.feature_node.domain.model.isIgnoredKey
 import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
 import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGrid
+import com.dot.gallery.feature_node.presentation.common.components.MosaicPinchZoomLayout
 import com.dot.gallery.feature_node.presentation.common.components.StickyHeaderGrid
 import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
+import com.dot.gallery.feature_node.presentation.common.components.rememberMosaicPinchZoomState
 import com.dot.gallery.feature_node.presentation.common.components.rememberStickyHeaderItem
 import com.dot.gallery.feature_node.presentation.help.components.WhatsNewHeroCard
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
@@ -136,7 +139,7 @@ fun TimelineScreen(
     val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
 
     val dpCacheWindow = LazyLayoutCacheWindow(aheadFraction = 2f, behindFraction = 2f)
-    val pinchState = rememberPinchZoomGridState(
+    val pinchState = rememberGridPinchZoomState(
         cellsList = cellsList,
         initialCellsIndex = lastCellIndex,
         gridState = rememberLazyGridState(
@@ -177,9 +180,19 @@ fun TimelineScreen(
                 onRefresh = { refreshScope.launch { distributor.invalidate() } },
             ) {
                 if (isMosaicLayout) {
-                val mosaicGridState = rememberLazyGridState(
-                    cacheWindow = dpCacheWindow
+                var lastMosaicCellIndex by rememberMosaicGridSize()
+                val mosaicPinchState = rememberMosaicPinchZoomState(
+                    initialColumnsIndex = lastMosaicCellIndex,
+                    gridState = rememberLazyGridState(
+                        cacheWindow = dpCacheWindow
+                    )
                 )
+                val mosaicGridState = mosaicPinchState.gridState
+
+                LaunchedEffect(mosaicPinchState.isZooming) {
+                    lastMosaicCellIndex = mosaicPinchState.currentColumnsIndex
+                }
+
                 val mappedData by remember(mediaState) {
                     derivedStateOf {
                         mediaState.value.mappedMediaWithMonthly.toMutableStateList()
@@ -261,6 +274,10 @@ fun TimelineScreen(
                         }
                     }
                 ) {
+                    MosaicPinchZoomLayout(
+                        state = mosaicPinchState,
+                        indicatorTopPadding = mosaicPaddingValues.calculateTopPadding() + 16.dp,
+                    ) { currentColumns ->
                     TimelineScroller(
                         modifier = Modifier
                             .padding(mosaicPaddingValues)
@@ -273,12 +290,13 @@ fun TimelineScreen(
                         MosaicMediaGrid(
                             modifier = Modifier.hazeSource(LocalHazeState.current),
                             gridState = mosaicGridState,
+                            columns = currentColumns,
                             mediaState = mediaState,
                             metadataState = metadataState,
                             mappedData = mappedData,
                             paddingValues = mosaicPaddingValues,
                             allowSelection = true,
-                            canScroll = true,
+                            canScroll = !mosaicPinchState.isZooming,
                             allowHeaders = true,
                             aboveGridContent = whatsNewContent,
                             isScrolling = isScrolling,
@@ -290,11 +308,13 @@ fun TimelineScreen(
                             },
                         )
                     }
+                    }
                 }
             } else {
-                PinchZoomGridLayout(
+                GridPinchZoomLayout(
                     state = pinchState,
-                    modifier = Modifier.hazeSource(LocalHazeState.current)
+                    modifier = Modifier.hazeSource(LocalHazeState.current),
+                    indicatorTopPadding = it.calculateTopPadding() + 16.dp,
                 ) {
                     MediaGridView(
                         mediaState = mediaState,

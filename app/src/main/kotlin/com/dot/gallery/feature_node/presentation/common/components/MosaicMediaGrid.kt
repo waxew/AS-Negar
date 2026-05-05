@@ -58,14 +58,15 @@ import com.dot.gallery.core.LocalMediaSelector
 import com.dot.gallery.core.presentation.components.Error
 import com.dot.gallery.core.presentation.components.LoadingMedia
 import com.dot.gallery.core.presentation.components.MediaItemHeader
-import com.dot.gallery.feature_node.domain.model.BigTileSize
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaItem
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.MosaicDisplayItem
+import com.dot.gallery.feature_node.domain.model.MosaicTilePattern
 import com.dot.gallery.feature_node.domain.model.isBigHeaderKey
 import com.dot.gallery.feature_node.domain.model.isHeaderKey
+import com.dot.gallery.feature_node.domain.model.mosaicPatternsForColumns
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.mediaSharedElement
 import com.dot.gallery.feature_node.presentation.util.mosaicGridDragHandler
@@ -78,30 +79,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
-private const val MOSAIC_COLUMNS = 4
-
 fun <T : Media> buildMosaicDisplayItems(
-    mappedData: List<MediaItem<T>>
+    mappedData: List<MediaItem<T>>,
+    columns: Int = 4,
 ): List<MosaicDisplayItem<T>> {
+    val patterns = mosaicPatternsForColumns(columns)
     val result = ArrayList<MosaicDisplayItem<T>>(mappedData.size + mappedData.size / 4)
     val buffer = ArrayList<MediaItem.MediaViewItem<T>>(16)
     var blockIndex = 0
     var groupRandom = Random(0)
 
+    fun pickPattern(): MosaicTilePattern? {
+        if (patterns.isEmpty()) return null
+        val bufSize = buffer.size
+        val eligible = patterns.filter { it.itemsConsumed <= bufSize }
+        if (eligible.isEmpty()) return null
+        return eligible[groupRandom.nextInt(eligible.size)]
+    }
+
     fun emitBlock(force: Boolean = false) {
         if (buffer.isEmpty()) return
 
-        val bufSize = buffer.size
-        val pattern: BigTileSize? = when {
-            bufSize >= 5 -> when (groupRandom.nextInt(3)) {
-                0 -> BigTileSize.TILE_2x2
-                1 -> BigTileSize.TILE_2x1
-                else -> BigTileSize.TILE_3x2
-            }
-            bufSize >= 3 -> if (groupRandom.nextInt(2) == 0) BigTileSize.TILE_2x1
-                else BigTileSize.TILE_3x2
-            else -> null
-        }
+        val pattern = pickPattern()
 
         if (pattern == null) {
             if (force) {
@@ -111,12 +110,17 @@ fun <T : Media> buildMosaicDisplayItems(
             return
         }
 
-        val big = MosaicDisplayItem.BigTileItem(buffer[0], pattern)
         val leftSide = blockIndex % 2 == 0
         val consumedCount: Int
 
-        when (pattern) {
-            BigTileSize.TILE_2x2 -> {
+        when (pattern.companionType) {
+            MosaicTilePattern.CompanionType.QUAD -> {
+                val big = MosaicDisplayItem.BigTileItem(
+                    mediaItem = buffer[0],
+                    tileSize = com.dot.gallery.feature_node.domain.model.BigTileSize.TILE_2x2,
+                    dynamicSpan = pattern.bigTileSpan,
+                    dynamicAspectRatio = pattern.bigTileAspectRatio,
+                )
                 val quad = MosaicDisplayItem.QuadTileItem(
                     listOf(buffer[1], buffer[2], buffer[3], buffer[4])
                 )
@@ -124,14 +128,13 @@ fun <T : Media> buildMosaicDisplayItems(
                 else { result.add(quad); result.add(big) }
                 consumedCount = 5
             }
-            BigTileSize.TILE_2x1 -> {
-                val s1 = MosaicDisplayItem.SingleItem(buffer[1])
-                val s2 = MosaicDisplayItem.SingleItem(buffer[2])
-                if (leftSide) { result.add(big); result.add(s1); result.add(s2) }
-                else { result.add(s1); result.add(s2); result.add(big) }
-                consumedCount = 3
-            }
-            BigTileSize.TILE_3x2 -> {
+            MosaicTilePattern.CompanionType.PAIR -> {
+                val big = MosaicDisplayItem.BigTileItem(
+                    mediaItem = buffer[0],
+                    tileSize = com.dot.gallery.feature_node.domain.model.BigTileSize.TILE_3x2,
+                    dynamicSpan = pattern.bigTileSpan,
+                    dynamicAspectRatio = pattern.bigTileAspectRatio,
+                )
                 val pair = MosaicDisplayItem.PairTileItem(
                     listOf(buffer[1], buffer[2])
                 )
@@ -139,13 +142,32 @@ fun <T : Media> buildMosaicDisplayItems(
                 else { result.add(pair); result.add(big) }
                 consumedCount = 3
             }
+            MosaicTilePattern.CompanionType.SINGLES -> {
+                val big = MosaicDisplayItem.BigTileItem(
+                    mediaItem = buffer[0],
+                    tileSize = com.dot.gallery.feature_node.domain.model.BigTileSize.TILE_2x1,
+                    dynamicSpan = pattern.bigTileSpan,
+                    dynamicAspectRatio = pattern.bigTileAspectRatio,
+                )
+                val singles = (1 until pattern.itemsConsumed).map {
+                    MosaicDisplayItem.SingleItem(buffer[it])
+                }
+                if (leftSide) {
+                    result.add(big)
+                    result.addAll(singles)
+                } else {
+                    result.addAll(singles)
+                    result.add(big)
+                }
+                consumedCount = pattern.itemsConsumed
+            }
         }
 
         // Remove consumed items in-place (avoids intermediate list copies)
         buffer.subList(0, consumedCount).clear()
 
-        // Emit complete rows of singles (multiples of MOSAIC_COLUMNS)
-        val completeRowItems = (buffer.size / MOSAIC_COLUMNS) * MOSAIC_COLUMNS
+        // Emit complete rows of singles (multiples of columns)
+        val completeRowItems = (buffer.size / columns) * columns
         for (i in 0 until completeRowItems) {
             result.add(MosaicDisplayItem.SingleItem(buffer[i]))
         }
@@ -173,7 +195,7 @@ fun <T : Media> buildMosaicDisplayItems(
             }
             is MediaItem.MediaViewItem -> {
                 buffer.add(item)
-                if (buffer.size >= 9) emitBlock()
+                if (buffer.size >= columns * 2 + 1) emitBlock()
             }
         }
     }
@@ -186,6 +208,7 @@ fun <T : Media> buildMosaicDisplayItems(
 fun <T : Media> MosaicMediaGrid(
     modifier: Modifier = Modifier,
     gridState: LazyGridState,
+    columns: Int = 4,
     mediaState: State<MediaState<T>>,
     metadataState: State<MediaMetadataState>,
     mappedData: SnapshotStateList<MediaItem<T>>,
@@ -206,9 +229,9 @@ fun <T : Media> MosaicMediaGrid(
         }
     }
 
-    val displayItems = remember(mappedData, allowHeaders) {
-        if (allowHeaders) buildMosaicDisplayItems(mappedData)
-        else buildMosaicDisplayItems(mappedData.filterIsInstance<MediaItem.MediaViewItem<T>>())
+    val displayItems = remember(mappedData, allowHeaders, columns) {
+        if (allowHeaders) buildMosaicDisplayItems(mappedData, columns)
+        else buildMosaicDisplayItems(mappedData.filterIsInstance<MediaItem.MediaViewItem<T>>(), columns)
     }
 
     val bottomContent: @Composable () -> Unit = {
@@ -323,7 +346,7 @@ fun <T : Media> MosaicMediaGrid(
                     orderedGridKeys = orderedGridKeys,
                     gridKeyToMediaIds = gridKeyToMediaIds
                 ),
-            columns = GridCells.Fixed(MOSAIC_COLUMNS),
+            columns = GridCells.Fixed(columns),
             contentPadding = paddingValues,
             userScrollEnabled = canScroll,
             horizontalArrangement = Arrangement.spacedBy(1.dp),
@@ -350,7 +373,7 @@ fun <T : Media> MosaicMediaGrid(
                 span = { idx ->
                     when (val item = displayItems[idx]) {
                         is MosaicDisplayItem.HeaderItem -> GridItemSpan(maxLineSpan)
-                        is MosaicDisplayItem.BigTileItem -> GridItemSpan(item.tileSize.colSpan)
+                        is MosaicDisplayItem.BigTileItem -> GridItemSpan(item.dynamicSpan)
                         is MosaicDisplayItem.QuadTileItem -> GridItemSpan(2)
                         is MosaicDisplayItem.PairTileItem -> GridItemSpan(1)
                         is MosaicDisplayItem.SingleItem -> GridItemSpan(1)
@@ -406,7 +429,7 @@ fun <T : Media> MosaicMediaGrid(
                                     .animateItem(fadeInSpec = null, fadeOutSpec = spring()),
                                 media = mi.media,
                                 stackCount = mi.stackCount,
-                                aspectRatio = item.tileSize.aspectRatio,
+                                aspectRatio = item.dynamicAspectRatio,
                                 canClick = { canScroll },
                                 onMediaClick = { onMediaClick(it) },
                                 metadataState = metadataState,

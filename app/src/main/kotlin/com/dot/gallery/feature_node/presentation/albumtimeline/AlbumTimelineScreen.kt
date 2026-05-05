@@ -66,8 +66,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
@@ -77,6 +77,7 @@ import com.dot.gallery.core.Settings.Album.rememberAlbumMediaSort
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Album.rememberHideTimelineOnAlbum
 import com.dot.gallery.core.Settings.Misc.rememberGridSize
+import com.dot.gallery.core.Settings.Misc.rememberMosaicGridSize
 import com.dot.gallery.core.Settings.Misc.rememberTimelineLayoutType
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.EmptyMedia
@@ -89,7 +90,9 @@ import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.presentation.albumtimeline.components.AlbumSortDropdown
 import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
 import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGrid
+import com.dot.gallery.feature_node.presentation.common.components.MosaicPinchZoomLayout
 import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
+import com.dot.gallery.feature_node.presentation.common.components.rememberMosaicPinchZoomState
 import com.dot.gallery.feature_node.presentation.common.components.TwoLinedDateToolbarTitle
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -151,7 +154,7 @@ fun AlbumTimelineScreen(
     )
 
     val dpCacheWindow = LazyLayoutCacheWindow(ahead = 200.dp, behind = 100.dp)
-    val pinchState = rememberPinchZoomGridState(
+    val pinchState = rememberGridPinchZoomState(
         cellsList = cellsList,
         initialCellsIndex = lastCellIndex,
         gridState = rememberLazyGridState(
@@ -216,9 +219,19 @@ fun AlbumTimelineScreen(
             val timelineLayoutType by rememberTimelineLayoutType()
             val isMosaicLayout = timelineLayoutType == Settings.Misc.LAYOUT_MOSAIC && !hideTimelineOnAlbum
             if (isMosaicLayout) {
-                val mosaicGridState = rememberLazyGridState(
-                    cacheWindow = dpCacheWindow
+                var lastMosaicCellIndex by rememberMosaicGridSize()
+                val mosaicPinchState = rememberMosaicPinchZoomState(
+                    initialColumnsIndex = lastMosaicCellIndex,
+                    gridState = rememberLazyGridState(
+                        cacheWindow = dpCacheWindow
+                    )
                 )
+                val mosaicGridState = mosaicPinchState.gridState
+
+                LaunchedEffect(mosaicPinchState.isZooming) {
+                    lastMosaicCellIndex = mosaicPinchState.currentColumnsIndex
+                }
+
                 val mappedData by remember(mediaState) {
                     derivedStateOf {
                         mediaState.value.mappedMedia.toMutableStateList()
@@ -233,6 +246,10 @@ fun AlbumTimelineScreen(
                     top = it.calculateTopPadding(),
                     bottom = paddingValues.calculateBottomPadding() + 128.dp
                 )
+                MosaicPinchZoomLayout(
+                    state = mosaicPinchState,
+                    indicatorTopPadding = mosaicPaddingValues.calculateTopPadding() + 16.dp,
+                ) { currentColumns ->
                 TimelineScroller(
                     modifier = Modifier
                         .padding(mosaicPaddingValues)
@@ -245,12 +262,13 @@ fun AlbumTimelineScreen(
                     MosaicMediaGrid(
                         modifier = Modifier.hazeSource(LocalHazeState.current),
                         gridState = mosaicGridState,
+                        columns = currentColumns,
                         mediaState = mediaState,
                         metadataState = metadataState,
                         mappedData = mappedData,
                         paddingValues = mosaicPaddingValues,
                         allowSelection = true,
-                        canScroll = true,
+                        canScroll = !mosaicPinchState.isZooming,
                         allowHeaders = true,
                         aboveGridContent = if (constituentAlbums.size > 1 && showMergedBanner) {
                             {
@@ -269,10 +287,12 @@ fun AlbumTimelineScreen(
                         },
                     )
                 }
+                }
             } else {
-                PinchZoomGridLayout(
+                GridPinchZoomLayout(
                     state = pinchState,
-                    modifier = Modifier.hazeSource(LocalHazeState.current)
+                    modifier = Modifier.hazeSource(LocalHazeState.current),
+                    indicatorTopPadding = it.calculateTopPadding() + 16.dp,
                 ) {
                     MediaGridView(
                         mediaState = mediaState,

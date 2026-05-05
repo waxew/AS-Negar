@@ -37,8 +37,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.LocalMediaSelector
@@ -91,7 +91,7 @@ fun LocationTimelineScreen(
     val dpCacheWindow = remember {
         LazyLayoutCacheWindow(ahead = 200.dp, behind = 100.dp)
     }
-    val pinchState = rememberPinchZoomGridState(
+    val pinchState = rememberGridPinchZoomState(
         cellsList = cellsList,
         initialCellsIndex = lastCellIndex,
         gridState = rememberLazyGridState(
@@ -143,9 +143,10 @@ fun LocationTimelineScreen(
                 )
             }
         ) { it ->
-            PinchZoomGridLayout(
+            GridPinchZoomLayout(
                 state = pinchState,
-                modifier = Modifier.hazeSource(LocalHazeState.current)
+                modifier = Modifier.hazeSource(LocalHazeState.current),
+                indicatorTopPadding = it.calculateTopPadding() + 16.dp,
             ) {
                 val hideTimelineOnAlbum by rememberHideTimelineOnAlbum()
                 MediaGridView(

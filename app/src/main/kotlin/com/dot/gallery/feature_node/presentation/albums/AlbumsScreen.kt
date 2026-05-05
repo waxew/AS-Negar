@@ -39,8 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.pinchzoomgrid.PinchZoomGridLayout
-import com.dokar.pinchzoomgrid.rememberPinchZoomGridState
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
@@ -117,7 +117,7 @@ fun AlbumsScreen(
 
     var lastCellIndex by rememberAlbumGridSize()
 
-    val pinchState = rememberPinchZoomGridState(
+    val pinchState = rememberGridPinchZoomState(
         cellsList = albumCellsList,
         initialCellsIndex = lastCellIndex
     )
@@ -153,9 +153,10 @@ fun AlbumsScreen(
         when (viewType) {
             Settings.Album.ViewType.GRID -> {
                 with(sharedTransitionScope) {
-                    PinchZoomGridLayout(
+                    GridPinchZoomLayout(
                         state = pinchState,
-                        modifier = Modifier.hazeSource(LocalHazeState.current)
+                        modifier = Modifier.hazeSource(LocalHazeState.current),
+                        indicatorTopPadding = innerPaddingValues.calculateTopPadding() + 16.dp,
                     ) {
                         LaunchedEffect(gridState.isScrollInProgress) {
                             isScrolling.value = gridState.isScrollInProgress

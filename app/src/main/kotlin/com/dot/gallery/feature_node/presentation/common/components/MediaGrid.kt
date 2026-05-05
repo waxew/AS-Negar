@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastMap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.pinchzoomgrid.PinchZoomGridScope
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
@@ -70,7 +69,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun <T : Media> PinchZoomGridScope.MediaGrid(
+fun <T : Media> GridPinchZoomScope.MediaGrid(
     modifier: Modifier = Modifier,
     gridState: LazyGridState,
     mediaState: State<MediaState<T>>,
@@ -169,7 +168,7 @@ fun <T : Media> PinchZoomGridScope.MediaGrid(
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun <T : Media> PinchZoomGridScope.MediaGridContentWithHeaders(
+private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
     modifier: Modifier = Modifier,
     mediaState: State<MediaState<T>>,
     metadataState: State<MediaMetadataState>,
@@ -359,7 +358,7 @@ private fun <T : Media> PinchZoomGridScope.MediaGridContentWithHeaders(
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun <T : Media> PinchZoomGridScope.MediaGridContent(
+private fun <T : Media> GridPinchZoomScope.MediaGridContent(
     modifier: Modifier = Modifier,
     mediaState: State<MediaState<T>>,
     metadataState: State<MediaMetadataState>,
