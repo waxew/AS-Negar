@@ -37,6 +37,40 @@ private fun LazyGridState.hitKeyAt(
         ?.key as? String
 }
 
+private data class HitInfo(val key: String, val normalizedX: Float, val normalizedY: Float)
+
+private fun LazyGridState.hitInfoAt(
+    raw: Offset,
+    padL: Float,
+    padT: Float
+): HitInfo? {
+    val contentOffset = raw - Offset(padL, padT)
+    val info = layoutInfo.visibleItemsInfo
+        .find { it.size.toIntRect().contains((contentOffset.round() - it.offset)) }
+        ?: return null
+    val key = info.key as? String ?: return null
+    val rel = contentOffset - Offset(info.offset.x.toFloat(), info.offset.y.toFloat())
+    return HitInfo(
+        key = key,
+        normalizedX = (rel.x / info.size.width).coerceIn(0f, 1f),
+        normalizedY = (rel.y / info.size.height).coerceIn(0f, 1f)
+    )
+}
+
+private fun resolveHitIds(
+    hit: HitInfo,
+    allIds: List<Long>
+): List<Long> = when {
+    hit.key.startsWith("mosaic_pair_") && allIds.size == 2 ->
+        listOf(if (hit.normalizedY < 0.5f) allIds[0] else allIds[1])
+    hit.key.startsWith("mosaic_quad_") && allIds.size == 4 -> {
+        val col = if (hit.normalizedX < 0.5f) 0 else 1
+        val row = if (hit.normalizedY < 0.5f) 0 else 1
+        listOf(allIds[row * 2 + col])
+    }
+    else -> allIds
+}
+
 fun Modifier.mosaicGridDragHandler(
     lazyGridState: LazyGridState,
     haptics: HapticFeedback,
@@ -59,16 +93,16 @@ fun Modifier.mosaicGridDragHandler(
     detectDragGesturesAfterLongPress(
         onDragStart = { raw ->
             scrollGestureActive.value = true
-            lazyGridState.hitKeyAt(raw, padL, padT)?.let { key ->
-                val idx = orderedGridKeys.indexOf(key)
-                val ids = gridKeyToMediaIds[key] ?: emptyList()
-                if (idx >= 0 && ids.isNotEmpty()) {
-                    val idsSet = ids.toSet()
-                    if (!selectedIds.value.containsAll(idsSet)) {
+            lazyGridState.hitInfoAt(raw, padL, padT)?.let { hit ->
+                val idx = orderedGridKeys.indexOf(hit.key)
+                val allIds = gridKeyToMediaIds[hit.key] ?: emptyList()
+                if (idx >= 0 && allIds.isNotEmpty()) {
+                    val hitIds = resolveHitIds(hit, allIds).toSet()
+                    if (!selectedIds.value.containsAll(hitIds)) {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         initialIndex = idx
                         currentIndex = idx
-                        updateSelectedIds(selectedIds.value + idsSet)
+                        updateSelectedIds(selectedIds.value + hitIds)
                     }
                 }
             }
