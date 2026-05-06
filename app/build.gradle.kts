@@ -325,9 +325,9 @@ dependencies {
     implementation(libs.haze)
     implementation(libs.haze.materials)
 
-    // MapLibre Compose
+    // MapLibre Native SDK
     if (includeMaps) {
-        implementation(libs.maplibre.compose)
+        implementation(libs.maplibre.native)
     }
 
     // Tests

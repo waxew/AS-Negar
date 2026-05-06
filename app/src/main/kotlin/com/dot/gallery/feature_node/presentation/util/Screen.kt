@@ -79,7 +79,13 @@ sealed class Screen(val route: String) {
     
     data object CategoriesSettingsScreen : Screen("categories_settings_screen")
     
-    data object LocationsScreen : Screen("locations_screen")
+    data object LocationsScreen : Screen("locations_screen") {
+
+        fun withMediaId() = "$route?mediaId={mediaId}"
+
+        fun withMediaId(mediaId: Long) = "$route?mediaId=$mediaId"
+
+    }
 
     data object CategoryViewScreen : Screen("category_view_screen") {
 

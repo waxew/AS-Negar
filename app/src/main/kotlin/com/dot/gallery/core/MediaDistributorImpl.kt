@@ -565,44 +565,53 @@ class MediaDistributorImpl @Inject constructor(
         )
     }
 
-    override val locationsMediaFlow: Flow<List<LocationMedia>> = combine(
+    private val locationsAndGeoMediaFlow: SharedFlow<Pair<List<LocationMedia>, List<GeoMedia>>> = combine(
         repository.getMetadata(),
         timelineMediaFlow
     ) { metadata, timelineState ->
         val mediaById = HashMap<Long, Media.UriMedia>(timelineState.media.size)
         for (m in timelineState.media) { mediaById[m.id] = m }
-        metadata
-            .filter { it.gpsLocationNameCity != null && it.gpsLocationNameCountry != null }
-            .groupBy { "${it.gpsLocationNameCity}, ${it.gpsLocationNameCountry}" }
-            .mapNotNull { (location, items) ->
-                items.mapNotNull { mediaById[it.mediaId] }
-                    .maxByOrNull { it.definedTimestamp }
-                    ?.let { media -> LocationMedia(media = media, location = location) }
-            }
-            .sortedBy { it.location }
-    }
 
-    override val geoMediaFlow: Flow<List<GeoMedia>> = combine(
-        repository.getMetadata(),
-        timelineMediaFlow
-    ) { metadata, timelineState ->
-        val mediaById = HashMap<Long, Media.UriMedia>(timelineState.media.size)
-        for (m in timelineState.media) { mediaById[m.id] = m }
-        metadata
-            .filter { it.gpsLatitude != null && it.gpsLongitude != null }
-            .mapNotNull { meta ->
-                mediaById[meta.mediaId]?.let { media ->
+        val locationGroupMap = LinkedHashMap<String, Media.UriMedia>()
+        val geoList = ArrayList<GeoMedia>(metadata.size / 2)
+
+        for (meta in metadata) {
+            val media = mediaById[meta.mediaId] ?: continue
+
+            if (meta.gpsLocationNameCity != null && meta.gpsLocationNameCountry != null) {
+                val key = "${meta.gpsLocationNameCity}, ${meta.gpsLocationNameCountry}"
+                val existing = locationGroupMap[key]
+                if (existing == null || media.definedTimestamp > existing.definedTimestamp) {
+                    locationGroupMap[key] = media
+                }
+            }
+
+            if (meta.gpsLatitude != null && meta.gpsLongitude != null) {
+                geoList.add(
                     GeoMedia(
                         mediaId = meta.mediaId,
-                        latitude = meta.gpsLatitude!!,
-                        longitude = meta.gpsLongitude!!,
+                        latitude = meta.gpsLatitude,
+                        longitude = meta.gpsLongitude,
                         locationCity = meta.gpsLocationNameCity,
                         locationCountry = meta.gpsLocationNameCountry,
                         media = media
                     )
-                }
+                )
             }
-    }
+        }
+
+        val locations = locationGroupMap.entries
+            .map { (location, media) -> LocationMedia(media = media, location = location) }
+            .sortedBy { it.location }
+
+        Pair(locations, geoList)
+    }.shareIn(appScope, sharingMethod, replay = 1)
+
+    override val locationsMediaFlow: Flow<List<LocationMedia>> =
+        locationsAndGeoMediaFlow.map { it.first }
+
+    override val geoMediaFlow: Flow<List<GeoMedia>> =
+        locationsAndGeoMediaFlow.map { it.second }
 
     /**
      * Vault

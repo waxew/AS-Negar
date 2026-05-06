@@ -1,6 +1,5 @@
 package com.dot.gallery.feature_node.presentation.library
 
-import com.dot.gallery.core.ml.ModelStatus
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -9,7 +8,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import com.dot.gallery.core.util.SdkCompat
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -45,7 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -69,25 +66,28 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
-import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
-import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
+import com.dot.gallery.BuildConfig
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.albumCellsList
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.Settings.Album.rememberAlbumGridSize
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberNoClassification
+import com.dot.gallery.core.ml.ModelStatus
 import com.dot.gallery.core.navigate
-import com.dot.gallery.feature_node.domain.model.MediaMetadataState
+import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
+import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.feature_node.presentation.library.components.LibrarySmallItem
+import com.dot.gallery.feature_node.presentation.library.components.MapPreviewCard
 import com.dot.gallery.feature_node.presentation.library.components.dashedBorder
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.search.MainSearchBar
-import com.dot.gallery.feature_node.presentation.util.categorySharedElement
 import com.dot.gallery.feature_node.presentation.util.GlideInvalidation
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
+import com.dot.gallery.feature_node.presentation.util.categorySharedElement
 import com.dot.gallery.ui.core.icons.Encrypted
 import com.dot.gallery.ui.theme.BlackScrim
 import com.dot.gallery.ui.theme.WhiterBlackScrim
@@ -108,7 +108,6 @@ import com.dot.gallery.ui.core.Icons as GalleryIcons
 fun LibraryScreen(
     paddingValues: PaddingValues,
     isScrolling: MutableState<Boolean>,
-    metadataState: State<MediaMetadataState>,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
@@ -128,6 +127,7 @@ fun LibraryScreen(
     }
 
     val locations by viewModel.locations.collectAsStateWithLifecycle()
+    val geoMedia by viewModel.geoMedia.collectAsStateWithLifecycle()
 
     val indicatorState by viewModel.indicatorState.collectAsStateWithLifecycle()
 
@@ -139,7 +139,8 @@ fun LibraryScreen(
     // Locations
     val noLocationsFound by rememberedDerivedState { locations.isEmpty() }
     val totalLocationsCount by rememberedDerivedState { locations.size }
-    val topLocations by rememberedDerivedState { locations.take(10) }
+    val mapsEnabled = remember { BuildConfig.MAPS_ENABLED }
+    val isDark = isDarkTheme()
 
     val modelStatus by viewModel.modelStatus.collectAsStateWithLifecycle()
     val hasInternet = viewModel.hasInternetPermission
@@ -308,27 +309,46 @@ fun LibraryScreen(
                         span = { GridItemSpan(maxLineSpan) },
                         key = "LocationsHeader"
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .animateItem()
-                                .pinchItem(key = "LocationsHeader")
-                                .padding(horizontal = 16.dp)
-                                .padding(top = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            LibrarySmallItem(
-                                title = stringResource(R.string.locations),
-                                icon = null,
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                useIndicator = true,
-                                indicatorCounter = totalLocationsCount,
+                        if (mapsEnabled) {
+                            val latest = geoMedia.firstOrNull()
+                            MapPreviewCard(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .animateItem()
+                                    .pinchItem(key = "LocationsHeader")
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 8.dp)
+                                    .clip(RoundedCornerShape(24.dp))
                                     .clickable {
                                         eventHandler.navigate(Screen.LocationsScreen())
-                                    }
+                                    },
+                                latestMedia = latest?.media,
+                                latitude = latest?.latitude,
+                                longitude = latest?.longitude,
+                                isDark = isDark
                             )
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .animateItem()
+                                    .pinchItem(key = "LocationsHeader")
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                LibrarySmallItem(
+                                    title = stringResource(R.string.locations),
+                                    icon = null,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    useIndicator = true,
+                                    indicatorCounter = totalLocationsCount,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            eventHandler.navigate(Screen.LocationsScreen())
+                                        }
+                                )
+                            }
                         }
                     }
                     // Locations carousel

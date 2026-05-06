@@ -69,8 +69,9 @@ fun LocationsScreen(
     metadataState: State<MediaMetadataState>,
     locations: List<LocationMedia> = emptyList(),
     geoMedia: List<GeoMedia> = emptyList(),
+    initialMediaId: Long = -1L,
 ) {
-    MapLocationsContent(metadataState = metadataState, locations = locations, geoMedia = geoMedia)
+    MapLocationsContent(metadataState = metadataState, locations = locations, geoMedia = geoMedia, initialMediaId = initialMediaId)
 }
 
 @Suppress("DerivedStateOfCandidate")
@@ -212,6 +213,12 @@ internal fun MediaGridPanel(
                         is MapGridItem.MediaCell -> 1
                     }
                 )
+            },
+            contentType = { item ->
+                when (item) {
+                    is MapGridItem.Header -> "header"
+                    is MapGridItem.MediaCell -> "media"
+                }
             }
         ) { item ->
             when (item) {

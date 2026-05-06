@@ -46,6 +46,9 @@ class LibraryViewModel @Inject constructor(
     val locations = mediaDistributor.locationsMediaFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val geoMedia = mediaDistributor.geoMediaFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     val indicatorState = combine(
         if (SdkCompat.supportsTrash) repository.getTrashed() else flowOf(Resource.Success(emptyList())),
         if (SdkCompat.supportsFavorites) repository.getFavorites(MediaOrder.Default) else flowOf(Resource.Success(emptyList()))
