@@ -167,31 +167,31 @@ object HelpMockData {
     val MOCK_CATEGORIES_WITH_COUNT: List<CategoryWithMediaCount> = listOf(
         CategoryWithMediaCount(
             id = 1L, name = "Nature", searchTerms = "nature,landscape,trees",
-            embedding = null, threshold = 0.5f, isUserCreated = false,
+            embedding = null, referenceImageIds = emptyList(), threshold = 0.5f, isUserCreated = false,
             isPinned = true, createdAt = 1735689600000L, updatedAt = 1735689600000L,
             mediaCount = 42, thumbnailMediaId = 1L
         ),
         CategoryWithMediaCount(
             id = 2L, name = "People", searchTerms = "people,portrait,face",
-            embedding = null, threshold = 0.5f, isUserCreated = false,
+            embedding = null, referenceImageIds = emptyList(), threshold = 0.5f, isUserCreated = false,
             isPinned = false, createdAt = 1735689600000L, updatedAt = 1735689600000L,
             mediaCount = 28, thumbnailMediaId = 3L
         ),
         CategoryWithMediaCount(
             id = 3L, name = "Food", searchTerms = "food,meal,dish",
-            embedding = null, threshold = 0.5f, isUserCreated = true,
+            embedding = null, referenceImageIds = emptyList(), threshold = 0.5f, isUserCreated = true,
             isPinned = false, createdAt = 1735689600000L, updatedAt = 1735689600000L,
             mediaCount = 15, thumbnailMediaId = 5L
         ),
         CategoryWithMediaCount(
             id = 4L, name = "Architecture", searchTerms = "building,architecture,city",
-            embedding = null, threshold = 0.5f, isUserCreated = false,
+            embedding = null, referenceImageIds = emptyList(), threshold = 0.5f, isUserCreated = false,
             isPinned = false, createdAt = 1735689600000L, updatedAt = 1735689600000L,
             mediaCount = 12, thumbnailMediaId = 7L
         ),
         CategoryWithMediaCount(
             id = 5L, name = "Pets", searchTerms = "pet,dog,cat,animal",
-            embedding = null, threshold = 0.5f, isUserCreated = true,
+            embedding = null, referenceImageIds = emptyList(), threshold = 0.5f, isUserCreated = true,
             isPinned = true, createdAt = 1735689600000L, updatedAt = 1735689600000L,
             mediaCount = 8, thumbnailMediaId = 9L
         ),

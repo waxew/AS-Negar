@@ -218,6 +218,7 @@ data class CategoryWithMediaCount(
     val name: String,
     val searchTerms: String,
     val embedding: FloatArray?,
+    val referenceImageIds: List<Long>,
     val threshold: Float,
     val isUserCreated: Boolean,
     val isPinned: Boolean,
@@ -231,6 +232,7 @@ data class CategoryWithMediaCount(
         name = name,
         searchTerms = searchTerms,
         embedding = embedding,
+        referenceImageIds = referenceImageIds,
         threshold = threshold,
         isUserCreated = isUserCreated,
         isPinned = isPinned,
@@ -251,6 +253,7 @@ data class CategoryWithMediaCount(
             if (other.embedding == null) return false
             if (!embedding.contentEquals(other.embedding)) return false
         } else if (other.embedding != null) return false
+        if (referenceImageIds != other.referenceImageIds) return false
         if (threshold != other.threshold) return false
         if (isUserCreated != other.isUserCreated) return false
         if (isPinned != other.isPinned) return false
@@ -267,6 +270,7 @@ data class CategoryWithMediaCount(
         result = 31 * result + name.hashCode()
         result = 31 * result + searchTerms.hashCode()
         result = 31 * result + (embedding?.contentHashCode() ?: 0)
+        result = 31 * result + referenceImageIds.hashCode()
         result = 31 * result + threshold.hashCode()
         result = 31 * result + isUserCreated.hashCode()
         result = 31 * result + isPinned.hashCode()
