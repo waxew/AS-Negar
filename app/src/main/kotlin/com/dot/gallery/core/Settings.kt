@@ -37,6 +37,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.dot.gallery.core.Constants.albumCellsList
 import com.dot.gallery.core.Constants.cellsList
+import com.dot.gallery.core.Constants.mosaicColumnsList
 import com.dot.gallery.core.Settings.PREFERENCE_NAME
 import com.dot.gallery.core.presentation.components.FilterKind
 import com.dot.gallery.core.util.SdkCompat
@@ -339,6 +340,59 @@ object Settings {
             }
         }
 
+        @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+        @Composable
+        fun rememberMosaicGridSize(): MutableState<Int> {
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+            val prefs = remember(context) {
+                context.getSharedPreferences("ui_settings", Context.MODE_PRIVATE)
+            }
+            val windowSizeClass =
+                if (context is Activity) calculateWindowSizeClass(context) else null
+
+            val defaultValue = remember(windowSizeClass) {
+                mosaicColumnsList.indexOf(
+                    when (windowSizeClass?.widthSizeClass) {
+                        WindowWidthSizeClass.Expanded -> 6
+                        else -> 4
+                    }
+                )
+            }
+
+            val orientation = LocalConfiguration.current.orientation
+            val isLandscape by rememberedDerivedState(orientation, windowSizeClass) {
+                orientation == Configuration.ORIENTATION_LANDSCAPE ||
+                        windowSizeClass?.widthSizeClass == WindowWidthSizeClass.Expanded
+            }
+
+            val key by rememberedDerivedState {
+                if (isLandscape) "mosaic_grid_size_landscape" else "mosaic_grid_size"
+            }
+
+            var storedSize = remember(prefs, key, defaultValue, orientation, windowSizeClass) {
+                prefs.getInt(key, defaultValue)
+            }
+
+            return remember(storedSize) {
+                object : MutableState<Int> {
+                    override var value: Int
+                        get() = storedSize
+                        set(value) {
+                            scope.launch {
+                                prefs.edit {
+                                    putInt(key, value)
+                                    storedSize = value
+                                }
+                            }
+                        }
+
+                    override fun component1() = value
+                    override fun component2(): (Int) -> Unit = { value = it }
+                }
+            }
+        }
+
         private val FORCE_THEME = booleanPreferencesKey("force_theme")
 
         @Composable
@@ -592,6 +646,18 @@ object Settings {
         fun rememberDefaultImageEditor() =
             rememberPreference(key = DEFAULT_IMAGE_EDITOR, defaultValue = EDITOR_BUILTIN)
 
+    }
+
+    object Vault {
+        const val ENCRYPT_ASK = "ask"
+        const val ENCRYPT_DELETE = "delete"
+        const val ENCRYPT_KEEP = "keep"
+
+        private val VAULT_ENCRYPT_BEHAVIOR = stringPreferencesKey("vault_encrypt_behavior")
+
+        @Composable
+        fun rememberVaultEncryptBehavior() =
+            rememberPreference(key = VAULT_ENCRYPT_BEHAVIOR, defaultValue = ENCRYPT_ASK)
     }
 }
 

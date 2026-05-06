@@ -68,6 +68,7 @@ private const val DETAIL_TRASH_CONFIRM = "trash_confirm"
 private const val DETAIL_SECURE = "secure"
 private const val DETAIL_VIBRATIONS = "vibrations"
 private const val DETAIL_APP_NAME = "app_name"
+private const val DETAIL_VAULT_ENCRYPT = "vault_encrypt"
 
 @Composable
 fun SettingsGeneralScreen() {
@@ -80,6 +81,7 @@ fun SettingsGeneralScreen() {
     var secureMode by Settings.Misc.rememberSecureMode()
     var allowVibrations by Settings.Misc.rememberAllowVibrations()
     var appNameAlias by rememberAppNameAlias()
+    var vaultEncryptBehavior by Settings.Vault.rememberVaultEncryptBehavior()
 
     when (detailKey) {
         DETAIL_TRASH -> {
@@ -139,6 +141,19 @@ fun SettingsGeneralScreen() {
                 },
             )
         }
+        DETAIL_VAULT_ENCRYPT -> {
+            BackHandler { detailKey = null }
+            ChooserPreferenceDetailScreen(
+                title = stringResource(R.string.vault_encrypt_behavior),
+                description = stringResource(R.string.vault_encrypt_behavior_summary),
+                options = listOf(
+                    PreferenceOption(Settings.Vault.ENCRYPT_ASK, stringResource(R.string.vault_encrypt_ask), vaultEncryptBehavior == Settings.Vault.ENCRYPT_ASK),
+                    PreferenceOption(Settings.Vault.ENCRYPT_DELETE, stringResource(R.string.vault_encrypt_delete), vaultEncryptBehavior == Settings.Vault.ENCRYPT_DELETE),
+                    PreferenceOption(Settings.Vault.ENCRYPT_KEEP, stringResource(R.string.vault_encrypt_keep), vaultEncryptBehavior == Settings.Vault.ENCRYPT_KEEP),
+                ),
+                onOptionSelected = { vaultEncryptBehavior = it },
+            )
+        }
         else -> {
             GeneralListScreen(
                 trashCanEnabled = trashCanEnabled,
@@ -150,6 +165,7 @@ fun SettingsGeneralScreen() {
                 allowVibrations = allowVibrations,
                 onVibrationsChange = { allowVibrations = it },
                 appNameAlias = appNameAlias,
+                vaultEncryptBehavior = vaultEncryptBehavior,
                 onDetailClick = { detailKey = it },
             )
         }
@@ -167,6 +183,7 @@ private fun GeneralListScreen(
     allowVibrations: Boolean,
     onVibrationsChange: (Boolean) -> Unit,
     appNameAlias: String,
+    vaultEncryptBehavior: String,
     onDetailClick: (String) -> Unit,
 ) {
     @Composable
@@ -229,9 +246,27 @@ private fun GeneralListScreen(
             screenPosition = Position.Bottom
         )
 
+        val vaultSectionPref = remember(res) {
+            SettingsEntity.Header(title = res.getString(R.string.vault))
+        }
+
+        val vaultEncryptBehaviorSummary = when (vaultEncryptBehavior) {
+            Settings.Vault.ENCRYPT_DELETE -> stringResource(R.string.vault_encrypt_delete)
+            Settings.Vault.ENCRYPT_KEEP -> stringResource(R.string.vault_encrypt_keep)
+            else -> stringResource(R.string.vault_encrypt_ask)
+        }
+        val vaultEncryptPref = rememberPreference(
+            vaultEncryptBehavior,
+            title = stringResource(R.string.vault_encrypt_behavior),
+            summary = vaultEncryptBehaviorSummary,
+            onClick = { onDetailClick(DETAIL_VAULT_ENCRYPT) },
+            screenPosition = Position.Alone
+        )
+
         return remember(
             trashCanEnabledPref, trashConfirmationEnabledPref,
-            secureModePref, allowVibrationsPref, appNamePref
+            secureModePref, allowVibrationsPref, appNamePref,
+            vaultEncryptPref
         ) {
             mutableStateListOf<SettingsEntity>().apply {
                 if (SdkCompat.supportsTrash) {
@@ -243,6 +278,8 @@ private fun GeneralListScreen(
                 add(secureModePref)
                 add(allowVibrationsPref)
                 add(appNamePref)
+                add(vaultSectionPref)
+                add(vaultEncryptPref)
             }
         }
     }

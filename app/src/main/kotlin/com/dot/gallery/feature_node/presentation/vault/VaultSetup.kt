@@ -150,7 +150,7 @@ fun VaultSetup(
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(16.dp),
-                        text = "Your files are accessed on the fly and never stored decrypted on the device.",
+                        text = stringResource(R.string.vault_setup_decryption_info),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         textAlign = TextAlign.Center

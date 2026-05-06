@@ -33,24 +33,12 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Collections
-import androidx.compose.material.icons.outlined.CopyAll
-import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Deselect
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.PlaylistRemove
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SelectAll
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -71,20 +59,27 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dot.gallery.R
 import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.LocalMediaSelector
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberSelectionSheetConfig
 import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
@@ -96,26 +91,26 @@ import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.SelectionAction
+import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
 import com.dot.gallery.feature_node.presentation.collection.components.AddToCollectionSheet
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
 import com.dot.gallery.feature_node.presentation.exif.MoveMediaSheet
+import com.dot.gallery.feature_node.presentation.mediaview.components.MediaInfoRow
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.trashed.components.TrashDialog
 import com.dot.gallery.feature_node.presentation.trashed.components.TrashDialogAction
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
-import com.dot.gallery.feature_node.presentation.mediaview.components.MediaInfoRow
 import com.dot.gallery.feature_node.presentation.util.launchEditIntent
 import com.dot.gallery.feature_node.presentation.util.rememberActivityResult
-import com.dot.gallery.feature_node.presentation.util.rememberMediaInfo
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
-import com.dot.gallery.feature_node.presentation.util.shareMedia
+import com.dot.gallery.feature_node.presentation.util.rememberMediaInfo
 import com.dot.gallery.feature_node.presentation.util.shareMediaWithVaultSupport
 import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
+import com.dot.gallery.feature_node.presentation.vault.components.AddToVaultSheet
 import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
 import com.dot.gallery.ui.theme.Shapes
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -129,6 +124,7 @@ fun <T : Media> BoxScope.SelectionSheet(
     selectedMedia: SnapshotStateList<T>,
     collectionId: Long? = null,
     isInVault: Boolean = false,
+    currentVault: Vault? = null,
 ) {
     val albumsState = LocalMediaDistributor.current.albumsFlow.collectAsStateWithLifecycle()
     val selector = LocalMediaSelector.current
@@ -147,6 +143,9 @@ fun <T : Media> BoxScope.SelectionSheet(
     val vaultSheetState = rememberAppBottomSheetState()
     // Tracks what the vault sheet is for: "hide", "copy", or "move"
     var vaultSheetAction by rememberSaveable { mutableStateOf("hide") }
+    var vaultEncryptBehavior by Settings.Vault.rememberVaultEncryptBehavior()
+    val addToVaultSheetState = rememberAppBottomSheetState()
+    var hideTargetVault by remember { mutableStateOf<Vault?>(null) }
     val vaults = vaultViewModel.vaultState.collectAsStateWithLifecycle()
     var showInfoSheet by rememberSaveable { mutableStateOf(false) }
     val metadataState = LocalMediaDistributor.current.metadataFlow.collectAsStateWithLifecycle(
@@ -172,7 +171,12 @@ fun <T : Media> BoxScope.SelectionSheet(
         else Modifier.wrapContentWidth()
     }
     val config by rememberSelectionSheetConfig()
-    val sanitizedConfig = remember(config) { config.sanitized() }
+    val sanitizedConfig = remember(config, isInVault) {
+        val base = config.sanitized()
+        if (isInVault && SelectionAction.ADD_TO_VAULT !in base.bottomActions) {
+            base.copy(bottomActions = base.bottomActions + SelectionAction.ADD_TO_VAULT)
+        } else base
+    }
     val showFavoriteButton by rememberShowFavoriteButton()
     val trashEnabled = rememberTrashEnabled()
 
@@ -305,7 +309,6 @@ fun <T : Media> BoxScope.SelectionSheet(
                     }
                 }
             }
-            // Bottom bar — driven by config
             Row(
                 modifier = Modifier
                     .then(sizeModifier)
@@ -336,7 +339,7 @@ fun <T : Media> BoxScope.SelectionSheet(
                                     title = stringResource(action.labelRes)
                                 ) {
                                     scope.launch {
-                                        context.shareMediaWithVaultSupport(selectedMedia, currentVault = null)
+                                        context.shareMediaWithVaultSupport(selectedMedia, currentVault = currentVault)
                                     }
                                 }
                             }
@@ -389,7 +392,7 @@ fun <T : Media> BoxScope.SelectionSheet(
                                         title = stringResource(R.string.trash_delete)
                                     ) {
                                         scope.launch {
-                                            val vault = vaultViewModel.currentVault.value ?: return@launch
+                                            val vault = currentVault ?: vaultViewModel.currentVault.value ?: return@launch
                                             selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
                                                 vaultViewModel.deleteMedia(vault, media) {}
                                             }
@@ -429,7 +432,7 @@ fun <T : Media> BoxScope.SelectionSheet(
                                 ) {
                                     if (isInVault) {
                                         scope.launch {
-                                            val vault = vaultViewModel.currentVault.value ?: return@launch
+                                            val vault = currentVault ?: vaultViewModel.currentVault.value ?: return@launch
                                             selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
                                                 vaultViewModel.restoreMedia(vault, media) {}
                                             }
@@ -491,15 +494,49 @@ fun <T : Media> BoxScope.SelectionSheet(
                     }
                     else -> {
                         // Regular hide: encrypt into selected vault
-                        vaultViewModel.encryptAndRequestDeletion(
-                            targetVault,
-                            selectedMedia.map { it.getUri() }
-                        )
+                        when (vaultEncryptBehavior) {
+                            Settings.Vault.ENCRYPT_DELETE -> {
+                                vaultViewModel.encryptAndRequestDeletion(
+                                    targetVault,
+                                    selectedMedia.map { it.getUri() }
+                                )
+                            }
+                            Settings.Vault.ENCRYPT_KEEP -> {
+                                vaultViewModel.addMediaKeepOriginals(
+                                    targetVault,
+                                    selectedMedia.map { it.getUri() }
+                                )
+                            }
+                            else -> {
+                                hideTargetVault = targetVault
+                                addToVaultSheetState.show()
+                                return@launch // Don't clear selection yet
+                            }
+                        }
                     }
                 }
                 selector.clearSelection()
             }
         }
+    )
+
+    AddToVaultSheet(
+        state = addToVaultSheetState,
+        onEncryptAndDelete = {
+            val vault = hideTargetVault ?: return@AddToVaultSheet
+            scope.launch {
+                vaultViewModel.encryptAndRequestDeletion(vault, selectedMedia.map { it.getUri() })
+                selector.clearSelection()
+            }
+        },
+        onEncryptAndKeep = {
+            val vault = hideTargetVault ?: return@AddToVaultSheet
+            scope.launch {
+                vaultViewModel.addMediaKeepOriginals(vault, selectedMedia.map { it.getUri() })
+                selector.clearSelection()
+            }
+        },
+        onBehaviorChanged = { vaultEncryptBehavior = it }
     )
 
     if (albumsState.value.albums.isNotEmpty()) {
@@ -600,10 +637,11 @@ private fun isActionVisible(
     isInVault: Boolean = false,
 ): Boolean {
     if (isInVault) {
-        // In vault: only allow close, select_all, trash (delete), restore (ADD_TO_VAULT)
+        // In vault: only allow close, select_all, share, trash (delete), restore (ADD_TO_VAULT)
         return action in setOf(
             SelectionAction.CLOSE,
             SelectionAction.SELECT_ALL,
+            SelectionAction.SHARE,
             SelectionAction.TRASH,
             SelectionAction.ADD_TO_VAULT,
         )

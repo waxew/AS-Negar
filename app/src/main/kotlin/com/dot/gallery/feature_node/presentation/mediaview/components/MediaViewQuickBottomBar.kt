@@ -93,7 +93,8 @@ fun <T : Media> MediaViewQuickBottomBar(
             CopyToClipboardButton(
                 media = currentMedia,
                 enabled = enabled,
-                followTheme = followTheme
+                followTheme = followTheme,
+                currentVault = currentVault
             )
             // Favorite Component
             val showFavoriteButton by rememberShowFavoriteButton()

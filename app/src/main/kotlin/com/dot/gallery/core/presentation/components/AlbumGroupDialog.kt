@@ -13,7 +13,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Collections
-import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -86,14 +85,11 @@ fun AlbumGroupSheet(
                     optionList = groupOptions
                 )
                 Spacer(Modifier.height(8.dp))
-                OptionButton(
-                    modifier = Modifier,
-                    icon = Icons.Outlined.CreateNewFolder,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    textContainer = {
-                        Text(stringResource(R.string.create_new_group))
-                    },
-                    position = OptionPosition.ALONE,
+                SetupButton(
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
+                    text = stringResource(R.string.create_new_group),
                     onClick = { showCreateNew = true }
                 )
             } else {
@@ -123,20 +119,15 @@ fun AlbumGroupSheet(
                     )
                 )
                 Spacer(Modifier.height(16.dp))
-                OptionButton(
-                    icon = Icons.Outlined.CreateNewFolder,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                SetupButton(
+                    applyHorizontalPadding = false,
+                    applyBottomPadding = false,
+                    applyInsets = false,
                     enabled = groupName.isNotBlank(),
-                    textContainer = {
-                        Text(
-                            when (mode) {
-                                "rename" -> stringResource(R.string.rename_group)
-                                else -> stringResource(R.string.create_new_group)
-                            }
-                        )
+                    text = when (mode) {
+                        "rename" -> stringResource(R.string.rename_group)
+                        else -> stringResource(R.string.create_new_group)
                     },
-                    position = OptionPosition.ALONE,
                     onClick = {
                         if (groupName.isNotBlank()) {
                             scope.launch {

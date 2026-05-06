@@ -19,7 +19,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,7 +29,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -69,8 +67,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -404,10 +400,9 @@ fun ColorPaletteScreen() {
                 ) {
                     PhonePreview(
                         colorScheme = previewScheme,
-                        isLandscape = true,
                         modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .aspectRatio(2f)
+                            .fillMaxWidth(0.55f)
+                            .aspectRatio(0.5f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -615,7 +610,6 @@ private fun ColorCircleItem(
 private fun PhonePreview(
     colorScheme: ColorScheme?,
     modifier: Modifier = Modifier,
-    isLandscape: Boolean = false
 ) {
     val currentScheme = MaterialTheme.colorScheme
     val scheme = colorScheme ?: currentScheme
@@ -623,15 +617,11 @@ private fun PhonePreview(
     MaterialTheme(colorScheme = scheme) {
         Surface(
             modifier = modifier,
-            shape = RoundedCornerShape(if (isLandscape) 20.dp else 28.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.background,
             border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
-            if (isLandscape) {
-                LandscapePreviewContent()
-            } else {
-                PortraitPreviewContent()
-            }
+            PortraitPreviewContent()
         }
     }
 }
@@ -826,212 +816,6 @@ private fun PortraitPreviewContent() {
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-    }
-}
-
-@Composable
-private fun LandscapePreviewContent() {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        // Render at a virtual size with comfortable dp values, then scale down
-        val virtualW = 600.dp
-        val virtualH = 300.dp
-        val scale = minOf(
-            maxWidth.value / virtualW.value,
-            maxHeight.value / virtualH.value
-        )
-
-        Box(
-            modifier = Modifier
-                .requiredSize(virtualW, virtualH)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    transformOrigin = TransformOrigin(0f, 0f)
-                }
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Status bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 32.dp)
-                        .padding(top = 10.dp, bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "12:30",
-                        fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(width = 10.dp, height = 6.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                    )
-                }
-
-                // Search bar + buttons at top right
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .width(100.dp)
-                            .height(28.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainer
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.search),
-                                fontSize = 8.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Surface(
-                        modifier = Modifier.size(28.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryFixed
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Rounded.Favorite,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryFixed,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
-                    }
-                    Surface(
-                        modifier = Modifier.size(28.dp),
-                        shape = RoundedCornerShape(5.dp),
-                        color = MaterialTheme.colorScheme.tertiaryFixed
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Outlined.Settings,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiaryFixed,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
-                    }
-                }
-
-                // "Today" header
-                Text(
-                    text = "Today",
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(start = 24.dp, top = 6.dp, bottom = 4.dp)
-                )
-
-                // Photo grid (square cells) with floating nav bar
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        repeat(3) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                repeat(8) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .clip(RoundedCornerShape(2.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // GalleryNavBar floating at bottom right
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 12.dp, bottom = 8.dp)
-                            .height(28.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainer
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Timeline (selected)
-                            Box(
-                                modifier = Modifier
-                                    .width(28.dp)
-                                    .height(14.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Photo,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(10.dp)
-                                )
-                            }
-                            // Albums
-                            Icon(
-                                imageVector = com.dot.gallery.ui.core.Icons.Albums,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            // Library
-                            Icon(
-                                imageVector = Icons.Outlined.PhotoLibrary,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(10.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Home indicator
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 6.dp)
-                        .width(36.dp)
-                        .height(2.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                )
-            }
-        }
     }
 }
 

@@ -243,6 +243,42 @@ fun <T : Media> Context.copyMediaToClipboard(media: T) {
     Toast.makeText(this, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
 }
 
+suspend fun <T : Media> Context.copyEncryptedMediaToClipboard(
+    media: T,
+    keychainHolder: KeychainHolder
+) = withContext(Dispatchers.IO) {
+    try {
+        val tempFile = createDecryptedTempFile(media, keychainHolder)
+        val tempUri = FileProvider.getUriForFile(
+            this@copyEncryptedMediaToClipboard,
+            BuildConfig.CONTENT_AUTHORITY,
+            tempFile
+        )
+        withContext(Dispatchers.Main) {
+            val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newUri(contentResolver, media.label, tempUri)
+            clip.description.extras = android.os.PersistableBundle().apply {
+                putString("android.content.extra.IS_SENSITIVE", "false")
+            }
+            clipboardManager.setPrimaryClip(clip)
+            Toast.makeText(
+                this@copyEncryptedMediaToClipboard,
+                getString(R.string.copied_to_clipboard),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                this@copyEncryptedMediaToClipboard,
+                getString(R.string.error_copying_to_clipboard),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+}
+
 fun <T : Media> Context.shareMedia(media: T) {
     val originalUri = media.getUri()
     val uri = if (originalUri.toString()

@@ -12,7 +12,9 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.dot.gallery.core.Constants
 import com.dot.gallery.core.MediaDistributor
+import com.dot.gallery.R
 import com.dot.gallery.core.Resource
+import com.dot.gallery.feature_node.data.data_source.InternalDatabase
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.workers.VaultOperationWorker
 import com.dot.gallery.core.workers.enqueueVaultOperation
@@ -41,6 +43,7 @@ open class VaultViewModel @Inject constructor(
     private val repository: MediaRepository,
     distributor: MediaDistributor,
     private val workManager: WorkManager,
+    database: InternalDatabase,
     @param:dagger.hilt.android.qualifiers.ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -57,6 +60,10 @@ open class VaultViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.Eagerly, Constants.WEEKLY_DATE_FORMAT)
 
     var currentVault = mutableStateOf<Vault?>(null)
+
+    // User-facing message flow for snackbar / toast feedback
+    private val _userMessage = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val userMessage: kotlinx.coroutines.flow.SharedFlow<String> = _userMessage
 
     // Emits lists of original URIs that should be deleted (user permission required) after a
     // vault operation (encrypt/hide) succeeds with deleteOriginals=true.
@@ -75,6 +82,10 @@ open class VaultViewModel @Inject constructor(
             it.lastOrNull()?.progress?.getFloat(VaultOperationWorker.KEY_PROGRESS, 0f) ?: 0f
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 0f)
+
+    val vaultItemCounts = database.getVaultDao().getMediaCountPerVault()
+        .map { counts -> counts.associate { it.uuid to it.count } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     val metadataState = distributor.metadataFlow.stateIn(
         viewModelScope,
@@ -130,7 +141,8 @@ open class VaultViewModel @Inject constructor(
             repository.deleteVault(
                 vault = vault,
                 onSuccess = {
-                    setVault(vault = vaultState.value.vaults.firstOrNull(), onSuccess = {})
+                    val remaining = vaultState.value.vaults.filter { it.uuid != vault.uuid }
+                    currentVault.value = remaining.firstOrNull()
                 },
                 onFailed = {
                     printError("Failed to delete vault: $it")
@@ -148,6 +160,26 @@ open class VaultViewModel @Inject constructor(
         )
     }
 
+    /** Encrypt into vault without deleting originals, and show feedback on completion. */
+    fun addMediaKeepOriginals(vault: Vault, uris: List<Uri>) {
+        val id = workManager.enqueueVaultOperationWithId(
+            operation = VaultOperationWorker.OP_ENCRYPT,
+            media = uris,
+            vault = vault,
+            uniqueKey = "encrypt_keep_${vault.uuid}_${System.currentTimeMillis()}",
+            deleteOriginals = false
+        )
+        viewModelScope.launch(Dispatchers.IO) {
+            workManager.getWorkInfoByIdFlow(id).collect { info ->
+                if (info?.state == WorkInfo.State.SUCCEEDED) {
+                    _userMessage.emit(
+                        appContext.getString(R.string.vault_items_encrypted, uris.size)
+                    )
+                }
+            }
+        }
+    }
+
     /** Start an encrypt operation that will request original deletion on success. */
     fun encryptAndRequestDeletion(vault: Vault, uris: List<Uri>) {
         val id = workManager.enqueueVaultOperationWithId(
@@ -157,7 +189,7 @@ open class VaultViewModel @Inject constructor(
             uniqueKey = "encrypt_${vault.uuid}_${System.currentTimeMillis()}",
             deleteOriginals = true
         )
-        observeDeletionOutput(id)
+        observeDeletionOutput(id, uris.size)
     }
 
     /** Start a hide operation (single media) which after success requests deletion of original. */
@@ -172,7 +204,7 @@ open class VaultViewModel @Inject constructor(
         observeDeletionOutput(id)
     }
 
-    private fun observeDeletionOutput(id: java.util.UUID) {
+    private fun observeDeletionOutput(id: java.util.UUID, itemCount: Int = 0) {
         viewModelScope.launch(Dispatchers.IO) {
             // getWorkInfoByIdFlow is provided by WorkManager KTX
             workManager.getWorkInfoByIdFlow(id).collect { info ->
@@ -184,20 +216,29 @@ open class VaultViewModel @Inject constructor(
                     if (leftovers.isNotEmpty()) {
                         _pendingDeletions.emit(leftovers)
                     }
+                    _userMessage.emit(
+                        appContext.getString(R.string.vault_items_encrypted, itemCount.coerceAtLeast(leftovers.size))
+                    )
                 }
             }
         }
     }
 
     fun restoreMedia(vault: Vault, media: UriMedia, onSuccess: () -> Unit) {
-        // Use worker for consistency (single item list)
-        workManager.enqueueVaultOperation(
+        val id = workManager.enqueueVaultOperationWithId(
             operation = VaultOperationWorker.OP_DECRYPT,
             media = listOf(media.uri),
             vault = vault,
             uniqueKey = "restore_${vault.uuid}_${media.id}"
         )
-        onSuccess()
+        viewModelScope.launch(Dispatchers.IO) {
+            workManager.getWorkInfoByIdFlow(id).collect { info ->
+                if (info?.state == WorkInfo.State.SUCCEEDED) {
+                    _userMessage.emit(appContext.getString(R.string.vault_items_restored, 1))
+                    withContext(Dispatchers.Main) { onSuccess() }
+                }
+            }
+        }
     }
 
     suspend fun transferMedia(sourceVault: Vault, targetVault: Vault, media: UriMedia, copy: Boolean): Boolean {
@@ -207,9 +248,9 @@ open class VaultViewModel @Inject constructor(
     }
 
     fun deleteMedia(vault: Vault, media: UriMedia, onSuccess: () -> Unit) {
-        // Hide/delete encrypted media directly (could also be a worker if long running)
         viewModelScope.launch(Dispatchers.IO) {
             repository.deleteEncryptedMedia(vault, media)
+            _userMessage.emit(appContext.getString(R.string.vault_item_deleted))
             withContext(Dispatchers.Main) { onSuccess() }
         }
     }

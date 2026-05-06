@@ -47,9 +47,14 @@ import com.dot.gallery.core.navigate
 import com.dot.gallery.core.navigateUp
 import com.dot.gallery.feature_node.domain.model.UIEvent
 import com.dot.gallery.feature_node.presentation.mediaview.MediaViewScreenRoute
+import androidx.compose.runtime.rememberCoroutineScope
 import com.dot.gallery.feature_node.presentation.util.SecureWindow
+import com.dot.gallery.feature_node.presentation.vault.components.VaultPasswordUnlockDialog
+import com.dot.gallery.feature_node.presentation.vault.utils.VaultAuthType
+import com.dot.gallery.feature_node.presentation.vault.utils.VaultPasswordManager
 import com.dot.gallery.feature_node.presentation.vault.utils.rememberBiometricState
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -87,18 +92,7 @@ fun VaultScreen(
     CompositionLocalProvider(
         LocalEventHandler provides localEventHandler
     ) {
-        var isAuthenticated by remember { mutableStateOf(shouldSkipAuth.value) }
-        val biometricState = rememberBiometricState(
-            title = stringResource(R.string.biometric_authentication),
-            subtitle = stringResource(R.string.unlock_your_vault),
-            onSuccess = {
-                isAuthenticated = true
-                localEventHandler.navigate(VaultScreens.VaultDisplay())
-            },
-            onFailed = {
-                isAuthenticated = false
-            }
-        )
+        val context = LocalContext.current
         val albumState = viewModel.albumsState.collectAsStateWithLifecycle()
         val metadataState = viewModel.metadataState.collectAsStateWithLifecycle()
         val vaultState = viewModel.vaultState.collectAsStateWithLifecycle()
@@ -106,7 +100,76 @@ fun VaultScreen(
             derivedStateOf { vaultState.value.getStartScreen() }
         }
 
-        val context = LocalContext.current
+        var isAuthenticated by remember { mutableStateOf(shouldSkipAuth.value) }
+        var showPasswordDialog by remember { mutableStateOf(false) }
+        var passwordError by remember { mutableStateOf<String?>(null) }
+        var detectedAuthType by remember { mutableStateOf<VaultAuthType?>(null) }
+        val wrongPasswordStr = stringResource(R.string.vault_wrong_password)
+        val scope = rememberCoroutineScope()
+        fun navigateAfterAuth() {
+            val vaults = vaultState.value.vaults
+            if (vaults.size > 1) {
+                localEventHandler.navigate(VaultScreens.VaultSelect())
+            } else {
+                vaults.firstOrNull()?.let { viewModel.currentVault.value = it }
+                localEventHandler.navigate(VaultScreens.VaultDisplay())
+            }
+        }
+
+        val biometricState = rememberBiometricState(
+            title = stringResource(R.string.biometric_authentication),
+            subtitle = stringResource(R.string.unlock_your_vault),
+            onSuccess = {
+                isAuthenticated = true
+                navigateAfterAuth()
+            },
+            onFailed = {
+                isAuthenticated = false
+                globalEventHandler.navigateUp()
+            }
+        )
+        /** Check for custom password and either show password dialog or biometric prompt. */
+        fun startAuth() {
+            val firstVault = vaultState.value.vaults.firstOrNull()
+            if (firstVault != null) {
+                scope.launch {
+                    val authType = VaultPasswordManager.getAuthType(context, firstVault.uuid)
+                    if (authType != null) {
+                        detectedAuthType = authType
+                        showPasswordDialog = true
+                    } else if (biometricState.isSupported) {
+                        biometricState.authenticate()
+                    } else {
+                        localEventHandler.navigateUp()
+                    }
+                }
+            }
+        }
+
+        if (showPasswordDialog) {
+            VaultPasswordUnlockDialog(
+                authType = detectedAuthType,
+                onDismiss = {
+                    globalEventHandler.navigateUp()
+                },
+                onSubmit = { secret ->
+                    val firstVault = vaultState.value.vaults.firstOrNull()
+                    if (firstVault != null) {
+                        scope.launch {
+                            if (VaultPasswordManager.verifyPassword(context, firstVault.uuid, secret)) {
+                                showPasswordDialog = false
+                                passwordError = null
+                                isAuthenticated = true
+                                navigateAfterAuth()
+                            } else {
+                                passwordError = wrongPasswordStr
+                            }
+                        }
+                    }
+                },
+                errorMessage = passwordError
+            )
+        }
 
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val systemBarFollowThemeState = rememberSaveable(navBackStackEntry) {
@@ -149,6 +212,26 @@ fun VaultScreen(
                     }
                 }
 
+                composable(VaultScreens.VaultSelect()) {
+                    val itemCounts by viewModel.vaultItemCounts.collectAsStateWithLifecycle()
+                    VaultSelectScreen(
+                        vaultState = vaultState,
+                        vaultItemCounts = itemCounts,
+                        onVaultSelected = { vault ->
+                            viewModel.currentVault.value = vault
+                            navController.navigate(VaultScreens.VaultDisplay()) {
+                                popUpTo(VaultScreens.VaultSelect()) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        onCreateVault = {
+                            addNewVault = true
+                            localEventHandler.navigate(VaultScreens.VaultSetup())
+                        },
+                        onNavigateUp = globalEventHandler::navigateUp
+                    )
+                }
+
                 composable(VaultScreens.VaultSetup()) {
                     VaultSetup(
                         navigateUp = {
@@ -156,9 +239,15 @@ fun VaultScreen(
                             if (vaultState.value.vaults.isEmpty()) globalEventHandler.navigateUp() else localEventHandler.navigateUp()
                         },
                         onCreate = {
+                            val wasAddingNewVault = addNewVault
                             addNewVault = false
-                            isAuthenticated = false
-                            biometricState.authenticate()
+                            if (wasAddingNewVault && isAuthenticated) {
+                                // Already authenticated, just go back to vault display
+                                localEventHandler.navigateUp()
+                            } else {
+                                isAuthenticated = false
+                                biometricState.authenticate()
+                            }
                         },
                         vm = viewModel
                     )
@@ -166,9 +255,7 @@ fun VaultScreen(
                 composable(VaultScreens.VaultDisplay()) {
                     LaunchedEffect(isAuthenticated, biometricState.isSupported, vaultState) {
                         if (!isAuthenticated && !addNewVault && vaultState.value.vaults.isNotEmpty()) {
-                            if (biometricState.isSupported) {
-                                biometricState.authenticate()
-                            } else localEventHandler.navigateUp()
+                            startAuth()
                         }
                     }
                     AnimatedVisibility(
@@ -195,7 +282,9 @@ fun VaultScreen(
                             workerIsRunning = viewModel.isRunning,
                             metadataState = metadataState,
                             encryptAndRequestDeletion = viewModel::encryptAndRequestDeletion,
+                            addMediaKeepOriginals = viewModel::addMediaKeepOriginals,
                             pendingDeletions = viewModel.pendingDeletions,
+                            userMessage = viewModel.userMessage,
                         )
                     }
                 }

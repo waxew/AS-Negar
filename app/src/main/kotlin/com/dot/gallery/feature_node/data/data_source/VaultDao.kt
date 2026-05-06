@@ -10,6 +10,11 @@ import com.dot.gallery.feature_node.domain.model.Vault
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
+data class VaultMediaCount(
+    val uuid: UUID,
+    val count: Int
+)
+
 @Dao
 interface VaultDao {
 
@@ -47,6 +52,9 @@ interface VaultDao {
 
     @Query("SELECT * FROM encrypted_media WHERE uuid = :uuid")
     fun getMediaFromVault(uuid: UUID?): Flow<List<Media.EncryptedMedia2>>
+
+    @Query("SELECT uuid, COUNT(*) as count FROM encrypted_media GROUP BY uuid")
+    fun getMediaCountPerVault(): Flow<List<VaultMediaCount>>
 
     @Upsert
     suspend fun addMediaToVault(media: Media.EncryptedMedia2)

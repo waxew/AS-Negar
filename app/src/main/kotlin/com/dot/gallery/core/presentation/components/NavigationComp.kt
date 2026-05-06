@@ -14,12 +14,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import com.dot.gallery.core.presentation.components.SetupButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -37,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -761,7 +758,6 @@ fun NavigationComp(
                 LibraryScreen(
                     paddingValues = paddingValues,
                     isScrolling = isScrolling,
-                    metadataState = metadataState,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
                 )
@@ -792,15 +788,25 @@ fun NavigationComp(
             }
 
             composable(
-                route = Screen.LocationsScreen()
-            ) {
+                route = Screen.LocationsScreen.withMediaId(),
+                arguments = listOf(
+                    navArgument("mediaId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                val initialMediaId = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("mediaId", -1L) ?: -1L
+                }
                 val locationsViewModel = hiltViewModel<CategoriesViewModel>()
                 val locations by locationsViewModel.locations.collectAsStateWithLifecycle()
                 val geoMedia by locationsViewModel.geoMedia.collectAsStateWithLifecycle()
                 LocationsScreen(
                     metadataState = metadataState,
                     locations = locations,
-                    geoMedia = geoMedia
+                    geoMedia = geoMedia,
+                    initialMediaId = initialMediaId
                 )
             }
 
@@ -1171,11 +1177,13 @@ fun NavigationComp(
                         }
                     )
                 val mediaState = locationsViewModel.mediaState.collectAsStateWithLifecycle()
+                val latestGeoMedia by locationsViewModel.latestGeoMedia.collectAsStateWithLifecycle()
 
                 LocationTimelineScreen(
                     gpsLocationNameCity = gpsLocationNameCity,
                     gpsLocationNameCountry = gpsLocationNameCountry,
                     mediaState = mediaState,
+                    latestGeoMedia = latestGeoMedia,
                     metadataState = metadataState,
                     paddingValues = paddingValues,
                     isScrolling = isScrolling,

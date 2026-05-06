@@ -123,6 +123,8 @@ object Constants {
         GridCells.Fixed(1)
     )
 
+    val mosaicColumnsList = listOf(6, 5, 4, 3)
+
     val albumCellsList = listOf(
         GridCells.Fixed(7),
         GridCells.Fixed(6),

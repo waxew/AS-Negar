@@ -48,7 +48,7 @@ class VaultOperationWorker @AssistedInject constructor(
         val op = inputData.getString(KEY_OPERATION) ?: return@withContext Result.failure()
         val mediaJson = inputData.getString(KEY_MEDIA_URIS) ?: return@withContext Result.failure()
         val inputUris = Json.decodeFromString<List<String>>(mediaJson).map { it.toUri() }
-    val requestDelete = inputData.getBoolean(KEY_DELETE_ORIGINALS, false)
+        val requestDelete = inputData.getBoolean(KEY_DELETE_ORIGINALS, false)
         val resolver = appContext.contentResolver
         var skipped = 0
         val mediaUris = inputUris.filter { uri ->
@@ -223,18 +223,18 @@ fun WorkManager.enqueueVaultOperation(
     uniqueKey: String = UUID.randomUUID().toString(),
     deleteOriginals: Boolean = false
 ) {
-    val input = mutableMapOf(
+    val pairs = mutableListOf<Pair<String, Any>>(
         VaultOperationWorker.KEY_OPERATION to operation,
         VaultOperationWorker.KEY_MEDIA_URIS to Json.encodeToString(media.map { it.toString() })
     )
     if (vault != null) {
-        input[VaultOperationWorker.KEY_VAULT] = Json.encodeToString(vault)
+        pairs += VaultOperationWorker.KEY_VAULT to Json.encodeToString(vault)
     }
     if (deleteOriginals) {
-        input[VaultOperationWorker.KEY_DELETE_ORIGINALS] = true.toString()
+        pairs += VaultOperationWorker.KEY_DELETE_ORIGINALS to true
     }
     val request = OneTimeWorkRequestBuilder<VaultOperationWorker>()
-        .setInputData(workDataOf(*input.toList().toTypedArray()))
+        .setInputData(workDataOf(*pairs.toTypedArray()))
         .addTag("VaultOp")
         .build()
     enqueueUniqueWork("VaultOp_$uniqueKey", ExistingWorkPolicy.KEEP, request)
@@ -248,18 +248,18 @@ fun WorkManager.enqueueVaultOperationWithId(
     uniqueKey: String = UUID.randomUUID().toString(),
     deleteOriginals: Boolean = false
 ): UUID {
-    val input = mutableMapOf(
+    val pairs = mutableListOf<Pair<String, Any>>(
         VaultOperationWorker.KEY_OPERATION to operation,
         VaultOperationWorker.KEY_MEDIA_URIS to Json.encodeToString(media.map { it.toString() })
     )
     if (vault != null) {
-        input[VaultOperationWorker.KEY_VAULT] = Json.encodeToString(vault)
+        pairs += VaultOperationWorker.KEY_VAULT to Json.encodeToString(vault)
     }
     if (deleteOriginals) {
-        input[VaultOperationWorker.KEY_DELETE_ORIGINALS] = true.toString()
+        pairs += VaultOperationWorker.KEY_DELETE_ORIGINALS to true
     }
     val request = OneTimeWorkRequestBuilder<VaultOperationWorker>()
-        .setInputData(workDataOf(*input.toList().toTypedArray()))
+        .setInputData(workDataOf(*pairs.toTypedArray()))
         .addTag("VaultOp")
         .build()
     enqueueUniqueWork("VaultOp_$uniqueKey", ExistingWorkPolicy.REPLACE, request)

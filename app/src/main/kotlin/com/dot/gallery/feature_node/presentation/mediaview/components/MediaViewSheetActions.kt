@@ -65,6 +65,7 @@ import com.dot.gallery.feature_node.presentation.collection.components.AddToColl
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
 import com.dot.gallery.feature_node.presentation.exif.MoveMediaSheet
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.util.copyEncryptedMediaToClipboard
 import com.dot.gallery.feature_node.presentation.util.copyMediaToClipboard
 import com.dot.gallery.feature_node.presentation.util.launchEditImageIntent
 import com.dot.gallery.feature_node.presentation.util.launchEditIntent
@@ -75,6 +76,7 @@ import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetStat
 import com.dot.gallery.feature_node.presentation.util.shareEncryptedMedia
 import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
+import com.dot.gallery.feature_node.presentation.vault.components.AddToVaultSheet
 import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -114,6 +116,11 @@ fun <T : Media> MediaViewSheetActions(
     val editText = stringResource(R.string.edit)
     val addToCollectionText = stringResource(R.string.add_to_collection)
 
+    // Lazily create a single KeychainHolder for encrypted operations
+    val keychainHolder = remember(currentVault) {
+        if (currentVault != null) lazy { KeychainHolder(context) } else null
+    }
+
     // Build action list
     val actions = remember(media, albumsState.value, vaults.value, currentVault) {
         buildList<ActionGridItem> {
@@ -123,9 +130,8 @@ fun <T : Media> MediaViewSheetActions(
                 text = shareText,
                 onClick = {
                     scope.launch {
-                        if (media.isEncrypted && currentVault != null) {
-                            val keychainHolder = KeychainHolder(context)
-                            context.shareEncryptedMedia(media, currentVault, keychainHolder)
+                        if (media.isEncrypted && currentVault != null && keychainHolder != null) {
+                            context.shareEncryptedMedia(media, currentVault, keychainHolder.value)
                         } else {
                             context.shareMedia(media)
                         }
@@ -136,7 +142,15 @@ fun <T : Media> MediaViewSheetActions(
             add(ActionGridItem(
                 icon = Icons.Outlined.ContentCopy,
                 text = copyToClipboardText,
-                onClick = { context.copyMediaToClipboard(media) }
+                onClick = {
+                    if (media.isEncrypted && currentVault != null && keychainHolder != null) {
+                        scope.launch {
+                            context.copyEncryptedMediaToClipboard(media, keychainHolder.value)
+                        }
+                    } else {
+                        context.copyMediaToClipboard(media)
+                    }
+                }
             ))
             // Hide
             if (media.isLocalContent) {
@@ -239,6 +253,9 @@ fun <T : Media> MediaViewSheetActions(
     // Hide (vault selection)
     if (media.isLocalContent) {
         val vaultViewModel = hiltViewModel<VaultViewModel>()
+        var vaultEncryptBehavior by Settings.Vault.rememberVaultEncryptBehavior()
+        val addToVaultSheetState = rememberAppBottomSheetState()
+        var selectedVault by remember { mutableStateOf<com.dot.gallery.feature_node.domain.model.Vault?>(null) }
         val hideResult = rememberActivityResult(onResultOk = {
             scope.launch { hideSheetState.hide() }
         })
@@ -247,9 +264,36 @@ fun <T : Media> MediaViewSheetActions(
             vaultState = vaults.value,
             onVaultSelected = { vault ->
                 scope.launch {
-                    vaultViewModel.hideAndRequestDeletion(vault, media.getUri())
+                    when (vaultEncryptBehavior) {
+                        Settings.Vault.ENCRYPT_DELETE -> {
+                            vaultViewModel.hideAndRequestDeletion(vault, media.getUri())
+                        }
+                        Settings.Vault.ENCRYPT_KEEP -> {
+                            vaultViewModel.addMediaKeepOriginals(vault, listOf(media.getUri()))
+                        }
+                        else -> {
+                            selectedVault = vault
+                            addToVaultSheetState.show()
+                        }
+                    }
                 }
             }
+        )
+        AddToVaultSheet(
+            state = addToVaultSheetState,
+            onEncryptAndDelete = {
+                val vault = selectedVault ?: return@AddToVaultSheet
+                scope.launch {
+                    vaultViewModel.hideAndRequestDeletion(vault, media.getUri())
+                }
+            },
+            onEncryptAndKeep = {
+                val vault = selectedVault ?: return@AddToVaultSheet
+                scope.launch {
+                    vaultViewModel.addMediaKeepOriginals(vault, listOf(media.getUri()))
+                }
+            },
+            onBehaviorChanged = { vaultEncryptBehavior = it }
         )
         LaunchedEffect(Unit) {
             vaultViewModel.pendingDeletions.collect { leftovers ->

@@ -7,19 +7,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dot.gallery.R
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.domain.model.Media
+import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.VaultState
 import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.presentation.util.rememberActivityResult
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
+import com.dot.gallery.feature_node.presentation.vault.components.AddToVaultSheet
 import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,14 +60,44 @@ fun <T : Media> HideButton(
         }
     })
     val vaultViewModel = hiltViewModel<VaultViewModel>()
+    var vaultEncryptBehavior by Settings.Vault.rememberVaultEncryptBehavior()
+    val addToVaultSheetState = rememberAppBottomSheetState()
+    var selectedVault by remember { mutableStateOf<Vault?>(null) }
     SelectVaultSheet(
         state = sheetState,
         vaultState = vaults,
         onVaultSelected = { vault ->
             scope.launch {
-                vaultViewModel.hideAndRequestDeletion(vault, media.getUri())
+                when (vaultEncryptBehavior) {
+                    Settings.Vault.ENCRYPT_DELETE -> {
+                        vaultViewModel.hideAndRequestDeletion(vault, media.getUri())
+                    }
+                    Settings.Vault.ENCRYPT_KEEP -> {
+                        vaultViewModel.addMediaKeepOriginals(vault, listOf(media.getUri()))
+                    }
+                    else -> {
+                        selectedVault = vault
+                        addToVaultSheetState.show()
+                    }
+                }
             }
         }
+    )
+    AddToVaultSheet(
+        state = addToVaultSheetState,
+        onEncryptAndDelete = {
+            val vault = selectedVault ?: return@AddToVaultSheet
+            scope.launch {
+                vaultViewModel.hideAndRequestDeletion(vault, media.getUri())
+            }
+        },
+        onEncryptAndKeep = {
+            val vault = selectedVault ?: return@AddToVaultSheet
+            scope.launch {
+                vaultViewModel.addMediaKeepOriginals(vault, listOf(media.getUri()))
+            }
+        },
+        onBehaviorChanged = { vaultEncryptBehavior = it }
     )
 
     // Collect deletion batches emitted by ViewModel
