@@ -2,8 +2,9 @@ package com.dot.gallery.feature_node.presentation.mediaview.components.actionbut
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.feature_node.domain.model.Media
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun <T : Media> MediaViewButton(
     currentMedia: T?,
@@ -59,13 +60,20 @@ fun <T : Media> MediaViewButton(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .clickable(
+                .combinedClickable(
                     enabled = enabled,
                     onClick = {
                         currentMedia?.let {
                             onItemClick.invoke(it)
                         }
                     },
+                    onLongClick = if (onItemLongClick != null) {
+                        {
+                            currentMedia?.let {
+                                onItemLongClick.invoke(it)
+                            }
+                        }
+                    } else null,
                     onClickLabel = title
                 ),
             contentAlignment = Alignment.Center
