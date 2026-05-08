@@ -78,7 +78,9 @@ fun MediaViewAppBar(
     rotateImage: () -> Unit,
     onGoBack: () -> Unit,
     onShowInfo: () -> Unit,
-    onLock: () -> Unit
+    onLock: () -> Unit,
+    castButton: @Composable (() -> Unit)? = null,
+    castBanner: @Composable (() -> Unit)? = null
 ) {
     val allowBlur by rememberAllowBlur()
     val isDarkTheme = isDarkTheme()
@@ -171,34 +173,40 @@ fun MediaViewAppBar(
                     )
                 }
 
-                this@Column.AnimatedVisibility(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    visible = showInfo,
-                    enter = enterAnimation,
-                    exit = exitAnimation
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(horizontal = 8.dp)
+                        .clip(CircleShape)
+                        .then(backgroundModifier)
+                        .hazeEffect(
+                            state = LocalHazeState.current,
+                            style = HazeMaterials.ultraThin(
+                                containerColor = surfaceContainer
+                            )
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        modifier = modifier
-                            .padding(horizontal = 8.dp)
-                            .clip(CircleShape)
-                            .then(backgroundModifier)
-                            .hazeEffect(
-                                state = LocalHazeState.current,
-                                style = HazeMaterials.ultraThin(
-                                    containerColor = surfaceContainer
-                                )
-                            ),
-                        onClick = onShowInfo
+                    castButton?.invoke()
+
+                    this@Column.AnimatedVisibility(
+                        visible = showInfo,
+                        enter = enterAnimation,
+                        exit = exitAnimation
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = "info",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.height(48.dp)
-                        )
+                        IconButton(onClick = onShowInfo) {
+                            Icon(
+                                imageVector = Icons.Outlined.Info,
+                                contentDescription = "info",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.height(48.dp)
+                            )
+                        }
                     }
                 }
             }
+
+            castBanner?.invoke()
 
             AnimatedVisibility(
                 visible = isLocked,

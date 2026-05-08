@@ -115,7 +115,6 @@ fun <T : Media> MediaViewSheetActions(
     val moveText = stringResource(R.string.move)
     val editText = stringResource(R.string.edit)
     val addToCollectionText = stringResource(R.string.add_to_collection)
-
     // Lazily create a single KeychainHolder for encrypted operations
     val keychainHolder = remember(currentVault) {
         if (currentVault != null) lazy { KeychainHolder(context) } else null

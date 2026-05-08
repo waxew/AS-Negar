@@ -52,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -107,6 +108,11 @@ import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewS
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MediaPreviewComponent
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoFilmstrip
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.VideoPlayerController
+import com.dot.gallery.feature_node.presentation.cast.FCastViewModel
+import com.dot.gallery.feature_node.presentation.cast.components.CastButton
+import com.dot.gallery.feature_node.presentation.cast.components.FCastDevicePickerDialog
+import com.dot.gallery.feature_node.presentation.cast.components.CastPermissionsDialog
+import com.dot.gallery.feature_node.presentation.cast.components.CastStatusBanner
 import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.FullBrightnessWindow
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -128,8 +134,11 @@ import com.github.panpf.sketch.sketch
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -173,7 +182,7 @@ fun <T : Media> MediaViewScreenRoute(
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
-    val viewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel<MediaViewViewModel>()
+    val viewModel = hiltViewModel<MediaViewViewModel>()
     MediaViewScreen(
         toggleRotate = toggleRotate,
         paddingValues = paddingValues,
@@ -220,7 +229,7 @@ fun <T : Media> MediaViewScreen(
     animatedContentScope: AnimatedContentScope,
     ensureMetadataAvailable: (Media?, MediaMetadataState) -> Unit = { _, _ -> },
     rotateImage: (Media, Int) -> Unit = { _, _ -> },
-    uiEvents: kotlinx.coroutines.flow.SharedFlow<MediaViewEvent> = kotlinx.coroutines.flow.MutableSharedFlow(),
+    uiEvents: SharedFlow<MediaViewEvent> = MutableSharedFlow(),
     motionPhotoStateFactory: @Composable (Media?) -> MotionPhotoState = { remember { MotionPhotoState() } },
 ) = ProvideInsets {
     val eventHandler = LocalEventHandler.current
@@ -229,6 +238,12 @@ fun <T : Media> MediaViewScreen(
     val windowInsetsController = rememberWindowInsetsController()
 
     var initialPageSetup by rememberSaveable(mediaId) { mutableStateOf(false) }
+
+    // FCast
+    val fcastVm: FCastViewModel = hiltViewModel()
+    val fcastState by fcastVm.state.collectAsStateWithLifecycle()
+    var showCastPicker by rememberSaveable { mutableStateOf(false) }
+    var showCastPermissions by rememberSaveable { mutableStateOf(false) }
 
     // Use pagerMedia for paging (only representatives when grouped, otherwise all media)
     val pagerItems by rememberedDerivedState(mediaState.value) {
@@ -616,6 +631,15 @@ fun <T : Media> MediaViewScreen(
                                             windowInsetsController.toggleSystemBars(false)
                                         }
                                     }
+                                    // Mute local player while casting to avoid double audio
+                                    val isCasting = fcastState.connectedDevice != null
+                                    LaunchedEffect(isCasting) {
+                                        if (isCasting) {
+                                            player.volume = 0f
+                                        } else {
+                                            player.volume = 1f
+                                        }
+                                    }
                                     val resources = LocalResources.current
                                     val width =
                                         remember(context) { resources.displayMetrics.widthPixels }
@@ -701,7 +725,21 @@ fun <T : Media> MediaViewScreen(
                                             totalTime = totalTime,
                                             buffer = buffer,
                                             toggleRotate = toggleRotate,
-                                            frameRate = frameRate
+                                            frameRate = frameRate,
+                                            onCastSeek = if (fcastState.connectedDevice != null) {
+                                                { seconds -> fcastVm.seek(seconds) }
+                                            } else null,
+                                            onCastPlayPause = if (fcastState.connectedDevice != null) {
+                                                { playing ->
+                                                    if (playing) fcastVm.resume() else fcastVm.pause()
+                                                }
+                                            } else null,
+                                            onCastVolume = if (fcastState.connectedDevice != null) {
+                                                { vol -> fcastVm.setVolume(vol) }
+                                            } else null,
+                                            onCastSpeed = if (fcastState.connectedDevice != null) {
+                                                { spd -> fcastVm.setSpeed(spd) }
+                                            } else null
                                         )
                                     }
                                 }
@@ -749,8 +787,77 @@ fun <T : Media> MediaViewScreen(
                 },
                 onLock = {
                     isLocked = !isLocked
-                }
+                },
+                castButton = {
+                    CastButton(
+                        isConnected = fcastState.connectedDevice != null,
+                        isConnecting = fcastState.isConnecting,
+                        followTheme = true,
+                        onClick = {
+                            if (fcastState.connectedDevice != null) {
+                                showCastPicker = true
+                            } else if (!fcastVm.hasAllPermissions()) {
+                                showCastPermissions = true
+                            } else {
+                                fcastVm.startDiscovery()
+                                showCastPicker = true
+                            }
+                        }
+                    )
+                },
+                castBanner = if (fcastState.connectedDevice != null) {
+                    {
+                        CastStatusBanner(
+                            deviceName = fcastState.connectedDevice?.name ?: "",
+                            onStop = { fcastVm.stopCasting() },
+                            onClick = { showCastPicker = true }
+                        )
+                    }
+                } else null
             )
+
+            // Auto-cast current media when device connects
+            LaunchedEffect(fcastState.connectedDevice?.host) {
+                val device = fcastState.connectedDevice
+                val media = currentMedia
+                if (device != null && media != null && fcastState.castingMediaId == null) {
+                    fcastVm.castMedia(media)
+                }
+            }
+
+            // FCast device picker dialog
+            if (showCastPicker) {
+                FCastDevicePickerDialog(
+                    state = fcastState,
+                    onDeviceSelected = { device ->
+                        fcastVm.connect(device)
+                        showCastPicker = false
+                    },
+                    onCastMedia = {
+                        currentMedia?.let { fcastVm.castMedia(it) }
+                    },
+                    onStopCasting = {
+                        fcastVm.stopCasting()
+                    },
+                    onDisconnect = {
+                        fcastVm.disconnect()
+                        showCastPicker = false
+                    },
+                    onDismiss = {
+                        fcastVm.stopDiscovery()
+                        showCastPicker = false
+                    }
+                )
+            }
+
+            // Cast permissions checklist dialog
+            if (showCastPermissions) {
+                CastPermissionsDialog(
+                    permissions = fcastVm.checkPermissions(),
+                    onDismiss = { showCastPermissions = false }
+                )
+            }
+
             // Floating filmstrip overlay (positioned like video seekbar)
             AnimatedVisibility(
                 visible = showUI && motionPhotoState.isDetected && motionPhotoState.compositeFilmstrip != null,
