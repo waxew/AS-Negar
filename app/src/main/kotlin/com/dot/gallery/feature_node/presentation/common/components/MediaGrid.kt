@@ -224,6 +224,20 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
         val isSelectionActive by selector.isSelectionActive.collectAsStateWithLifecycle()
         val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
 
+        // Prune stale selection IDs when media list changes (e.g. external file deletion)
+        val mediaIds = remember(mediaState.value.media) {
+            mediaState.value.media.mapTo(HashSet()) { it.id }
+        }
+        LaunchedEffect(mediaIds) {
+            val currentSelection = selector.selectedMedia.value
+            if (currentSelection.isNotEmpty()) {
+                val pruned = currentSelection.intersect(mediaIds)
+                if (pruned.size != currentSelection.size) {
+                    selector.rawUpdateSelection(pruned)
+                }
+            }
+        }
+
         val groupAwareUpdateSelection: (Set<Long>) -> Unit = remember(mediaState) {
             { ids ->
                 val groups = mediaState.value.mediaGroups
