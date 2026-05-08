@@ -683,6 +683,8 @@
     <string name="selection_actions_summary">Customize action bar items and order</string>
     <string name="selection_actions_description">Customize which actions appear in the selection bar and their order. Drag to reorder, add or remove actions as needed.</string>
     <string name="top_actions">Top Actions</string>
+    <string name="top_actions_right_aligned">Right-align top actions</string>
+    <string name="top_actions_right_aligned_summary">Position top action buttons near the right edge of the display for easier reach</string>
     <string name="middle_actions">Middle Actions</string>
     <string name="action_bar">Action Bar</string>
     <string name="add_action">Add action</string>

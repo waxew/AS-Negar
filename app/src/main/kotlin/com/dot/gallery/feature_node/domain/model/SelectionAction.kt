@@ -137,6 +137,7 @@ data class SelectionSheetConfig(
     val topActions: List<SelectionAction> = DEFAULT_TOP_ACTIONS,
     val middleActions: List<SelectionAction> = DEFAULT_MIDDLE_ACTIONS,
     val bottomActions: List<SelectionAction> = DEFAULT_BOTTOM_ACTIONS,
+    val topActionsRightAligned: Boolean = false,
 ) {
     fun sanitized(): SelectionSheetConfig {
         val top = topActions.distinct().filter { it.zone == ActionZone.TOP }.toMutableList()
@@ -149,6 +150,7 @@ data class SelectionSheetConfig(
             topActions = top,
             middleActions = middle,
             bottomActions = bottom,
+            topActionsRightAligned = topActionsRightAligned,
         )
     }
 

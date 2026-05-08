@@ -89,9 +89,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dot.gallery.R
 import com.dot.gallery.core.Position
+import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.Settings.Misc.rememberSelectionSheetConfig
 import com.dot.gallery.core.Settings.Misc.rememberShowSelectionTitles
 import com.dot.gallery.core.presentation.components.NavigationBackButton
+import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
 import com.dot.gallery.feature_node.domain.model.ActionZone
 import com.dot.gallery.feature_node.domain.model.SelectionAction
 import com.dot.gallery.feature_node.domain.model.SelectionSheetConfig
@@ -207,6 +209,25 @@ fun SettingsSelectionActionsScreen() {
                         .widthIn(max = 600.dp)
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
+
+            // ── Right-align toggle ──
+            item(key = "top_right_align") {
+                SettingsItem(
+                    item = SettingsEntity.SwitchPreference(
+                        title = stringResource(R.string.top_actions_right_aligned),
+                        summary = stringResource(R.string.top_actions_right_aligned_summary),
+                        isChecked = sanitizedConfig.topActionsRightAligned,
+                        onCheck = { checked ->
+                            config = config.copy(topActionsRightAligned = checked)
+                        },
+                        screenPosition = Position.Alone
+                    ),
+                    modifier = Modifier
+                        .widthIn(max = 600.dp)
+                        .fillMaxWidth()
                         .padding(bottom = 8.dp)
                 )
             }
@@ -563,6 +584,7 @@ internal fun SelectionSheetPreview(
     ) {
         // Top row: addon pills — matching SelectionAddon, scrollable with fade
         val topScrollState = rememberScrollState()
+        val rightAligned = config.topActionsRightAligned
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -582,14 +604,14 @@ internal fun SelectionSheetPreview(
                     }
                 }
         ) {
-            Row(
-                modifier = Modifier.horizontalScroll(topScrollState),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                config.topActions.forEach { action ->
-                    when (action) {
-                        SelectionAction.CLOSE -> {
+            if (rightAligned) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // CLOSE stays on the left
+                    if (SelectionAction.CLOSE in config.topActions) {
                         Row(
                             modifier = Modifier
                                 .background(
@@ -614,59 +636,41 @@ internal fun SelectionSheetPreview(
                             )
                         }
                     }
-                    SelectionAction.SELECT_ALL -> {
-                        Row(
-                            modifier = Modifier
-                                .background(
-                                    color = barSurfaceColor,
-                                    shape = pillShape
+                    // Remaining actions pushed to the right, scrollable
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .horizontalScroll(topScrollState),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        config.topActions.forEach { action ->
+                            if (action != SelectionAction.CLOSE) {
+                                TopActionPreviewPill(
+                                    action = action,
+                                    tintColor = tintColor,
+                                    barSurfaceColor = barSurfaceColor,
+                                    pillShape = pillShape
                                 )
-                                .clip(pillShape)
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                modifier = Modifier.size(24.dp),
-                                imageVector = Icons.Outlined.SelectAll,
-                                colorFilter = ColorFilter.tint(tintColor),
-                                contentDescription = null
-                            )
-                            Text(
-                                text = stringResource(R.string.select_all),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = tintColor
-                            )
+                            }
                         }
                     }
-                    SelectionAction.INFO -> {
-                        Row(
-                            modifier = Modifier
-                                .background(
-                                    color = barSurfaceColor,
-                                    shape = pillShape
-                                )
-                                .clip(pillShape)
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                modifier = Modifier.size(24.dp),
-                                imageVector = Icons.Outlined.Info,
-                                colorFilter = ColorFilter.tint(tintColor),
-                                contentDescription = null
-                            )
-                            Text(
-                                text = stringResource(R.string.media_details),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = tintColor
-                            )
-                        }
-                    }
-                    else -> {}
                 }
-            }
+            } else {
+                Row(
+                    modifier = Modifier.horizontalScroll(topScrollState),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    config.topActions.forEach { action ->
+                        TopActionPreviewPill(
+                            action = action,
+                            tintColor = tintColor,
+                            barSurfaceColor = barSurfaceColor,
+                            pillShape = pillShape
+                        )
+                    }
+                }
             }
         }
         // Middle: full-width pill buttons
@@ -751,6 +755,41 @@ internal fun SelectionSheetPreview(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TopActionPreviewPill(
+    action: SelectionAction,
+    tintColor: Color,
+    barSurfaceColor: Color,
+    pillShape: RoundedCornerShape,
+) {
+    Row(
+        modifier = Modifier
+            .background(
+                color = barSurfaceColor,
+                shape = pillShape
+            )
+            .clip(pillShape)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            modifier = Modifier.size(24.dp),
+            imageVector = action.icon,
+            colorFilter = ColorFilter.tint(tintColor),
+            contentDescription = null
+        )
+        Text(
+            text = when (action) {
+                SelectionAction.CLOSE -> "3"
+                else -> stringResource(action.labelRes)
+            },
+            style = MaterialTheme.typography.titleMedium,
+            color = tintColor
+        )
     }
 }
 

@@ -212,6 +212,7 @@ fun <T : Media> BoxScope.SelectionSheet(
         ) {
             // Top row — driven by config, horizontally scrollable with fade
             val topScrollState = rememberScrollState()
+            val rightAligned = sanitizedConfig.topActionsRightAligned
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -231,41 +232,92 @@ fun <T : Media> BoxScope.SelectionSheet(
                         }
                     }
             ) {
-                Row(
-                    modifier = Modifier.horizontalScroll(topScrollState),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    sanitizedConfig.topActions.forEach { action ->
-                        when (action) {
-                            SelectionAction.CLOSE -> {
-                                SelectionAddon(
-                                    onClick = {
-                                        scope.launch {
-                                            selector.clearSelection()
+                if (rightAligned) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // CLOSE stays on the left
+                        if (SelectionAction.CLOSE in sanitizedConfig.topActions) {
+                            SelectionAddon(
+                                onClick = {
+                                    scope.launch {
+                                        selector.clearSelection()
+                                    }
+                                },
+                                imageVector = Icons.Outlined.Close,
+                                contentDescription = stringResource(R.string.selection_dialog_close_cd),
+                                text = selectedMedia.size.toString()
+                            )
+                        }
+                        // Remaining actions pushed to the right, scrollable
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(topScrollState),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End)
+                        ) {
+                            sanitizedConfig.topActions.forEach { action ->
+                                if (action != SelectionAction.CLOSE) {
+                                    when (action) {
+                                        SelectionAction.SELECT_ALL -> {
+                                            SelectAllAddon(allMedia = allMedia)
                                         }
-                                    },
-                                    imageVector = Icons.Outlined.Close,
-                                    contentDescription = stringResource(R.string.selection_dialog_close_cd),
-                                    text = selectedMedia.size.toString()
-                                )
-                            }
-                            SelectionAction.SELECT_ALL -> {
-                                SelectAllAddon(
-                                    allMedia = allMedia
-                                )
-                            }
-                            SelectionAction.INFO -> {
-                                AnimatedVisibility(visible = selectedMedia.size == 1) {
-                                    SelectionAddon(
-                                        onClick = { showInfoSheet = true },
-                                        imageVector = Icons.Outlined.Info,
-                                        contentDescription = stringResource(R.string.media_details),
-                                        text = stringResource(R.string.media_details)
-                                    )
+                                        SelectionAction.INFO -> {
+                                            AnimatedVisibility(visible = selectedMedia.size == 1) {
+                                                SelectionAddon(
+                                                    onClick = { showInfoSheet = true },
+                                                    imageVector = Icons.Outlined.Info,
+                                                    contentDescription = stringResource(R.string.media_details),
+                                                    text = stringResource(R.string.media_details)
+                                                )
+                                            }
+                                        }
+                                        else -> {}
+                                    }
                                 }
                             }
-                            else -> {}
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.horizontalScroll(topScrollState),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        sanitizedConfig.topActions.forEach { action ->
+                            when (action) {
+                                SelectionAction.CLOSE -> {
+                                    SelectionAddon(
+                                        onClick = {
+                                            scope.launch {
+                                                selector.clearSelection()
+                                            }
+                                        },
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = stringResource(R.string.selection_dialog_close_cd),
+                                        text = selectedMedia.size.toString()
+                                    )
+                                }
+                                SelectionAction.SELECT_ALL -> {
+                                    SelectAllAddon(
+                                        allMedia = allMedia
+                                    )
+                                }
+                                SelectionAction.INFO -> {
+                                    AnimatedVisibility(visible = selectedMedia.size == 1) {
+                                        SelectionAddon(
+                                            onClick = { showInfoSheet = true },
+                                            imageVector = Icons.Outlined.Info,
+                                            contentDescription = stringResource(R.string.media_details),
+                                            text = stringResource(R.string.media_details)
+                                        )
+                                    }
+                                }
+                                else -> {}
+                            }
                         }
                     }
                 }
