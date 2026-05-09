@@ -21,9 +21,9 @@ import com.github.panpf.sketch.source.FileDataSource
 import com.github.panpf.sketch.util.Rect
 
 fun ComponentRegistry.Builder.supportVaultDecoder(): ComponentRegistry.Builder = apply {
-    addDecoder(EncryptedRawImageDecoder.Factory())
-    addDecoder(EncryptedBitmapFactoryDecoder.Factory())
-    addDecoder(EncryptedVideoFrameDecoder.Factory())
+    add(EncryptedRawImageDecoder.Factory())
+    add(EncryptedBitmapFactoryDecoder.Factory())
+    add(EncryptedVideoFrameDecoder.Factory())
 }
 
 /**
@@ -49,6 +49,8 @@ open class EncryptedBitmapFactoryDecoder(
     class Factory : Decoder.Factory {
 
         override val key: String = "EncryptedBitmapFactoryDecoder"
+
+        override val sortWeight: Int = 0
 
         override fun create(
             requestContext: RequestContext,
@@ -82,19 +84,22 @@ private class EncryptedBitmapFactoryDecodeHelper(val request: ImageRequest, priv
 
     private val keychainHolder = KeychainHolder(request.context)
 
-    override val imageInfo: ImageInfo by lazy {
-        dataSource.readEncryptedImageInfo(keychainHolder, exifOrientationHelper)
+    private var _cachedImageInfo: ImageInfo? = null
+
+    override suspend fun getImageInfo(): ImageInfo {
+        return _cachedImageInfo ?: dataSource.readEncryptedImageInfo(keychainHolder, exifOrientationHelper).also { _cachedImageInfo = it }
     }
-    override val supportRegion: Boolean by lazy {
+
+    override suspend fun isSupportRegion(): Boolean {
         // The result returns null, which means unknown, but future versions may support it, so it is still worth trying.
-        supportBitmapRegionDecoder(imageInfo.mimeType) != false
+        return supportBitmapRegionDecoder(getImageInfo().mimeType) != false
     }
 
     private val exifOrientation: Int by lazy { dataSource.readEncryptedExifOrientation(keychainHolder) }
     private val exifOrientationHelper by lazy { ExifOrientationHelper(exifOrientation) }
 
-    override fun decode(sampleSize: Int): Image {
-        val decodeConfig = DecodeConfig(request, imageInfo.mimeType, isOpaque = false).apply {
+    override suspend fun decode(sampleSize: Int): Image {
+        val decodeConfig = DecodeConfig(request, getImageInfo().mimeType, isOpaque = false).apply {
             this.sampleSize = sampleSize
         }
         val bitmap = dataSource.decodeEncryptedBitmap(
@@ -105,15 +110,15 @@ private class EncryptedBitmapFactoryDecodeHelper(val request: ImageRequest, priv
         return bitmap.asImage()
     }
 
-    override fun decodeRegion(region: Rect, sampleSize: Int): Image {
-        val decodeConfig = DecodeConfig(request, imageInfo.mimeType, isOpaque = false).apply {
+    override suspend fun decodeRegion(region: Rect, sampleSize: Int): Image {
+        val decodeConfig = DecodeConfig(request, getImageInfo().mimeType, isOpaque = false).apply {
             this.sampleSize = sampleSize
         }
         val bitmap = dataSource.decodeEncryptedRegionBitmap(
             keychainHolder = keychainHolder,
             srcRect = region,
             config = decodeConfig,
-            imageSize = imageInfo.size,
+            imageSize = getImageInfo().size,
             exifOrientationHelper = exifOrientationHelper
         )
         return bitmap.asImage()

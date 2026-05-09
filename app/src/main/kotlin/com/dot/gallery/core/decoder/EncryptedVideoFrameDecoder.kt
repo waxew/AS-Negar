@@ -53,6 +53,8 @@ class EncryptedVideoFrameDecoder(
 
         override val key: String = "EncryptedVideoFrameDecoder"
 
+        override val sortWeight: Int = 0
+
         override fun create(
             requestContext: RequestContext,
             fetchResult: FetchResult
@@ -89,8 +91,13 @@ private class EncryptedVideoFrameDecodeHelper(
     private val mimeType: String,
 ) : DecodeHelper {
 
-    override val imageInfo: ImageInfo by lazy { readInfo() }
-    override val supportRegion: Boolean = false
+    private var _cachedImageInfo: ImageInfo? = null
+
+    override suspend fun getImageInfo(): ImageInfo {
+        return _cachedImageInfo ?: readInfo().also { _cachedImageInfo = it }
+    }
+
+    override suspend fun isSupportRegion(): Boolean = false
 
     private val keychainHolder = KeychainHolder(request.context)
     private val tempFile by lazy {
@@ -124,7 +131,7 @@ private class EncryptedVideoFrameDecodeHelper(
         return tempFile
     }
 
-    override fun decode(sampleSize: Int): Image {
+    override suspend fun decode(sampleSize: Int): Image {
         val frameMicros = request.videoFrameMicros
             ?: request.videoFramePercent?.let { percentDuration ->
                 val duration = mediaMetadataRetriever
@@ -134,9 +141,9 @@ private class EncryptedVideoFrameDecodeHelper(
             }
             ?: 0L
         val option = request.videoFrameOption ?: MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-        val imageSize = imageInfo.size
+        val imageSize = getImageInfo().size
         val dstSize = imageSize / sampleSize.toFloat()
-        val config = DecodeConfig(request, imageInfo.mimeType, isOpaque = false)
+        val config = DecodeConfig(request, getImageInfo().mimeType, isOpaque = false)
         val bitmapParams = BitmapParams().apply {
             config.colorType?.also { preferredConfig = it }
         }
@@ -158,7 +165,7 @@ private class EncryptedVideoFrameDecodeHelper(
         return correctedBitmap.asImage()
     }
 
-    override fun decodeRegion(region: Rect, sampleSize: Int): Image {
+    override suspend fun decodeRegion(region: Rect, sampleSize: Int): Image {
         throw UnsupportedOperationException("Unsupported region decode")
     }
 

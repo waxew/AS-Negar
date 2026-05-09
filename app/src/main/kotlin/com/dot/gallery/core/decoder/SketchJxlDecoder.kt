@@ -12,7 +12,7 @@ import com.github.panpf.sketch.request.get
 import com.github.panpf.sketch.source.DataSource
 
 fun ComponentRegistry.Builder.supportJxlDecoder(): ComponentRegistry.Builder = apply {
-    addDecoder(SketchJxlDecoder.Factory())
+    add(SketchJxlDecoder.Factory())
 }
 
 class SketchJxlDecoder(
@@ -24,6 +24,8 @@ class SketchJxlDecoder(
 
         override val key: String
             get() = "JxlDecoder"
+
+        override val sortWeight: Int = 0
 
         override fun create(requestContext: RequestContext, fetchResult: FetchResult): Decoder? {
             val mimeType = requestContext.request.extras?.get("realMimeType") as String? ?: return null
@@ -51,7 +53,7 @@ class SketchJxlDecoder(
 
     }
 
-    override fun decode(): ImageData {
+    override suspend fun decode(): ImageData {
         return dataSource.withCustomDecoder(
             requestContext = requestContext,
             mimeType = JXL_MIMETYPE,
@@ -60,8 +62,8 @@ class SketchJxlDecoder(
         )
     }
 
-    override val imageInfo: ImageInfo by lazy {
-        dataSource.getImageInfo(
+    override suspend fun getImageInfo(): ImageInfo {
+        return dataSource.getImageInfo(
             requestContext = requestContext,
             mimeType = JXL_MIMETYPE,
             getSize = JxlCoder::getSize

@@ -11,7 +11,7 @@ import com.github.panpf.sketch.source.DataSource
 import com.radzivon.bartoshyk.avif.coder.HeifCoder
 
 fun ComponentRegistry.Builder.supportHeifDecoder(): ComponentRegistry.Builder = apply {
-    addDecoder(SketchHeifDecoder.Factory())
+    add(SketchHeifDecoder.Factory())
 }
 
 @Suppress("SpellCheckingInspection")
@@ -27,6 +27,8 @@ class SketchHeifDecoder(
 
         override val key: String
             get() = "HeifDecoder"
+
+        override val sortWeight: Int = 0
 
         override fun create(requestContext: RequestContext, fetchResult: FetchResult): Decoder? {
             val mimeType = requestContext.request.extras?.get("realMimeType") as String? ?: return null
@@ -60,7 +62,7 @@ class SketchHeifDecoder(
         }
     }
 
-    override fun decode(): ImageData {
+    override suspend fun decode(): ImageData {
         return dataSource.withCustomDecoder(
             requestContext = requestContext,
             mimeType = mimeType,
@@ -69,8 +71,8 @@ class SketchHeifDecoder(
         )
     }
 
-    override val imageInfo: ImageInfo by lazy {
-        dataSource.getImageInfo(
+    override suspend fun getImageInfo(): ImageInfo {
+        return dataSource.getImageInfo(
             requestContext = requestContext,
             mimeType = mimeType,
             getSize = coder::getSize

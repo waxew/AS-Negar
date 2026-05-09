@@ -56,13 +56,12 @@ class EncryptedRawImageDecoder(
     private var _imageInfo: ImageInfo? = null
     private var cachedBytes: ByteArray? = null
     
-    override val imageInfo: ImageInfo
-        get() {
-            if (_imageInfo == null) {
-                _imageInfo = readImageInfo()
-            }
-            return _imageInfo!!
+    override suspend fun getImageInfo(): ImageInfo {
+        if (_imageInfo == null) {
+            _imageInfo = readImageInfo()
         }
+        return _imageInfo!!
+    }
     
     private fun getDecryptedBytes(): ByteArray {
         if (cachedBytes == null) {
@@ -131,7 +130,7 @@ class EncryptedRawImageDecoder(
         return (bytes[16].toInt() and 0x02) != 0
     }
 
-    override fun decode(): ImageData {
+    override suspend fun decode(): ImageData {
         val bytes = getDecryptedBytes()
         
         return when (mimeType) {
@@ -141,7 +140,7 @@ class EncryptedRawImageDecoder(
         }
     }
     
-    private fun decodeGif(bytes: ByteArray): ImageData {
+    private suspend fun decodeGif(bytes: ByteArray): ImageData {
         val request = requestContext.request
         
         val movie = Movie.decodeByteArray(bytes, 0, bytes.size)
@@ -166,10 +165,10 @@ class EncryptedRawImageDecoder(
             }
         }
         
-        val resize = requestContext.computeResize(imageInfo.size)
+        val resize = requestContext.computeResize(getImageInfo().size)
         return ImageData(
             image = animatableDrawable.asImage(),
-            imageInfo = imageInfo,
+            imageInfo = getImageInfo(),
             dataFrom = dataSource.dataFrom,
             resize = resize,
             transformeds = null,
@@ -177,7 +176,7 @@ class EncryptedRawImageDecoder(
         )
     }
     
-    private fun decodeWebP(bytes: ByteArray): ImageData {
+    private suspend fun decodeWebP(bytes: ByteArray): ImageData {
         val isAnimated = isAnimatedWebP(bytes)
         
         return if (isAnimated && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -188,7 +187,7 @@ class EncryptedRawImageDecoder(
     }
     
     @RequiresApi(Build.VERSION_CODES.P)
-    private fun decodeAnimatedWebP(bytes: ByteArray): ImageData {
+    private suspend fun decodeAnimatedWebP(bytes: ByteArray): ImageData {
         val request = requestContext.request
         
         val source = ImageDecoder.createSource(ByteBuffer.wrap(bytes))
@@ -212,10 +211,10 @@ class EncryptedRawImageDecoder(
                 }
             }
             
-            val resize = requestContext.computeResize(imageInfo.size)
+            val resize = requestContext.computeResize(getImageInfo().size)
             return ImageData(
                 image = scaledDrawable.asImage(),
-                imageInfo = imageInfo,
+                imageInfo = getImageInfo(),
                 dataFrom = dataSource.dataFrom,
                 resize = resize,
                 transformeds = null,
@@ -227,7 +226,7 @@ class EncryptedRawImageDecoder(
         }
     }
     
-    private fun decodeStaticBitmap(bytes: ByteArray): ImageData {
+    private suspend fun decodeStaticBitmap(bytes: ByteArray): ImageData {
         val request = requestContext.request
         val decodeConfig = DecodeConfig(request, mimeType, isOpaque = false)
         val config = decodeConfig.colorType.safeToSoftware()
@@ -239,10 +238,10 @@ class EncryptedRawImageDecoder(
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
             ?: throw IllegalStateException("Failed to decode bitmap for $mimeType")
         
-        val resize = requestContext.computeResize(imageInfo.size)
+        val resize = requestContext.computeResize(getImageInfo().size)
         return ImageData(
             image = bitmap.asImage(),
-            imageInfo = imageInfo,
+            imageInfo = getImageInfo(),
             dataFrom = dataSource.dataFrom,
             resize = resize,
             transformeds = null,
@@ -253,6 +252,8 @@ class EncryptedRawImageDecoder(
     class Factory : Decoder.Factory {
 
         override val key: String = "EncryptedRawImageDecoder"
+
+        override val sortWeight: Int = 0
         
         private val supportedMimeTypes = listOf(
             "image/gif",

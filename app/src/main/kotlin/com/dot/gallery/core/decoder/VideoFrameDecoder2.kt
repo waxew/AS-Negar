@@ -43,7 +43,7 @@ import com.github.panpf.sketch.util.Size
 import com.github.panpf.sketch.util.div
 
 fun ComponentRegistry.Builder.supportVideoFrame2(): ComponentRegistry.Builder = apply {
-    addDecoder(VideoFrameDecoder2.Factory())
+    add(VideoFrameDecoder2.Factory())
 }
 
 /**
@@ -89,6 +89,8 @@ class VideoFrameDecoder2(
     class Factory : Decoder.Factory {
 
         override val key: String = "VideoFrameDecoder"
+
+        override val sortWeight: Int = 0
 
         override fun create(
             requestContext: RequestContext,
@@ -147,8 +149,13 @@ class VideoFrameDecodeHelper2(
     private val mimeType: String,
 ) : DecodeHelper {
 
-    override val imageInfo: ImageInfo by lazy { readImageInfo() }
-    override val supportRegion: Boolean = false
+    private var _cachedImageInfo: ImageInfo? = null
+
+    override suspend fun getImageInfo(): ImageInfo {
+        return _cachedImageInfo ?: readImageInfo().also { _cachedImageInfo = it }
+    }
+
+    override suspend fun isSupportRegion(): Boolean = false
 
     private val mediaMetadataRetriever by lazy {
         MediaMetadataRetriever().apply {
@@ -163,13 +170,13 @@ class VideoFrameDecodeHelper2(
     private val exifOrientation: Int by lazy { readExifOrientation() }
     private val exifOrientationHelper by lazy { ExifOrientationHelper(exifOrientation) }
 
-    override fun decode(sampleSize: Int): Image {
+    override suspend fun decode(sampleSize: Int): Image {
         val frameMicros = 0L
         val option = request.videoFrameOption ?: MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-        val imageSize = imageInfo.size
+        val imageSize = getImageInfo().size
         val dstSize = imageSize / sampleSize.toFloat()
 
-        val config = DecodeConfig(request, imageInfo.mimeType, isOpaque = false)
+        val config = DecodeConfig(request, getImageInfo().mimeType, isOpaque = false)
         val bitmapParams = BitmapParams().apply {
             config.colorType?.also { preferredConfig = it }
         }
@@ -192,7 +199,7 @@ class VideoFrameDecodeHelper2(
         return correctedBitmap.asImage()
     }
 
-    override fun decodeRegion(region: Rect, sampleSize: Int): Image {
+    override suspend fun decodeRegion(region: Rect, sampleSize: Int): Image {
         throw UnsupportedOperationException("Unsupported region decode")
     }
 
