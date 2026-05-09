@@ -905,7 +905,7 @@ fun <T : Media> MediaViewScreen(
                 onLock = {
                     isLocked = !isLocked
                 },
-                castButton = { followTheme ->
+                castButton = if (fcastVm.isCastAvailable()) { { followTheme ->
                     CastButton(
                         isConnected = fcastState.connectedDevice != null,
                         isConnecting = fcastState.isConnecting,
@@ -921,8 +921,8 @@ fun <T : Media> MediaViewScreen(
                             }
                         }
                     )
-                },
-                castBanner = if (fcastState.connectedDevice != null) {
+                } } else null,
+                castBanner = if (fcastVm.isCastAvailable() && fcastState.connectedDevice != null) {
                     {
                         CastStatusBanner(
                             deviceName = fcastState.connectedDevice?.name ?: "",

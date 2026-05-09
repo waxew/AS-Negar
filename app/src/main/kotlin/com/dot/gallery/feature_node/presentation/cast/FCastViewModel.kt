@@ -29,6 +29,7 @@ class FCastViewModel @Inject constructor(
     val isConnected: Boolean get() = session.isConnected
     val isCasting: Boolean get() = session.isCasting
 
+    fun isCastAvailable(): Boolean = session.isCastAvailable()
     fun checkPermissions(): List<CastPermission> = session.checkPermissions()
     fun hasAllPermissions(): Boolean = session.hasAllPermissions()
 
