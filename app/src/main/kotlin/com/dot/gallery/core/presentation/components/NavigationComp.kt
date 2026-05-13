@@ -50,8 +50,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants
+import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.feature_node.presentation.util.AppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
+import com.dot.gallery.feature_node.domain.model.Album
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.dot.gallery.core.Constants.Animation.navigateInAnimation
 import com.dot.gallery.core.Constants.Animation.navigateUpAnimation
@@ -88,6 +91,7 @@ import com.dot.gallery.feature_node.presentation.collection.CollectionAlbumSelec
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewScreen
 import com.dot.gallery.feature_node.presentation.dateformat.DateFormatScreen
 import com.dot.gallery.feature_node.presentation.exif.MetadataViewScreen
+import com.dot.gallery.feature_node.presentation.exif.MetadataViewViewModel
 import com.dot.gallery.feature_node.presentation.favorites.FavoriteScreen
 import com.dot.gallery.feature_node.presentation.help.HelpScreen
 import com.dot.gallery.feature_node.presentation.help.TutorialCategoryScreen
@@ -276,9 +280,9 @@ fun NavigationComp(
             ) {
                 val albumsViewModel = hiltViewModel<AlbumsViewModel>()
                 val scope = rememberCoroutineScope()
-                var pendingAlbum by remember { mutableStateOf<com.dot.gallery.feature_node.domain.model.Album?>(null) }
+                var pendingAlbum by remember { mutableStateOf<Album?>(null) }
                 var biometricAction by remember { mutableStateOf<String?>(null) }
-                var pendingLockAlbum by remember { mutableStateOf<com.dot.gallery.feature_node.domain.model.Album?>(null) }
+                var pendingLockAlbum by remember { mutableStateOf<Album?>(null) }
                 val securitySheetState = rememberAppBottomSheetState()
                 val lockDisclaimerSheetState = rememberAppBottomSheetState()
                 val biometricState = rememberBiometricState(
@@ -301,7 +305,7 @@ fun NavigationComp(
                         biometricAction = null
                     }
                 )
-                val onAlbumClickWithLock: (com.dot.gallery.feature_node.domain.model.Album) -> Unit = remember(biometricState) {
+                val onAlbumClickWithLock: (Album) -> Unit = remember(biometricState) {
                     { album ->
                         if (album.isLocked) {
                             if (!biometricState.isSupported) {
@@ -316,7 +320,7 @@ fun NavigationComp(
                         }
                     }
                 }
-                val onLockAlbumWithCheck: (com.dot.gallery.feature_node.domain.model.Album) -> Unit = remember(biometricState) {
+                val onLockAlbumWithCheck: (Album) -> Unit = remember(biometricState) {
                     { album ->
                         if (!biometricState.isSupported) {
                             scope.launch { securitySheetState.show() }
@@ -343,11 +347,11 @@ fun NavigationComp(
                 var groupDialogMode by remember { mutableStateOf("create") }
                 var groupDialogGroupId by remember { mutableStateOf<Long?>(null) }
                 var groupDialogInitialName by remember { mutableStateOf("") }
-                var pendingGroupAlbum by remember { mutableStateOf<com.dot.gallery.feature_node.domain.model.Album?>(null) }
+                var pendingGroupAlbum by remember { mutableStateOf<Album?>(null) }
                 val deleteGroupSheetState = rememberAppBottomSheetState()
                 var pendingDeleteGroupId by remember { mutableStateOf<Long?>(null) }
 
-                val distributor = com.dot.gallery.core.LocalMediaDistributor.current
+                val distributor = LocalMediaDistributor.current
                 val albumsStateForGroups by distributor.albumsFlow.collectAsStateWithLifecycle()
 
                 AlbumGroupSheet(
@@ -804,10 +808,10 @@ fun NavigationComp(
             ) {
                 val categoriesViewModel = hiltViewModel<CategoriesViewModel>()
                 val categoriesWithCount by categoriesViewModel.categoriesWithCount.collectAsStateWithLifecycle()
-                val distributor = com.dot.gallery.core.LocalMediaDistributor.current
+                val distributor = LocalMediaDistributor.current
                 val categoryMediaState by distributor.timelineMediaFlow.collectAsStateWithLifecycle(
-                    context = kotlinx.coroutines.Dispatchers.IO,
-                    initialValue = com.dot.gallery.feature_node.domain.model.MediaState()
+                    context = Dispatchers.IO,
+                    initialValue = MediaState()
                 )
                 CategoriesScreen(
                     categoriesWithCount = categoriesWithCount,
@@ -1096,7 +1100,7 @@ fun NavigationComp(
                     backStackEntry.arguments?.getLong("collectionId") ?: -1
                 }
 
-                val distributor = com.dot.gallery.core.LocalMediaDistributor.current
+                val distributor = LocalMediaDistributor.current
                 val collectionMediaFlow = remember(collectionId) {
                     distributor.collectionMediaFlow(collectionId)
                 }
@@ -1250,7 +1254,7 @@ fun NavigationComp(
                 val isVideo = remember(backStackEntry) {
                     backStackEntry.arguments?.getBoolean("isVideo") ?: false
                 }
-                val metadataViewViewModel = hiltViewModel<com.dot.gallery.feature_node.presentation.exif.MetadataViewViewModel>()
+                val metadataViewViewModel = hiltViewModel<MetadataViewViewModel>()
                 val metadataViewState by metadataViewViewModel.state.collectAsStateWithLifecycle()
                 LaunchedEffect(mediaUri) {
                     metadataViewViewModel.loadMetadata(mediaUri, isVideo)

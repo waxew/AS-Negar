@@ -1,6 +1,7 @@
 package com.dot.gallery.core.decoder
 
 import android.graphics.Bitmap
+import android.util.Size as AndroidSize
 import com.github.panpf.sketch.asImage
 import com.github.panpf.sketch.request.ImageData
 import com.github.panpf.sketch.decode.ImageInfo
@@ -15,11 +16,11 @@ import kotlin.math.roundToInt
 inline fun DataSource.getImageInfo(
     requestContext: RequestContext,
     mimeType: String,
-    getSize: (ByteArray) -> android.util.Size?
+    getSize: (ByteArray) -> AndroidSize?
 ): ImageInfo {
     openSource().use { src ->
         val sourceData = src.buffer().readByteArray()
-        val originalSizeDecoded = getSize(sourceData) ?: android.util.Size(0, 0)
+        val originalSizeDecoded = getSize(sourceData) ?: AndroidSize(0, 0)
         val size = if (requestContext.size == Size.Origin) {
             Size(originalSizeDecoded.width, originalSizeDecoded.height)
         } else {
@@ -43,13 +44,13 @@ inline fun DataSource.getImageInfo(
 inline fun DataSource.withCustomDecoder(
     requestContext: RequestContext,
     mimeType: String,
-    getSize: (ByteArray) -> android.util.Size?,
+    getSize: (ByteArray) -> AndroidSize?,
     decodeSampled: (ByteArray, Int, Int) -> Bitmap
 ): ImageData = openSource().use { src ->
     val sourceData = src.buffer().readByteArray()
 
     var transformeds: List<String>? = null
-    val originalSizeDecoded = getSize(sourceData) ?: android.util.Size(0, 0)
+    val originalSizeDecoded = getSize(sourceData) ?: AndroidSize(0, 0)
     val originalSize = Size(originalSizeDecoded.width, originalSizeDecoded.height)
     val targetSize = requestContext.size
     val scale = calculateScaleMultiplierWithOneSide(

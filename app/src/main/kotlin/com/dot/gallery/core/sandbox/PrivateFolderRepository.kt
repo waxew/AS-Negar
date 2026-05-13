@@ -9,6 +9,7 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.core.net.toUri
 import com.dot.gallery.feature_node.presentation.util.printDebug
 import com.dot.gallery.feature_node.presentation.util.printWarning
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +57,7 @@ class PrivateFolderRepository(private val context: Context) {
             return@flow
         }
 
-        val treeUri = Uri.parse(uriString)
+        val treeUri = uriString.toUri()
         val rootDocUri = DocumentsContract.buildChildDocumentsUriUsingTree(
             treeUri, DocumentsContract.getTreeDocumentId(treeUri)
         )

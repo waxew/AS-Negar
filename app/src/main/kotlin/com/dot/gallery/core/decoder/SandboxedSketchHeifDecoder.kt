@@ -6,6 +6,7 @@
 package com.dot.gallery.core.decoder
 
 import android.graphics.Bitmap
+import android.util.Size as AndroidSize
 import com.dot.gallery.core.sandbox.SandboxedDecoderHolder
 import com.github.panpf.sketch.ComponentRegistry
 import com.github.panpf.sketch.asImage
@@ -79,7 +80,7 @@ class SandboxedSketchHeifDecoder(
         return dataSource.openSource().use { src ->
             val sourceData = src.buffer().readByteArray()
 
-            val originalSize = sizeGetter.getSize(sourceData) ?: android.util.Size(0, 0)
+            val originalSize = sizeGetter.getSize(sourceData) ?: AndroidSize(0, 0)
             val originalSketchSize = Size(originalSize.width, originalSize.height)
             val targetSize = requestContext.size
             val scale = calculateScaleMultiplierWithOneSide(

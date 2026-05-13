@@ -8,6 +8,7 @@ package com.dot.gallery.feature_node.presentation.exif
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dot.gallery.core.Settings
@@ -48,7 +49,7 @@ class MetadataViewViewModel @Inject constructor(
     fun loadMetadata(mediaUri: String, isVideo: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             _state.value = MetadataViewState(isLoading = true)
-            val uri = Uri.parse(mediaUri)
+            val uri = mediaUri.toUri()
             val directories = runCatching {
                 val mode = Settings.Security.getMetadataIsolationMode(appContext)
                     .firstOrNull() ?: Settings.Security.METADATA_ISOLATION_SHARED

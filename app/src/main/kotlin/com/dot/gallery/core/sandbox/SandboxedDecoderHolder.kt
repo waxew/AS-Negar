@@ -5,6 +5,7 @@
 
 package com.dot.gallery.core.sandbox
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.dot.gallery.core.Settings
 import kotlinx.coroutines.flow.firstOrNull
@@ -17,6 +18,7 @@ import kotlinx.coroutines.runBlocking
  * Decoders call [isEnabled] to check the user's sandboxed-decode preference
  * and [decoder] to obtain the shared instance.
  */
+@SuppressLint("StaticFieldLeak")
 object SandboxedDecoderHolder {
 
     @Volatile

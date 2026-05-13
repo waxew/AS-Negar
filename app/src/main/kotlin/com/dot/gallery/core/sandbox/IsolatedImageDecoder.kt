@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
@@ -189,7 +190,7 @@ class IsolatedImageDecoder(private val context: Context) {
             } catch (_: Exception) {
                 Bitmap.Config.ARGB_8888
             }
-            val bitmap = Bitmap.createBitmap(width, height, config)
+            val bitmap = createBitmap(width, height, config)
             val outputBuffer = outputShm.mapReadOnly()
             bitmap.copyPixelsFromBuffer(outputBuffer)
             SharedMemory.unmap(outputBuffer)

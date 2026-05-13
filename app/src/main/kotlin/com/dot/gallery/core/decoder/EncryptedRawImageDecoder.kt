@@ -179,14 +179,13 @@ class EncryptedRawImageDecoder(
     private suspend fun decodeWebP(bytes: ByteArray): ImageData {
         val isAnimated = isAnimatedWebP(bytes)
         
-        return if (isAnimated && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        return if (isAnimated) {
             decodeAnimatedWebP(bytes)
         } else {
             decodeStaticBitmap(bytes)
         }
     }
     
-    @RequiresApi(Build.VERSION_CODES.P)
     private suspend fun decodeAnimatedWebP(bytes: ByteArray): ImageData {
         val request = requestContext.request
         

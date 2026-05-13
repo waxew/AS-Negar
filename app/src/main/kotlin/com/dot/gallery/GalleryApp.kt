@@ -5,6 +5,7 @@
 
 package com.dot.gallery
 
+import android.annotation.SuppressLint
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -49,6 +50,7 @@ import javax.inject.Inject
 @HiltAndroidApp
 class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provider {
 
+    @SuppressLint("NewApi")
     override fun createSketch(context: PlatformContext): Sketch = Sketch.Builder(this).apply {
         components {
             supportPauseLoadWhenScrolling()

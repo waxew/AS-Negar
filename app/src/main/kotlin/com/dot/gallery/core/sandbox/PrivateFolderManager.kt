@@ -7,8 +7,10 @@ package com.dot.gallery.core.sandbox
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
+import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import android.provider.DocumentsContract
 import com.dot.gallery.core.activeDataStore
@@ -82,7 +84,7 @@ object PrivateFolderManager {
         if (!currentUri.isNullOrEmpty()) {
             try {
                 context.contentResolver.releasePersistableUriPermission(
-                    Uri.parse(currentUri),
+                    currentUri.toUri(),
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or
                             Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 )
@@ -104,7 +106,7 @@ object PrivateFolderManager {
     suspend fun clearFolderAndReveal(context: Context) {
         val currentUri = getUri(context).firstOrNull()
         if (!currentUri.isNullOrEmpty()) {
-            val uri = Uri.parse(currentUri)
+            val uri = currentUri.toUri()
             removeNoMedia(context, uri)
             triggerMediaScan(context, uri)
         }
@@ -125,7 +127,7 @@ object PrivateFolderManager {
      */
     fun hasValidPermission(context: Context, uriString: String): Boolean {
         if (uriString.isEmpty()) return false
-        val uri = Uri.parse(uriString)
+        val uri = uriString.toUri()
         return context.contentResolver.persistedUriPermissions.any {
             it.uri == uri && it.isReadPermission
         }
@@ -232,7 +234,7 @@ object PrivateFolderManager {
                 }
             }
             if (urisToScan.isNotEmpty()) {
-                android.media.MediaScannerConnection.scanFile(
+                MediaScannerConnection.scanFile(
                     context,
                     urisToScan.map { it.toString() }.toTypedArray(),
                     null,

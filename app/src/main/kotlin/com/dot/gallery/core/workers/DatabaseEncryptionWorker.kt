@@ -6,6 +6,7 @@
 package com.dot.gallery.core.workers
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
@@ -46,11 +47,11 @@ class DatabaseEncryptionWorker @AssistedInject constructor(
         if (encrypt) {
             // Mark that encrypted DB should be used on next restart.
             // The actual encryption happens when AppModule re-creates the DB singleton.
-            sp.edit().putBoolean(FLAG_ENCRYPTED_DB, true).apply()
+            sp.edit {putBoolean(FLAG_ENCRYPTED_DB, true)}
             printDebug("DatabaseEncryptionWorker: flagged for encrypted DB on next restart")
         } else {
             // Mark that plaintext DB should be used on next restart.
-            sp.edit().putBoolean(FLAG_ENCRYPTED_DB, false).apply()
+            sp.edit {putBoolean(FLAG_ENCRYPTED_DB, false)}
             printDebug("DatabaseEncryptionWorker: flagged for plaintext DB on next restart")
         }
 

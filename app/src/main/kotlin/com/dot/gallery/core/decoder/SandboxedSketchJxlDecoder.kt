@@ -5,6 +5,7 @@
 
 package com.dot.gallery.core.decoder
 
+import android.util.Size as AndroidSize
 import com.awxkee.jxlcoder.JxlCoder
 import com.dot.gallery.core.decoder.SketchJxlDecoder.Factory.Companion.JXL_MIMETYPE
 import com.dot.gallery.core.sandbox.SandboxedDecoderHolder
@@ -76,7 +77,7 @@ class SandboxedSketchJxlDecoder(
         return dataSource.openSource().use { src ->
             val sourceData = src.buffer().readByteArray()
 
-            val originalSize = JxlCoder.getSize(sourceData) ?: android.util.Size(0, 0)
+            val originalSize = JxlCoder.getSize(sourceData) ?: AndroidSize(0, 0)
             val originalSketchSize = Size(originalSize.width, originalSize.height)
             val targetSize = requestContext.size
             val scale = calculateScaleMultiplierWithOneSide(

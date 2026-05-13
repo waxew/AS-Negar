@@ -3,6 +3,7 @@ package com.dot.gallery.core.workers
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.core.net.toUri
@@ -114,7 +115,7 @@ class MediaCopyWorker @AssistedInject constructor(
         }
     }
 
-    private suspend fun copyOne(src: android.net.Uri, relPath: String, onBytesCopied: suspend (Int) -> Unit = {}): Boolean =
+    private suspend fun copyOne(src: Uri, relPath: String, onBytesCopied: suspend (Int) -> Unit = {}): Boolean =
         withContext(Dispatchers.IO) {
             val cr: ContentResolver = appContext.contentResolver
             try {
@@ -147,12 +148,10 @@ class MediaCopyWorker @AssistedInject constructor(
 
                 val updateValues = ContentValues().apply {
                     put(MediaStore.MediaColumns.IS_PENDING, 0)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        put(
-                            MediaStore.MediaColumns.DATE_MODIFIED,
-                            System.currentTimeMillis() / 1000
-                        )
-                    }
+                    put(
+                        MediaStore.MediaColumns.DATE_MODIFIED,
+                        System.currentTimeMillis() / 1000
+                    )
                 }
                 return@withContext cr.update(targetUri, updateValues, null, null) > 0
             } catch (e: IOException) {

@@ -8,6 +8,7 @@ package com.dot.gallery.feature_node.presentation.mediaview
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Rect
+import androidx.core.graphics.createBitmap
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -529,9 +530,7 @@ fun <T : Media> MediaViewScreen(
                 if (screenW > 0 && screenH > 0) {
                     val captureH = (captureW * screenH.toFloat() / screenW)
                         .toInt().coerceAtLeast(1)
-                    val dest = Bitmap.createBitmap(
-                        captureW, captureH, Bitmap.Config.ARGB_8888
-                    )
+                    val dest = createBitmap(captureW, captureH)
                     capturing.set(true)
                     try {
                         PixelCopy.request(

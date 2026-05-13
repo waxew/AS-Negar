@@ -7,6 +7,7 @@ package com.dot.gallery.core.encryption
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
+import androidx.core.content.edit
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.room.Room
@@ -49,7 +50,7 @@ object EncryptedDatabaseFactory {
         // previous failed attempts (which used raw bytes instead of hex).
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(FLAG_DB_ENCRYPTED, false)) {
-            prefs.edit().remove(PREF_WRAPPED_PASSPHRASE).apply()
+            prefs.edit {remove(PREF_WRAPPED_PASSPHRASE)}
         }
 
         val passphrase = getOrCreatePassphrase(context)
@@ -93,7 +94,7 @@ object EncryptedDatabaseFactory {
         val dbFile = context.getDatabasePath(InternalDatabase.NAME)
         if (!dbFile.exists() || dbFile.length() == 0L) {
             // No existing DB — mark as encrypted (will be created encrypted by Room)
-            flags.edit().putBoolean(FLAG_DB_ENCRYPTED, true).apply()
+            flags.edit {putBoolean(FLAG_DB_ENCRYPTED, true)}
             return
         }
 
@@ -161,7 +162,7 @@ object EncryptedDatabaseFactory {
             File(backupFile.absolutePath + "-shm").delete()
             backupFile.delete()
 
-            flags.edit().putBoolean(FLAG_DB_ENCRYPTED, true).apply()
+            flags.edit {putBoolean(FLAG_DB_ENCRYPTED, true)}
             printDebug("EncryptedDatabaseFactory: migrated plaintext DB → encrypted via sqlcipher_export")
         } catch (e: Exception) {
             printWarning("EncryptedDatabaseFactory: migration failed: ${e.message}")
@@ -181,7 +182,7 @@ object EncryptedDatabaseFactory {
             }
             // Clear stale passphrase so next attempt generates a fresh one.
             // Do NOT mark as encrypted — let the plaintext fallback handle it.
-            flags.edit().remove(PREF_WRAPPED_PASSPHRASE).apply()
+            flags.edit {remove(PREF_WRAPPED_PASSPHRASE)}
             throw e
         }
     }
@@ -215,10 +216,10 @@ object EncryptedDatabaseFactory {
         } catch (e: Exception) {
             printWarning("EncryptedDatabaseFactory: passphrase validation failed, resetting: ${e.message}")
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putBoolean(FLAG_DB_ENCRYPTED, false)
-                .remove(PREF_WRAPPED_PASSPHRASE)
-                .apply()
+            prefs.edit {
+                putBoolean(FLAG_DB_ENCRYPTED, false)
+                remove(PREF_WRAPPED_PASSPHRASE)
+            }
             throw e
         }
     }
@@ -248,7 +249,7 @@ object EncryptedDatabaseFactory {
             val passphrase = random.joinToString("") { "%02x".format(it) }
                 .toByteArray(Charsets.UTF_8)
             val wrapped = wrapPassphrase(key, passphrase)
-            prefs.edit().putString(PREF_WRAPPED_PASSPHRASE, wrapped).apply()
+            prefs.edit {putString(PREF_WRAPPED_PASSPHRASE, wrapped)}
             printDebug("EncryptedDatabaseFactory: generated and wrapped new passphrase")
             passphrase
         }

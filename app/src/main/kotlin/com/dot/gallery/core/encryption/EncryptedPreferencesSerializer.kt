@@ -10,7 +10,9 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.datastore.core.Serializer
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.PreferencesSerializer
 import androidx.datastore.preferences.core.emptyPreferences
+import java.io.ByteArrayOutputStream
 import com.dot.gallery.feature_node.presentation.util.printDebug
 import com.dot.gallery.feature_node.presentation.util.printWarning
 import okio.buffer
@@ -88,8 +90,8 @@ class EncryptedPreferencesSerializer(context: Context) : Serializer<Preferences>
     override suspend fun writeTo(t: Preferences, output: OutputStream) {
         try {
             // Serialize preferences to proto bytes via Okio
-            val protoSerializer = androidx.datastore.preferences.core.PreferencesSerializer
-            val plainStream = java.io.ByteArrayOutputStream()
+            val protoSerializer = PreferencesSerializer
+            val plainStream = ByteArrayOutputStream()
             plainStream.sink().buffer().use { sink -> protoSerializer.writeTo(t, sink) }
             val plainBytes = plainStream.toByteArray()
 

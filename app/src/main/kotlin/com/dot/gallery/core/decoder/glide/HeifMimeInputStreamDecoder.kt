@@ -2,6 +2,7 @@ package com.dot.gallery.core.decoder.glide
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
 import com.bumptech.glide.load.Options
 import com.bumptech.glide.load.ResourceDecoder
 import com.bumptech.glide.load.engine.Resource
@@ -34,7 +35,7 @@ class HeifMimeInputStreamDecoder(
             val bytes = source.inputStream.readBytes()
             core.decodeBytes(bytes, width, height, source.mimeType).resource
         } catch (e: Throwable) {
-            android.util.Log.e("HeifMimeDecoder", "stream read failed mime=${source.mimeType}: ${e.message}", e)
+            Log.e("HeifMimeDecoder", "stream read failed mime=${source.mimeType}: ${e.message}", e)
             null
         }
     }

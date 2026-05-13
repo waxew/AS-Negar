@@ -147,13 +147,14 @@ suspend fun ContentResolver.overrideImage(
     format: Bitmap.CompressFormat = Bitmap.CompressFormat.PNG
 ): Boolean = withContext(Dispatchers.IO) {
     runCatching {
-        update(uri, ContentValues(), null)
+        update(uri, ContentValues(), null, null)
         openOutputStream(uri)?.use { out ->
             if (!bitmap.compress(format, 100, out)) throw IOException("Compression failed")
         } ?: throw IOException("Stream open failed")
         update(
             uri,
             ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+            null,
             null
         ) > 0
     }.getOrElse {
@@ -323,6 +324,7 @@ suspend fun <T : Media> Context.renameMedia(media: T, newName: String): Boolean 
             contentResolver.update(
                 media.getUri(),
                 ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, newName) },
+                null,
                 null
             ) > 0
         }.onSuccess {
@@ -341,7 +343,7 @@ suspend fun <T : Media> Context.updateMedia(
     contentValues: ContentValues
 ): Boolean = withContext(Dispatchers.IO) {
     runCatching {
-        contentResolver.update(media.getUri(), contentValues, null) > 0
+        contentResolver.update(media.getUri(), contentValues, null, null) > 0
     }.onSuccess {
         MediaScannerConnection.scanFile(
             this@updateMedia, arrayOf(media.path.removeSuffix(media.label)),
@@ -412,13 +414,10 @@ suspend fun ContentResolver.overrideImage(
             } else null
 
         // 3. Mark pending (scoped storage) to reduce race (best effort)
-        val canPending = Build.VERSION.SDK_INT >= 29
-        if (canPending) {
-            runCatching {
-                update(uri, ContentValues().apply {
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }, null, null)
-            }
+        runCatching {
+            update(uri, ContentValues().apply {
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }, null, null)
         }
 
         // 4. Encode into memory first (atomic style) so we fail early
@@ -432,7 +431,7 @@ suspend fun ContentResolver.overrideImage(
         sizeLimitBytes?.let { limit ->
             if (encoded.size.toLong() > limit) {
                 onSizeLimitExceeded?.invoke(encoded.size.toLong())
-                if (canPending) clearPendingQuiet(uri)
+                clearPendingQuiet(uri)
                 return@runCatching false
             }
         }
@@ -484,7 +483,7 @@ suspend fun ContentResolver.overrideImage(
         if (recycleSource) runCatching { bitmap.recycle() }
 
         // 8. Clear pending
-        if (canPending) clearPendingQuiet(uri)
+        clearPendingQuiet(uri)
 
         true
     }.getOrElse {
