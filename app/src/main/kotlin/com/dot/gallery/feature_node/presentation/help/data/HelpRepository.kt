@@ -22,8 +22,11 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Panorama
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.ZoomIn
 import com.dot.gallery.R
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -49,8 +52,8 @@ object HelpRepository {
     fun getExploreMoreCategories() = listOf(
         HelpCategory.FAVORITES_TRASH, HelpCategory.LOCATIONS, HelpCategory.METADATA,
         HelpCategory.SETTINGS_APPEARANCE, HelpCategory.SETTINGS_GENERAL, HelpCategory.SETTINGS_NAVIGATION,
-        HelpCategory.SETTINGS_SMART, HelpCategory.GESTURES, HelpCategory.SELECTION_ACTIONS,
-        HelpCategory.ACCESSIBILITY
+        HelpCategory.SETTINGS_SMART, HelpCategory.SETTINGS_SECURITY, HelpCategory.GESTURES,
+        HelpCategory.SELECTION_ACTIONS, HelpCategory.ACCESSIBILITY
     )
 
     // region Get Started: Basics
@@ -665,6 +668,30 @@ object HelpRepository {
                 TutorialPage(title = R.string.help_tip_settings_edit_backups_p2_title, description = R.string.help_tip_settings_edit_backups_p2_desc, steps = listOf(R.string.help_tip_settings_edit_backups_p2_s1, R.string.help_tip_settings_edit_backups_p2_s2, R.string.help_tip_settings_edit_backups_p2_s3))
             ), sinceVersion = "4.0.0")
     )
+
+    private val SETTINGS_SECURITY_TIPS = listOf(
+        HelpTip(id = "security_sandbox", title = R.string.help_tip_security_sandbox_title, subtitle = R.string.help_tip_security_sandbox_subtitle,
+            icon = HelpIcon.ofVector(Icons.Outlined.Security), category = HelpCategory.SETTINGS_SECURITY,
+            deepLink = Screen.SettingsSecurityScreen(),
+            pages = listOf(
+                TutorialPage(title = R.string.help_tip_security_sandbox_p1_title, description = R.string.help_tip_security_sandbox_p1_desc),
+                TutorialPage(title = R.string.help_tip_security_sandbox_p2_title, description = R.string.help_tip_security_sandbox_p2_desc, steps = listOf(R.string.help_tip_security_sandbox_p2_s1, R.string.help_tip_security_sandbox_p2_s2, R.string.help_tip_security_sandbox_p2_s3))
+            ), sinceVersion = "4.2.2"),
+        HelpTip(id = "security_encrypted_storage", title = R.string.help_tip_security_encrypted_storage_title, subtitle = R.string.help_tip_security_encrypted_storage_subtitle,
+            icon = HelpIcon.ofVector(Icons.Outlined.Storage), category = HelpCategory.SETTINGS_SECURITY,
+            deepLink = Screen.SettingsSecurityScreen(),
+            pages = listOf(
+                TutorialPage(title = R.string.help_tip_security_encrypted_storage_p1_title, description = R.string.help_tip_security_encrypted_storage_p1_desc),
+                TutorialPage(title = R.string.help_tip_security_encrypted_storage_p2_title, description = R.string.help_tip_security_encrypted_storage_p2_desc, steps = listOf(R.string.help_tip_security_encrypted_storage_p2_s1, R.string.help_tip_security_encrypted_storage_p2_s2, R.string.help_tip_security_encrypted_storage_p2_s3))
+            ), sinceVersion = "4.2.2"),
+        HelpTip(id = "security_private_folder", title = R.string.help_tip_security_private_folder_title, subtitle = R.string.help_tip_security_private_folder_subtitle,
+            icon = HelpIcon.ofVector(Icons.Outlined.Shield), category = HelpCategory.SETTINGS_SECURITY,
+            deepLink = Screen.SettingsSecurityScreen(),
+            pages = listOf(
+                TutorialPage(title = R.string.help_tip_security_private_folder_p1_title, description = R.string.help_tip_security_private_folder_p1_desc),
+                TutorialPage(title = R.string.help_tip_security_private_folder_p2_title, description = R.string.help_tip_security_private_folder_p2_desc, steps = listOf(R.string.help_tip_security_private_folder_p2_s1, R.string.help_tip_security_private_folder_p2_s2, R.string.help_tip_security_private_folder_p2_s3))
+            ), sinceVersion = "4.2.2")
+    )
     // endregion
 
     // region Gestures & Selection
@@ -729,9 +756,23 @@ object HelpRepository {
         EDITING_TIPS + SEARCH_TIPS + AI_TIPS + ALBUM_TIPS + VAULT_TIPS +
         FAV_TRASH_TIPS + LOCATION_TIPS + METADATA_TIPS +
         SETTINGS_APPEARANCE_TIPS + SETTINGS_GENERAL_TIPS + SETTINGS_NAV_TIPS + SETTINGS_SMART_TIPS +
-        GESTURE_TIPS + SELECTION_TIPS + ACCESSIBILITY_TIPS
+        SETTINGS_SECURITY_TIPS + GESTURE_TIPS + SELECTION_TIPS + ACCESSIBILITY_TIPS
 
     private val ALL_RELEASES: List<ReleaseNotes> = listOf(
+        ReleaseNotes(
+            versionName = "4.2.2",
+            versionCode = 42201,
+            releaseDate = "2026-05-13",
+            highlights = listOf(
+                ReleaseHighlight(tipId = "security_sandbox", title = R.string.help_release_422_security_hardening_title, description = R.string.help_release_422_security_hardening_desc, icon = HelpIcon.ofVector(Icons.Outlined.Shield)),
+                ReleaseHighlight(tipId = "security_sandbox", title = R.string.help_release_422_sandboxed_decoding_title, description = R.string.help_release_422_sandboxed_decoding_desc, icon = HelpIcon.ofVector(Icons.Outlined.Security)),
+                ReleaseHighlight(tipId = "security_sandbox", title = R.string.help_release_422_isolated_metadata_title, description = R.string.help_release_422_isolated_metadata_desc, icon = HelpIcon.ofVector(Icons.Outlined.Security)),
+                ReleaseHighlight(tipId = "security_private_folder", title = R.string.help_release_422_private_folder_title, description = R.string.help_release_422_private_folder_desc, icon = HelpIcon.ofVector(Icons.Outlined.Shield)),
+                ReleaseHighlight(tipId = "security_encrypted_storage", title = R.string.help_release_422_encrypted_storage_title, description = R.string.help_release_422_encrypted_storage_desc, icon = HelpIcon.ofVector(Icons.Outlined.Storage)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_422_rescan_tracking_title, description = R.string.help_release_422_rescan_tracking_desc, icon = HelpIcon.ofVector(Icons.Outlined.Settings)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_422_bugfixes_title, description = R.string.help_release_422_bugfixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.BugReport))
+            )
+        ),
         ReleaseNotes(
             versionName = "4.2.1",
             versionCode = 42101,

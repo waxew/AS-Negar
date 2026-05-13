@@ -986,6 +986,7 @@
     <string name="help_cat_settings_general">Settings: General</string>
     <string name="help_cat_settings_navigation">Settings: Navigation</string>
     <string name="help_cat_settings_smart">Settings: Smart features</string>
+    <string name="help_cat_settings_security">Settings: Security</string>
     <string name="help_cat_gestures">Gestures &amp; shortcuts</string>
     <string name="help_cat_selection_actions">Selection &amp; batch actions</string>
     <string name="help_cat_accessibility">Accessibility &amp; advanced</string>

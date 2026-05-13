@@ -1,22 +1,20 @@
-## What's new in 4.2.1
+## What's new in 4.2.2
+
+### Security Hardening
+
+- **App Sandbox Protection** — `targetSandboxVersion=2` enforces stricter process isolation at the OS level. All file processing is gated through configurable sandbox modes.
+- **Sandboxed Image Decoding** — HEIF, AVIF, and JXL images are decoded in isolated system processes via `SharedMemory`. If a malicious file exploits a decoder vulnerability, the damage is contained in the sandbox and cannot reach the main app.
+- **Isolated Metadata Parsing** — EXIF and metadata extraction runs in per-file sandbox processes. Three modes available: Shared (default, single reused process), Hybrid (per-file for opened files, shared for batch), and Per-file (true per-file isolation for everything).
+- **Private Folder** — Store sensitive files outside MediaStore using Android's Storage Access Framework (SAF). Files are hidden from the normal timeline, not indexed by other apps, and protected behind the app's security gate.
+- **Encrypted Storage** — Opt-in encryption for app preferences (AES-256-GCM with Android Keystore) and Room database (SQLCipher). Protects trash index, categories, and internal data at rest — even on rooted devices.
 
 ### New Features
 
-- **FCast Video Casting** — Cast videos and images to FCast-compatible devices on your local network. Includes mDNS device discovery, remote playback controls (play, pause, seek, volume, speed), local streaming server, and encrypted vault media casting via temporary decryption.
-- **Auto-Contrast (Beta)** — Real-time luminance detection automatically enhances display contrast in the media viewer. Dark images become easier to see and bright images appear more vivid — without modifying your files.
-- **Vault Overhaul** — Complete redesign of vault security and navigation:
-  - Global gate authentication before the vault selector (None / Device Security / Custom Password)
-  - Custom per-vault passwords with independent security levels
-  - Streamlined vault creation flow: create → set password → configure gate
-  - Vault deletion returns to selector with re-authentication; last vault exits to library
-  - Unified confirmation sheets replacing duplicated dialog code
-- **Right-Align Selection Actions** — New option to push top action buttons to the right edge of the selection bar for easier one-handed reach on larger phones.
-- **NoMaps WithML Build Variant** — New build variant that includes AI models but strips all map dependencies and network permissions.
+- **Persistent Rescan Tracking** — MediaStore rescan state is now persisted in the Room database, surviving app restarts and ensuring consistent media synchronization.
 
 ### Bug Fixes & Improvements
 
-- Fixed phantom selections when media is externally deleted (#854)
-- Corrected permission list on setup screen for maps/nomaps variants
-- Capitalized ML in product flavor names (#848)
-- Improved image loading with sketch lib update (4.4.0 → 4.5.0-alpha03)
+- Fixed extremely slow AI classification by skipping NNAPI for quantized CLIP models
+- Fixed status bar icons always dark in media view when auto-contrast is off
+- Handle missing `ACCESS_NETWORK_STATE` permission gracefully instead of crashing
 
