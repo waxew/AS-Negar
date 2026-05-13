@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FolderOff
 import androidx.compose.material.icons.outlined.ImageSearch
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -44,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,6 +72,7 @@ import com.dot.gallery.BuildConfig
 import com.dot.gallery.R
 import com.dot.gallery.core.Constants.albumCellsList
 import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Album.rememberAlbumGridSize
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberNoClassification
@@ -299,6 +302,29 @@ fun LibraryScreen(
                                         eventHandler.navigate(Screen.IgnoredScreen())
                                     }
                             )
+                        }
+                        val privateFolderUri by Settings.Security.rememberPrivateFolderUri()
+                        if (privateFolderUri.isNotEmpty()) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    16.dp,
+                                    Alignment.CenterHorizontally
+                                )
+                            ) {
+                                LibrarySmallItem(
+                                    title = stringResource(R.string.security_private_folder),
+                                    icon = Icons.Outlined.FolderOff,
+                                    contentColor = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable {
+                                            eventHandler.navigate(Screen.PrivateFolderScreen())
+                                        },
+                                    contentDescription = stringResource(R.string.security_private_folder)
+                                )
+                                // Empty spacer to match the two-column layout
+                                Box(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -601,6 +627,7 @@ fun LibraryScreen(
             }
         }
     }
+
 }
 
 @Composable
