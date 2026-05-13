@@ -30,7 +30,9 @@ import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.UIEvent
 import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.VaultState
+import com.dot.gallery.feature_node.domain.model.ScannedMedia
 import com.dot.gallery.feature_node.domain.model.shouldIgnore
+import com.dot.gallery.feature_node.data.data_source.ScannedMediaDao
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.EventHandler
 import com.dot.gallery.feature_node.domain.util.MediaOrder
@@ -61,6 +63,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -75,7 +78,8 @@ class MediaDistributorImpl @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: MediaRepository,
     private val eventHandler: EventHandler,
-    workManager: WorkManager
+    workManager: WorkManager,
+    private val scannedMediaDao: ScannedMediaDao
 ) : MediaDistributor {
     
     private val sharingMethod = SharingStarted.WhileSubscribed(5_000L)
@@ -86,8 +90,17 @@ class MediaDistributorImpl @Inject constructor(
     /**
      * Tracks media IDs that have already been submitted for a MediaStore rescan
      * to avoid redundant scanning of the same files.
+     * Persisted to the Room database so entries are cleaned when media is deleted.
      */
-    private val rescanRequestedIds = ConcurrentHashMap.newKeySet<Long>()
+    private val rescanRequestedIds = ConcurrentHashMap.newKeySet<Long>().apply {
+        addAll(runBlocking { scannedMediaDao.getScannedIds() })
+    }
+
+    init {
+        appScope.launch {
+            scannedMediaDao.removeStaleEntries()
+        }
+    }
 
     /**
      * Pull-to-refresh
@@ -705,7 +718,7 @@ class MediaDistributorImpl @Inject constructor(
      * to read EXIF immediately, populating DATE_TAKEN and triggering a
      * ContentResolver change notification that refreshes the timeline.
      */
-    private fun triggerRescanForMissingDateTaken(media: List<Media.UriMedia>) {
+    private suspend fun triggerRescanForMissingDateTaken(media: List<Media.UriMedia>) {
         val toScan = media.filter { it.takenTimestamp == null && rescanRequestedIds.add(it.id) }
         if (toScan.isEmpty()) return
         val paths = toScan.mapNotNull { it.path.takeIf { p -> p.isNotBlank() } }.toTypedArray()
@@ -713,6 +726,7 @@ class MediaDistributorImpl @Inject constructor(
         if (paths.isNotEmpty()) {
             MediaScannerConnection.scanFile(context, paths, mimeTypes, null)
         }
+        scannedMediaDao.insertAll(toScan.map { ScannedMedia(it.id) })
     }
 
     private fun mergeSubfolderAlbums(
