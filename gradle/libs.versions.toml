@@ -40,6 +40,8 @@ room = "2.8.4"
 accompanist = "0.37.3"
 datastore = "1.2.1"
 securityCrypto = "1.1.0"
+sqlcipherAndroid = "4.6.1"
+sqliteKtx = "2.5.1"
 sketch = "4.5.0-alpha03"
 startupRuntime = "1.2.0"
 uiautomator = "2.3.0"
@@ -122,6 +124,8 @@ onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android"
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipherAndroid" }
+sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "sqliteKtx" }
 
 # Datastore
 datastore-prefs = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }

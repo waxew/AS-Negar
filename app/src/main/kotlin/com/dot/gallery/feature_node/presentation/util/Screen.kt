@@ -65,6 +65,7 @@ sealed class Screen(val route: String) {
     data object SettingsTimelineAlbumsScreen : Screen("settings_timeline_albums_screen")
     data object SettingsMediaViewerScreen : Screen("settings_media_viewer_screen")
     data object SettingsNavigationScreen : Screen("settings_navigation_screen")
+    data object SettingsSecurityScreen : Screen("settings_security_screen")
     data object SettingsSelectionActionsScreen : Screen("settings_selection_actions_screen")
 
     data object IgnoredScreen : Screen("ignored_screen")
@@ -72,6 +73,8 @@ sealed class Screen(val route: String) {
     data object SetupScreen: Screen("setup_screen")
 
     data object VaultScreen : Screen("vault_screen")
+    data object PrivateFolderScreen : Screen("private_folder_screen")
+    data object PrivateFolderSecurityScreen : Screen("private_folder_security_screen")
 
     data object LibraryScreen : Screen("library_screen")
 

@@ -111,11 +111,15 @@ import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSe
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsTimelineAlbumsScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.EditBackupsViewerScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.AIModelsManagerScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSecurityScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSmartFeaturesScreen
 import com.dot.gallery.feature_node.presentation.setup.SetupScreen
 import com.dot.gallery.feature_node.presentation.timeline.TimelineScreen
 import com.dot.gallery.feature_node.presentation.trashed.TrashedGridScreen
 import com.dot.gallery.feature_node.presentation.util.Screen
+import com.dot.gallery.feature_node.presentation.privatefolder.PrivateFolderScreen
+import com.dot.gallery.feature_node.presentation.privatefolder.PrivateFolderSecuritySetupScreen
+import com.dot.gallery.feature_node.presentation.privatefolder.PrivateFolderViewModel
 import com.dot.gallery.feature_node.presentation.vault.VaultScreen
 import com.dot.gallery.feature_node.presentation.vault.utils.rememberBiometricState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -640,11 +644,20 @@ fun NavigationComp(
                 val albumId: Long = remember(backStackEntry) {
                     backStackEntry.arguments?.getLong("albumId") ?: -1L
                 }
+                val isPrivateFolder = albumId == PrivateFolderViewModel.PRIVATE_FOLDER_ALBUM_ID
+                val privateFolderViewModel = if (isPrivateFolder) {
+                    hiltViewModel<PrivateFolderViewModel>(
+                        navController.getBackStackEntry(Screen.PrivateFolderScreen())
+                    )
+                } else null
+                val privateFolderState = privateFolderViewModel?.mediaState?.collectAsStateWithLifecycle()
                 val albumMediaState = rememberedDerivedState(allAlbumsMediaState.value) {
                     allAlbumsMediaState.value[albumId] ?: MediaState()
                 }
-                val mediaState by rememberedDerivedState(albumId) {
-                    if (albumId != -1L) {
+                val mediaState by rememberedDerivedState(albumId, privateFolderState?.value) {
+                    if (isPrivateFolder) {
+                        privateFolderState ?: albumMediaState
+                    } else if (albumId != -1L) {
                         albumMediaState
                     } else timelineState
                 }
@@ -749,6 +762,29 @@ fun NavigationComp(
                     paddingValues = paddingValues,
                     toggleRotate = toggleRotate,
                     shouldSkipAuth = shouldSkipAuth
+                )
+            }
+
+            composable(
+                route = Screen.PrivateFolderScreen()
+            ) {
+                PrivateFolderScreen(
+                    paddingValues = paddingValues,
+                    isScrolling = isScrolling,
+                    metadataState = metadataState,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this
+                )
+            }
+
+            composable(
+                route = Screen.PrivateFolderSecurityScreen()
+            ) {
+                PrivateFolderSecuritySetupScreen(
+                    onBack = { navController.navigateUp() },
+                    onNone = { navController.navigateUp() },
+                    onDeviceSecurity = { navController.navigateUp() },
+                    onCustomComplete = { navController.navigateUp() }
                 )
             }
 
@@ -1106,6 +1142,9 @@ fun NavigationComp(
             }
             composable(Screen.SettingsNavigationScreen()) {
                 SettingsNavigationScreen()
+            }
+            composable(Screen.SettingsSecurityScreen()) {
+                SettingsSecurityScreen()
             }
             composable(Screen.SettingsSelectionActionsScreen()) {
                 SettingsSelectionActionsScreen()

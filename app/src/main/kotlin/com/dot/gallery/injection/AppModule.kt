@@ -14,7 +14,10 @@ import androidx.room.Room
 import androidx.work.WorkManager
 import com.dot.gallery.core.DefaultEventHandler
 import com.dot.gallery.core.EditBackupManager
+import com.dot.gallery.core.encryption.EncryptedDatabaseFactory
+import com.dot.gallery.core.sandbox.IsolatedImageDecoder
 import com.dot.gallery.core.sandbox.IsolatedMetadataParser
+import com.dot.gallery.core.sandbox.PrivateFolderRepository
 import com.dot.gallery.core.MediaDistributor
 import com.dot.gallery.core.MediaDistributorImpl
 import com.dot.gallery.core.MediaHandler
@@ -52,12 +55,19 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(app: Application): InternalDatabase =
-        Room.databaseBuilder(app, InternalDatabase::class.java, InternalDatabase.NAME)
-            .addMigrations(MIGRATION_12_13)
-            .fallbackToDestructiveMigrationOnDowngrade(true)
-            .fallbackToDestructiveMigration(false)
-            .build()
+    fun provideDatabase(app: Application): InternalDatabase {
+        return try {
+            EncryptedDatabaseFactory.create(app)
+        } catch (_: Exception) {
+            // Device doesn't support SQLCipher or hardware-backed keystore —
+            // fall back to plaintext database silently.
+            Room.databaseBuilder(app, InternalDatabase::class.java, InternalDatabase.NAME)
+                .addMigrations(MIGRATION_12_13)
+                .fallbackToDestructiveMigrationOnDowngrade(true)
+                .fallbackToDestructiveMigration(false)
+                .build()
+        }
+    }
 
     @Provides
     @Singleton
@@ -79,8 +89,9 @@ object AppModule {
         @ApplicationContext context: Context,
         workManager: WorkManager,
         repository: MediaRepository,
-        eventHandler: EventHandler
-    ): MediaDistributor = MediaDistributorImpl(context, repository, eventHandler, workManager)
+        eventHandler: EventHandler,
+        database: InternalDatabase
+    ): MediaDistributor = MediaDistributorImpl(context, repository, eventHandler, workManager, database.getScannedMediaDao())
 
     @Provides
     @Singleton
@@ -98,6 +109,11 @@ object AppModule {
     @Singleton
     fun provideIsolatedMetadataParser(@ApplicationContext context: Context): IsolatedMetadataParser =
         IsolatedMetadataParser(context)
+
+    @Provides
+    @Singleton
+    fun provideIsolatedImageDecoder(@ApplicationContext context: Context): IsolatedImageDecoder =
+        IsolatedImageDecoder(context)
 
     @Provides
     @Singleton
@@ -142,6 +158,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideByteArrayPool(): ByteArrayPool = ByteArrayPool()
+
+    @Provides
+    @Singleton
+    fun providePrivateFolderRepository(@ApplicationContext context: Context): PrivateFolderRepository =
+        PrivateFolderRepository(context)
 
     @Provides
     @Singleton
