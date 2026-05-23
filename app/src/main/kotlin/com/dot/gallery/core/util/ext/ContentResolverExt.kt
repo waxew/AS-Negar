@@ -147,13 +147,22 @@ suspend fun ContentResolver.overrideImage(
     format: Bitmap.CompressFormat = Bitmap.CompressFormat.PNG
 ): Boolean = withContext(Dispatchers.IO) {
     runCatching {
+        // Preserve original date metadata so the photo keeps its position in the gallery
+        val originalDates = queryDateColumns(uri)
+
         update(uri, ContentValues(), null, null)
         openOutputStream(uri)?.use { out ->
             if (!bitmap.compress(format, 100, out)) throw IOException("Compression failed")
         } ?: throw IOException("Stream open failed")
         update(
             uri,
-            ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+            ContentValues().apply {
+                put(MediaStore.MediaColumns.IS_PENDING, 0)
+                originalDates?.let { (dateTaken, dateAdded) ->
+                    dateTaken?.let { put(MediaStore.Images.Media.DATE_TAKEN, it) }
+                    dateAdded?.let { put(MediaStore.MediaColumns.DATE_ADDED, it) }
+                }
+            },
             null,
             null
         ) > 0
@@ -395,6 +404,9 @@ suspend fun ContentResolver.overrideImage(
     onSizeLimitExceeded: ((Long) -> Unit)? = null
 ): Boolean = withContext(Dispatchers.IO) {
     runCatching {
+        // 0. Preserve original date metadata so the photo keeps its position in the gallery
+        val originalDates = queryDateColumns(uri)
+
         // 1. Resolve mime + format
         val resolvedMime = mimeType
             ?: getType(uri)
@@ -482,14 +494,38 @@ suspend fun ContentResolver.overrideImage(
 
         if (recycleSource) runCatching { bitmap.recycle() }
 
-        // 8. Clear pending
-        clearPendingQuiet(uri)
+        // 8. Clear pending and restore original dates
+        runCatching {
+            update(uri, ContentValues().apply {
+                put(MediaStore.MediaColumns.IS_PENDING, 0)
+                originalDates?.let { (dateTaken, dateAdded) ->
+                    dateTaken?.let { put(MediaStore.Images.Media.DATE_TAKEN, it) }
+                    dateAdded?.let { put(MediaStore.MediaColumns.DATE_ADDED, it) }
+                }
+            }, null, null)
+        }
 
         true
     }.getOrElse {
         clearPendingQuiet(uri)
         false
     }
+}
+
+private fun ContentResolver.queryDateColumns(uri: Uri): Pair<Long?, Long?>? {
+    return try {
+        query(
+            uri,
+            arrayOf(MediaStore.Images.Media.DATE_TAKEN, MediaStore.MediaColumns.DATE_ADDED),
+            null, null, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val dateTaken = if (!cursor.isNull(0)) cursor.getLong(0) else null
+                val dateAdded = if (!cursor.isNull(1)) cursor.getLong(1) else null
+                dateTaken to dateAdded
+            } else null
+        }
+    } catch (_: Exception) { null }
 }
 
 private fun ContentResolver.clearPendingQuiet(uri: Uri) {
