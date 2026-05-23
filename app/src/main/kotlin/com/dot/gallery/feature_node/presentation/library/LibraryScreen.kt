@@ -146,7 +146,7 @@ fun LibraryScreen(
     val isDark = isDarkTheme()
 
     val modelStatus by viewModel.modelStatus.collectAsStateWithLifecycle()
-    val hasInternet = viewModel.hasInternetPermission
+    val aiAvailable = viewModel.areAiFeaturesAvailable
     var noClassification by rememberNoClassification()
 
     Scaffold(
@@ -456,7 +456,7 @@ fun LibraryScreen(
                     }
                 }
 
-                if (hasInternet && !noClassification) {
+                if (aiAvailable && !noClassification) {
                     if (!noCategoriesFound) {
                         // "See all categories" header below carousel
                         item(
