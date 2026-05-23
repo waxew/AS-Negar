@@ -264,6 +264,7 @@ fun <T : Media> MediaViewScreen(
         pagerItems.indexOfFirst { it.id == mediaId }.coerceAtLeast(0)
     }
     var currentPage by rememberSaveable(initialPage) { mutableIntStateOf(initialPage) }
+    var isVideoZoomed by rememberSaveable { mutableStateOf(false) }
 
     val pagerState = rememberPagerState(
         initialPage = initialPage,
@@ -290,6 +291,7 @@ fun <T : Media> MediaViewScreen(
         selectedMemberOverrideId = null
         groupMultiSelectMode = false
         groupMultiSelectedIds = emptySet()
+        isVideoZoomed = false
     }
 
     // Reset selected member if it was deleted (no longer in group members)
@@ -610,7 +612,7 @@ fun <T : Media> MediaViewScreen(
         ) {
             HorizontalPager(
                 modifier = Modifier.fillMaxSize(),
-                userScrollEnabled = if (isLocked) false else userScrollEnabled,
+                userScrollEnabled = if (isLocked || isVideoZoomed) false else userScrollEnabled,
                 state = pagerState,
                 flingBehavior = PagerDefaults.flingBehavior(
                     state = pagerState,
@@ -706,7 +708,8 @@ fun <T : Media> MediaViewScreen(
                                         showUI = !showUI
                                         windowInsetsController.toggleSystemBars(showUI)
                                     }
-                                }
+                                },
+                                onZoomChange = { zoomed -> isVideoZoomed = zoomed }
                             ) { player, isPlaying, currentTime, totalTime, buffer, frameRate, subtitleTracks, onSelectSubtitle, onDisableSubtitles ->
                                 Box(
                                     modifier = Modifier.fillMaxSize()
@@ -731,73 +734,75 @@ fun <T : Media> MediaViewScreen(
                                     val resources = LocalResources.current
                                     val width =
                                         remember(context) { resources.displayMetrics.widthPixels }
-                                    Spacer(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                translationX = width / 1.5f
-                                            }
-                                            .align(Alignment.TopEnd)
-                                            .clip(CircleShape)
-                                            .combinedClickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null,
-                                                onDoubleClick = {
-                                                    scope.launch {
-                                                        currentTime.longValue += 10 * 1000
-                                                        player.seekTo(currentTime.longValue)
-                                                        delay(100)
-                                                        player.play()
-                                                    }
-                                                },
-                                                onClick = {
-                                                    if (sheetState.currentDetent == imageOnlyDetent) {
-                                                        showUI = !showUI
-                                                        windowInsetsController.toggleSystemBars(
-                                                            showUI
-                                                        )
-                                                    }
+                                    if (!isVideoZoomed) {
+                                        Spacer(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    translationX = width / 1.5f
                                                 }
-                                            )
-                                            .swipe(onOffset = { offset = it }) {
-                                                windowInsetsController.toggleSystemBars(show = true)
-                                                eventHandler.navigateUp()
-                                            }
-                                    )
+                                                .align(Alignment.TopEnd)
+                                                .clip(CircleShape)
+                                                .combinedClickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null,
+                                                    onDoubleClick = {
+                                                        scope.launch {
+                                                            currentTime.longValue += 10 * 1000
+                                                            player.seekTo(currentTime.longValue)
+                                                            delay(100)
+                                                            player.play()
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        if (sheetState.currentDetent == imageOnlyDetent) {
+                                                            showUI = !showUI
+                                                            windowInsetsController.toggleSystemBars(
+                                                                showUI
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                                .swipe(onOffset = { offset = it }) {
+                                                    windowInsetsController.toggleSystemBars(show = true)
+                                                    eventHandler.navigateUp()
+                                                }
+                                        )
 
-                                    Spacer(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                translationX = -width / 1.5f
-                                            }
-                                            .align(Alignment.TopStart)
-                                            .clip(CircleShape)
-                                            .combinedClickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null,
-                                                onDoubleClick = {
-                                                    scope.launch {
-                                                        currentTime.longValue -= 10 * 1000
-                                                        player.seekTo(currentTime.longValue)
-                                                        delay(100)
-                                                        player.play()
-                                                    }
-                                                },
-                                                onClick = {
-                                                    if (sheetState.currentDetent == imageOnlyDetent) {
-                                                        showUI = !showUI
-                                                        windowInsetsController.toggleSystemBars(
-                                                            showUI
-                                                        )
-                                                    }
+                                        Spacer(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    translationX = -width / 1.5f
                                                 }
-                                            )
-                                            .swipe(onOffset = { offset = it }) {
-                                                windowInsetsController.toggleSystemBars(show = true)
-                                                eventHandler.navigateUp()
-                                            }
-                                    )
+                                                .align(Alignment.TopStart)
+                                                .clip(CircleShape)
+                                                .combinedClickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null,
+                                                    onDoubleClick = {
+                                                        scope.launch {
+                                                            currentTime.longValue -= 10 * 1000
+                                                            player.seekTo(currentTime.longValue)
+                                                            delay(100)
+                                                            player.play()
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        if (sheetState.currentDetent == imageOnlyDetent) {
+                                                            showUI = !showUI
+                                                            windowInsetsController.toggleSystemBars(
+                                                                showUI
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                                .swipe(onOffset = { offset = it }) {
+                                                    windowInsetsController.toggleSystemBars(show = true)
+                                                    eventHandler.navigateUp()
+                                                }
+                                        )
+                                    }
 
                                     AnimatedVisibility(
                                         visible = showUI,
