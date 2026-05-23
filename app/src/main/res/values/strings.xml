@@ -53,6 +53,7 @@
     <string name="location_cd">Media Location</string>
     <string name="media_location" translatable="false">@string/location_cd</string>
     <string name="location_map_cd">Location Map</string>
+    <string name="no_map_app">No app available to show the location</string>
     <string name="app_dev">by %s</string>
     <string name="app_dev_name">IacobIonut01</string>
     <string name="donate">Donate</string>
