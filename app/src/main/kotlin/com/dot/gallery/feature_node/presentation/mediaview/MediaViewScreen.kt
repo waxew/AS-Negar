@@ -149,7 +149,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.suspendCoroutine
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -387,10 +387,6 @@ fun <T : Media> MediaViewScreen(
     val activity = LocalActivity.current
     val window = LocalWindowInfo.current
     val density = LocalDensity.current
-    val halfScreenHeight by remember(
-        window,
-        density
-    ) { mutableStateOf(Dp(window.containerSize.height / density.density / 4)) }
 
     val configuration = LocalConfiguration.current
     val isLandscape = remember(configuration) {
@@ -436,12 +432,6 @@ fun <T : Media> MediaViewScreen(
     // Override back button/gesture when locked
     BackHandler(enabled = isLocked) { }
 
-    val sheetProgress by rememberedDerivedState {
-        sheetState.progress(
-            imageOnlyDetent,
-            expandedDetent
-        )
-    }
 
     LaunchedEffect(mediaState.value) {
         snapshotFlow { pagerState.currentPage }.collectLatest { page ->
@@ -457,31 +447,40 @@ fun <T : Media> MediaViewScreen(
 
     // set HDR Gain map
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val hdrCache = remember { HashMap<Long, Boolean>() }
         LaunchedEffect(mediaState.value) {
             withContext(Dispatchers.IO) {
                 snapshotFlow { pagerState.currentPage }.collectLatest {
                     printWarning("Trying to set HDR mode for page $it")
-                    if (currentMedia?.isImage == true) {
-                        val request = ImageRequest(context, currentMedia?.getUri().toString()) {
-                            currentMedia?.let { media ->
+                    val media = currentMedia
+                    if (media?.isImage == true) {
+                        val cached = hdrCache[media.id]
+                        if (cached != null) {
+                            withContext(Dispatchers.Main.immediate) {
+                                context.setHdrMode(cached)
+                            }
+                            printWarning("Setting HDR Mode to $cached (cached)")
+                        } else {
+                            val request = ImageRequest(context, media.getUri().toString()) {
                                 setExtra(
                                     key = "mediaKey",
                                     value = media.idLessKey,
                                 )
+                                setExtra(
+                                    key = "realMimeType",
+                                    value = media.mimeType,
+                                )
                             }
-                            setExtra(
-                                key = "realMimeType",
-                                value = currentMedia?.mimeType,
-                            )
+                            val result = context.sketch.execute(request)
+                            (result.image as? BitmapImage)?.bitmap?.let { bitmap ->
+                                val hasGainmap = bitmap.hasGainmap()
+                                hdrCache[media.id] = hasGainmap
+                                withContext(Dispatchers.Main.immediate) {
+                                    context.setHdrMode(hasGainmap)
+                                }
+                                printWarning("Setting HDR Mode to $hasGainmap")
+                            } ?: printWarning("Resulting image null")
                         }
-                        val result = context.sketch.execute(request)
-                        (result.image as? BitmapImage)?.bitmap?.let { bitmap ->
-                            val hasGainmap = bitmap.hasGainmap()
-                            withContext(Dispatchers.Main.immediate) {
-                                context.setHdrMode(hasGainmap)
-                            }
-                            printWarning("Setting HDR Mode to $hasGainmap")
-                        } ?: printWarning("Resulting image null")
                     } else {
                         withContext(Dispatchers.Main.immediate) {
                             context.setHdrMode(false)
@@ -518,76 +517,73 @@ fun <T : Media> MediaViewScreen(
             return@LaunchedEffect
         }
 
+        // Wait for the image to render before capturing
+        delay(350L)
+
         val window = activity.window
-        val capturing = AtomicBoolean(false)
         val captureW = 32
 
-        while (true) {
-            if (!capturing.get()) {
-                val decorView = window.decorView
-                val screenW = decorView.width
-                val screenH = decorView.height
-                if (screenW > 0 && screenH > 0) {
-                    val captureH = (captureW * screenH.toFloat() / screenW)
-                        .toInt().coerceAtLeast(1)
-                    val dest = createBitmap(captureW, captureH)
-                    capturing.set(true)
-                    try {
-                        PixelCopy.request(
-                            window,
-                            Rect(0, 0, screenW, screenH),
-                            dest,
-                            { result ->
-                                if (result == PixelCopy.SUCCESS) {
-                                    val w = dest.width
-                                    val h = dest.height
-                                    val pixels = IntArray(w * h)
-                                    dest.getPixels(pixels, 0, w, 0, 0, w, h)
+        val decorView = window.decorView
+        val screenW = decorView.width
+        val screenH = decorView.height
+        if (screenW > 0 && screenH > 0) {
+            val captureH = (captureW * screenH.toFloat() / screenW)
+                .toInt().coerceAtLeast(1)
+            val dest = createBitmap(captureW, captureH)
+            try {
+                suspendCoroutine { cont ->
+                    PixelCopy.request(
+                        window,
+                        Rect(0, 0, screenW, screenH),
+                        dest,
+                        { result ->
+                            if (result == PixelCopy.SUCCESS) {
+                                val w = dest.width
+                                val h = dest.height
+                                val pixels = IntArray(w * h)
+                                dest.getPixels(pixels, 0, w, 0, 0, w, h)
 
-                                    val topRows = (h * 0.15f).toInt().coerceAtLeast(1)
-                                    val bottomStart = h - (h * 0.15f).toInt().coerceAtLeast(1)
+                                val topRows = (h * 0.15f).toInt().coerceAtLeast(1)
+                                val bottomStart = h - (h * 0.15f).toInt().coerceAtLeast(1)
 
-                                    var topLum = 0.0
-                                    var topCnt = 0
-                                    for (y in 0 until topRows) {
-                                        for (x in 0 until w) {
-                                            val p = pixels[y * w + x]
-                                            topLum += 0.299 * ((p shr 16) and 0xFF) +
-                                                    0.587 * ((p shr 8) and 0xFF) +
-                                                    0.114 * (p and 0xFF)
-                                            topCnt++
-                                        }
+                                var topLum = 0.0
+                                var topCnt = 0
+                                for (y in 0 until topRows) {
+                                    for (x in 0 until w) {
+                                        val p = pixels[y * w + x]
+                                        topLum += 0.299 * ((p shr 16) and 0xFF) +
+                                                0.587 * ((p shr 8) and 0xFF) +
+                                                0.114 * (p and 0xFF)
+                                        topCnt++
                                     }
-
-                                    var btmLum = 0.0
-                                    var btmCnt = 0
-                                    for (y in bottomStart until h) {
-                                        for (x in 0 until w) {
-                                            val p = pixels[y * w + x]
-                                            btmLum += 0.299 * ((p shr 16) and 0xFF) +
-                                                    0.587 * ((p shr 8) and 0xFF) +
-                                                    0.114 * (p and 0xFF)
-                                            btmCnt++
-                                        }
-                                    }
-
-                                    isTopDark = topCnt > 0 &&
-                                            (topLum / topCnt / 255.0) < 0.4
-                                    isBottomDark = btmCnt > 0 &&
-                                            (btmLum / btmCnt / 255.0) < 0.4
                                 }
-                                dest.recycle()
-                                capturing.set(false)
-                            },
-                            pixelCopyHandler
-                        )
-                    } catch (_: Exception) {
-                        dest.recycle()
-                        capturing.set(false)
-                    }
+
+                                var btmLum = 0.0
+                                var btmCnt = 0
+                                for (y in bottomStart until h) {
+                                    for (x in 0 until w) {
+                                        val p = pixels[y * w + x]
+                                        btmLum += 0.299 * ((p shr 16) and 0xFF) +
+                                                0.587 * ((p shr 8) and 0xFF) +
+                                                0.114 * (p and 0xFF)
+                                        btmCnt++
+                                    }
+                                }
+
+                                isTopDark = topCnt > 0 &&
+                                        (topLum / topCnt / 255.0) < 0.4
+                                isBottomDark = btmCnt > 0 &&
+                                        (btmLum / btmCnt / 255.0) < 0.4
+                            }
+                            dest.recycle()
+                            cont.resumeWith(Result.success(Unit))
+                        },
+                        pixelCopyHandler
+                    )
                 }
+            } catch (_: Exception) {
+                dest.recycle()
             }
-            delay(300L)
         }
     }
 
@@ -651,7 +647,7 @@ fun <T : Media> MediaViewScreen(
                     }
                 }
                 val mediaMetadata by rememberedDerivedState(metadataState.value, media) {
-                    metadataState.value.metadata.find { it.mediaId == media?.id }
+                    media?.id?.let { metadataState.value.metadataMap[it] }
                 }
                 val canPlay = rememberSaveable(media) { mutableStateOf(false) }
                 var canAnimateContent by rememberSaveable(media) { mutableStateOf(true) }
@@ -678,17 +674,7 @@ fun <T : Media> MediaViewScreen(
                                         media = displayMedia,
                                         animatedVisibilityScope = animatedContentScope
                                     ),
-                                containerModifier = Modifier
-                                    .graphicsLayer {
-                                        translationY =
-                                            -((halfScreenHeight -
-                                                    bottomBarHeightDefault -
-                                                    bottomPadding -
-                                                    extraPaddingWithNavButtons -
-                                                    16.dp -
-                                                    if (!isGestureEnabled && isLandscape) navigationBarHeight else 0.dp
-                                                    ).toPx() * sheetProgress)
-                                    },
+                                containerModifier = Modifier,
                                 media = media,
                                 uiEnabled = showUI,
                                 playWhenReady = canPlay,
@@ -1013,7 +999,7 @@ fun <T : Media> MediaViewScreen(
                     .align(Alignment.BottomCenter)
                     .graphicsLayer {
                         translationY =
-                            bottomBarHeightDefault.toPx() * sheetProgress
+                            bottomBarHeightDefault.toPx() * sheetState.progress(imageOnlyDetent, expandedDetent)
                     }
                     .padding(horizontal = 16.dp)
                     .padding(
@@ -1113,10 +1099,6 @@ fun <T : Media> MediaViewScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    val actionsAlpha by animateFloatAsState(
-                        targetValue = 1f - sheetProgress,
-                        label = "MediaViewActions2Alpha"
-                    )
                     AnimatedVisibility(
                         visible = currentMedia != null,
                         enter = enterAnimation,
@@ -1147,9 +1129,10 @@ fun <T : Media> MediaViewScreen(
                         Box(
                             modifier = Modifier
                                 .graphicsLayer {
-                                    alpha = actionsAlpha
+                                    val progress = sheetState.progress(imageOnlyDetent, expandedDetent)
+                                    alpha = 1f - progress
                                     translationY =
-                                        bottomBarHeightDefault.toPx() * sheetProgress
+                                        bottomBarHeightDefault.toPx() * progress
                                 }
                                 .padding(
                                     bottom = bottomPadding + extraPaddingWithNavButtons + 16.dp

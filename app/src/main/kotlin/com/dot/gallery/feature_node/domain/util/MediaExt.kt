@@ -346,11 +346,15 @@ fun <T : Media> List<T>.classifyGroupType(): MediaGroupType {
     return MediaGroupType.EDITS
 }
 
-fun List<Album>.mapPinned(pinnedAlbums: List<PinnedAlbum>): List<Album> =
-    map { album -> album.copy(isPinned = pinnedAlbums.any { it.id == album.id }) }
+fun List<Album>.mapPinned(pinnedAlbums: List<PinnedAlbum>): List<Album> {
+    val pinnedIds = pinnedAlbums.mapTo(HashSet(pinnedAlbums.size)) { it.id }
+    return map { album -> album.copy(isPinned = album.id in pinnedIds) }
+}
 
-fun List<Album>.mapLocked(lockedAlbums: List<LockedAlbum>): List<Album> =
-    map { album -> album.copy(isLocked = lockedAlbums.any { it.id == album.id }) }
+fun List<Album>.mapLocked(lockedAlbums: List<LockedAlbum>): List<Album> {
+    val lockedIds = lockedAlbums.mapTo(HashSet(lockedAlbums.size)) { it.id }
+    return map { album -> album.copy(isLocked = album.id in lockedIds) }
+}
 
 fun List<Album>.removeBlacklisted(blacklistedAlbums: List<IgnoredAlbum>): List<Album> =
     toMutableList().apply {

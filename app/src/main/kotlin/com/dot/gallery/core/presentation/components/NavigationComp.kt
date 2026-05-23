@@ -201,7 +201,7 @@ fun NavigationComp(
     val eventHandler = LocalEventHandler.current
 
     // Preloaded viewModels
-    val allAlbumsMediaState = navViewModel.allAlbumsMediaState.collectAsStateWithLifecycle()
+    val distributor = LocalMediaDistributor.current
     val albumsState = navViewModel.albumsState.collectAsStateWithLifecycle()
     val timelineState = navViewModel.timelineMediaState.collectAsStateWithLifecycle()
     val metadataState = navViewModel.metadataState.collectAsStateWithLifecycle()
@@ -502,11 +502,13 @@ fun NavigationComp(
                 val argumentAlbumId = remember(backStackEntry) {
                     backStackEntry.arguments?.getLong("albumId") ?: -1
                 }
+                val albumMediaState = distributor.albumTimelineMediaFlow(argumentAlbumId)
+                    .collectAsStateWithLifecycle()
                 AlbumTimelineScreen(
                     albumId = argumentAlbumId,
                     albumName = argumentAlbumName,
                     paddingValues = paddingValues,
-                    allAlbumsMediaState = allAlbumsMediaState,
+                    albumMediaState = albumMediaState,
                     metadataState = metadataState,
                     isScrolling = isScrolling,
                     sharedTransitionScope = this@SharedTransitionLayout,
@@ -655,10 +657,9 @@ fun NavigationComp(
                     )
                 } else null
                 val privateFolderState = privateFolderViewModel?.mediaState?.collectAsStateWithLifecycle()
-                val albumMediaState = rememberedDerivedState(allAlbumsMediaState.value) {
-                    allAlbumsMediaState.value[albumId] ?: MediaState()
-                }
-                val mediaState by rememberedDerivedState(albumId, privateFolderState?.value) {
+                val albumMediaState = distributor.albumTimelineMediaFlow(albumId)
+                    .collectAsStateWithLifecycle()
+                val mediaState by rememberedDerivedState(albumId, privateFolderState?.value, albumMediaState.value) {
                     if (isPrivateFolder) {
                         privateFolderState ?: albumMediaState
                     } else if (albumId != -1L) {

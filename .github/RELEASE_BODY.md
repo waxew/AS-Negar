@@ -11,10 +11,18 @@
 ### New Features
 
 - **Persistent Rescan Tracking** — MediaStore rescan state is now persisted in the Room database, surviving app restarts and ensuring consistent media synchronization.
+- **Various Performance Improvements** — Lazy per-album timeline flows, reduced recompositions in media viewer bottom sheet, optimized collection types and state management.
 
 ### Bug Fixes & Improvements
 
 - Fixed extremely slow AI classification by skipping NNAPI for quantized CLIP models
 - Fixed status bar icons always dark in media view when auto-contrast is off
 - Handle missing `ACCESS_NETWORK_STATE` permission gracefully instead of crashing
+- Fixed crash when launching map intent on devices without map apps
+- Fixed AI features not showing on nomaps-withML builds that lack INTERNET permission
+- Use filename-parsed date as fallback when MediaStore `DATE_TAKEN` is null
+- Fixed motion player not released when swiping to non-motion photo
+- Fixed crash on large batch copy operations
+- Corrected auto-contrast help tip navigation
+- Updated dependencies
 

@@ -770,6 +770,7 @@ object HelpRepository {
                 ReleaseHighlight(tipId = "security_private_folder", title = R.string.help_release_422_private_folder_title, description = R.string.help_release_422_private_folder_desc, icon = HelpIcon.ofVector(Icons.Outlined.Shield)),
                 ReleaseHighlight(tipId = "security_encrypted_storage", title = R.string.help_release_422_encrypted_storage_title, description = R.string.help_release_422_encrypted_storage_desc, icon = HelpIcon.ofVector(Icons.Outlined.Storage)),
                 ReleaseHighlight(tipId = null, title = R.string.help_release_422_rescan_tracking_title, description = R.string.help_release_422_rescan_tracking_desc, icon = HelpIcon.ofVector(Icons.Outlined.Settings)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_422_performance_title, description = R.string.help_release_422_performance_desc, icon = HelpIcon.ofVector(Icons.Outlined.Speed)),
                 ReleaseHighlight(tipId = null, title = R.string.help_release_422_bugfixes_title, description = R.string.help_release_422_bugfixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.BugReport))
             )
         ),

@@ -945,8 +945,10 @@
     <string name="help_release_422_encrypted_storage_desc">Encrypt app preferences (AES-256-GCM) and Room database (SQLCipher) at rest</string>
     <string name="help_release_422_rescan_tracking_title">Persistent rescan tracking</string>
     <string name="help_release_422_rescan_tracking_desc">MediaStore rescan state is now persisted in the database across app restarts</string>
+    <string name="help_release_422_performance_title">Various performance improvements</string>
+    <string name="help_release_422_performance_desc">Lazy per-album timeline flows, reduced recompositions in media viewer, optimized collection types and state management</string>
     <string name="help_release_422_bugfixes_title">Bug fixes &amp; improvements</string>
-    <string name="help_release_422_bugfixes_desc">Fixed slow AI classification, dark status bar icons, and missing network permission handling</string>
+    <string name="help_release_422_bugfixes_desc">Fixed slow AI classification, dark status bar icons, map intent crash, motion player leak, large batch copy crash, filename date fallback, and updated dependencies</string>
 
     <!-- RELEASE NOTES: 4.2.1 -->
     <string name="help_release_421_fcast_casting_title">FCast video casting</string>
