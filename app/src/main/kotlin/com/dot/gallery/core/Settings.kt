@@ -669,6 +669,12 @@ object Settings {
         fun rememberDefaultImageEditor() =
             rememberPreference(key = DEFAULT_IMAGE_EDITOR, defaultValue = EDITOR_BUILTIN)
 
+        private val HEADER_BANNER_DISMISSED = booleanPreferencesKey("header_banner_dismissed")
+
+        @Composable
+        fun rememberHeaderBannerDismissed() =
+            rememberPreference(key = HEADER_BANNER_DISMISSED, defaultValue = false)
+
     }
 
     object Security {

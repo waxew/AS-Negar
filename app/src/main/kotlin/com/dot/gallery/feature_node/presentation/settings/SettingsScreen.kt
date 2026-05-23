@@ -17,18 +17,22 @@ import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.res.stringResource
 import com.dot.gallery.R
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.Position
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.navigate
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
 import com.dot.gallery.feature_node.presentation.settings.components.CustomCircleIcon
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsAppHeader
+import com.dot.gallery.feature_node.presentation.settings.components.SettingsAppHeaderCompact
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
 import com.dot.gallery.feature_node.presentation.settings.components.rememberPreference
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -156,11 +160,16 @@ fun SettingsScreen() {
             onErrorColor, onPrimaryContainerColor, onSecondaryContainerColor, onTertiaryContainerColor, onSurfaceVariantColor
         )
     }
+    var bannerDismissed by Settings.Misc.rememberHeaderBannerDismissed()
+
     BaseSettingsScreen(
         title = stringResource(R.string.settings_title),
-        topContent = {
-            SettingsAppHeader()
-        },
+        topContent = if (!bannerDismissed) {
+            { SettingsAppHeader(onDismiss = { bannerDismissed = true }) }
+        } else null,
+        bottomContent = if (bannerDismissed) {
+            { SettingsAppHeaderCompact(onRestore = { bannerDismissed = false }) }
+        } else null,
         settingsList = rememberDashboardSettings(),
         settingsBuilder = { setting, index ->
             SettingsItem(

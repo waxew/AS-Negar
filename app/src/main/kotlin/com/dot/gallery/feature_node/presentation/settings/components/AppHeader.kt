@@ -19,12 +19,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +60,9 @@ import com.dot.gallery.ui.theme.GalleryTheme
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsAppHeader() {
+fun SettingsAppHeader(
+    onDismiss: (() -> Unit)? = null
+) {
 
     val appName = stringResource(id = R.string.app_name)
     val appVersion = remember { "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" }
@@ -88,6 +96,8 @@ fun SettingsAppHeader() {
         )
     )
     val cornerRadius = 24.dp
+
+    val dismissContentDesc = stringResource(R.string.dismiss_banner)
 
     Box(
         modifier = Modifier
@@ -152,6 +162,24 @@ fun SettingsAppHeader() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(24.dp))
+            if (onDismiss != null) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .size(32.dp)
+                        .padding(0.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = dismissContentDesc,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -202,6 +230,83 @@ fun SettingsAppHeader() {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = githubTitle)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsAppHeaderCompact(
+    onRestore: () -> Unit
+) {
+    val donateImage = painterResource(id = R.drawable.ic_donate)
+    val donateTitle = stringResource(R.string.donate)
+    val donateContentDesc = stringResource(R.string.donate_button_cd)
+
+    val githubImage = painterResource(id = R.drawable.ic_github)
+    val githubTitle = stringResource(R.string.github)
+    val githubContentDesc = stringResource(R.string.github_button_cd)
+    val githubUrl = stringResource(R.string.github_url)
+
+    val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
+    val supportState = rememberAppBottomSheetState()
+
+    SupportSheet(state = supportState)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 8.dp, bottom = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier
+                .widthIn(max = 600.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilledTonalButton(
+                onClick = {
+                    scope.launch {
+                        supportState.show()
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .semantics {
+                        contentDescription = donateContentDesc
+                    }
+            ) {
+                Icon(
+                    painter = donateImage,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = donateTitle, style = MaterialTheme.typography.labelLarge)
+            }
+            FilledTonalButton(
+                onClick = { uriHandler.openUri(githubUrl) },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .semantics {
+                        contentDescription = githubContentDesc
+                    }
+            ) {
+                Icon(
+                    painter = githubImage,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = githubTitle, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
