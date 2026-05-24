@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.SubtitlesOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -95,6 +96,7 @@ fun VideoPlayerController(
     subtitleTracks: List<SubtitleTrack> = emptyList(),
     onSelectSubtitle: (SubtitleTrack) -> Unit = {},
     onDisableSubtitles: () -> Unit = {},
+    onAddSubtitle: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
 
@@ -167,14 +169,14 @@ fun VideoPlayerController(
             }
 
             // Subtitle track picker
-            if (subtitleTracks.isNotEmpty()) {
-                var showSubMenu by rememberSaveable { mutableStateOf(false) }
-                val anySubSelected = subtitleTracks.any { it.isSelected }
-                Box(contentAlignment = Alignment.TopEnd) {
-                    DropdownMenu(
-                        expanded = showSubMenu,
-                        onDismissRequest = { showSubMenu = false }
-                    ) {
+            var showSubMenu by rememberSaveable { mutableStateOf(false) }
+            val anySubSelected = subtitleTracks.any { it.isSelected }
+            Box(contentAlignment = Alignment.TopEnd) {
+                DropdownMenu(
+                    expanded = showSubMenu,
+                    onDismissRequest = { showSubMenu = false }
+                ) {
+                    if (subtitleTracks.isNotEmpty()) {
                         // "Off" option
                         DropdownMenuItem(
                             modifier = Modifier.padding(end = 16.dp),
@@ -212,14 +214,23 @@ fun VideoPlayerController(
                                 text = { Text(text = track.label) }
                             )
                         }
+                        HorizontalDivider()
                     }
-                    IconButton(onClick = { showSubMenu = !showSubMenu }) {
-                        Icon(
-                            imageVector = if (anySubSelected) Icons.Outlined.Subtitles else Icons.Outlined.SubtitlesOff,
-                            tint = Color.White,
-                            contentDescription = stringResource(R.string.change_subtitle_track_cd)
-                        )
-                    }
+                    // "Add subtitle file" option
+                    DropdownMenuItem(
+                        onClick = {
+                            onAddSubtitle()
+                            showSubMenu = false
+                        },
+                        text = { Text(text = stringResource(R.string.add_subtitle_file)) }
+                    )
+                }
+                IconButton(onClick = { showSubMenu = !showSubMenu }) {
+                    Icon(
+                        imageVector = if (anySubSelected) Icons.Outlined.Subtitles else Icons.Outlined.SubtitlesOff,
+                        tint = Color.White,
+                        contentDescription = stringResource(R.string.change_subtitle_track_cd)
+                    )
                 }
             }
 
