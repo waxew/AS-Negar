@@ -1,28 +1,25 @@
-## What's new in 4.2.2
-
-### Security Hardening
-
-- **App Sandbox Protection** — `targetSandboxVersion=2` enforces stricter process isolation at the OS level. All file processing is gated through configurable sandbox modes.
-- **Sandboxed Image Decoding** — HEIF, AVIF, and JXL images are decoded in isolated system processes via `SharedMemory`. If a malicious file exploits a decoder vulnerability, the damage is contained in the sandbox and cannot reach the main app.
-- **Isolated Metadata Parsing** — EXIF and metadata extraction runs in per-file sandbox processes. Three modes available: Shared (default, single reused process), Hybrid (per-file for opened files, shared for batch), and Per-file (true per-file isolation for everything).
-- **Private Folder** — Store sensitive files outside MediaStore using Android's Storage Access Framework (SAF). Files are hidden from the normal timeline, not indexed by other apps, and protected behind the app's security gate.
-- **Encrypted Storage** — Opt-in encryption for app preferences (AES-256-GCM with Android Keystore) and Room database (SQLCipher). Protects trash index, categories, and internal data at rest — even on rooted devices.
+## What's new in 4.2.3
 
 ### New Features
 
-- **Persistent Rescan Tracking** — MediaStore rescan state is now persisted in the Room database, surviving app restarts and ensuring consistent media synchronization.
-- **Various Performance Improvements** — Lazy per-album timeline flows, reduced recompositions in media viewer bottom sheet, optimized collection types and state management.
+- **Timeline Filter** — Filter your timeline by media type (photos, videos, GIFs), favorites, year, or album. Access the filter directly from the search bar. Combine multiple filters for precise results.
+- **Animated Format Support** — Play animated AVIF, animated JXL, and APNG images alongside traditional GIF. Modern animated formats with better compression and quality are now fully supported.
+- **Video Subtitles** — Select embedded subtitle tracks or load external subtitle files (.srt, .ass, .ssa, etc.) during video playback. Manage subtitles from a new bottom sheet with track selection and delete support.
+- **Video Pinch-to-Zoom** — Pinch-to-zoom and double-tap-to-zoom during video playback, just like with photos. Pan around while zoomed in to examine fine details in video footage.
+- **Search Descriptions & Metadata** — Search queries now match against image descriptions, EXIF metadata text fields, and other embedded metadata — not just filenames and AI analysis.
+- **Album Picker Search** — A search bar in the copy/move album picker lets you quickly find the target album by name when you have many albums.
+- **Redesigned Trash & Favorites** — Both screens have been completely redesigned with a fresh layout, improved visual hierarchy, and smoother animations.
 
-### Bug Fixes & Improvements
+### UX Improvements
 
-- Fixed extremely slow AI classification by skipping NNAPI for quantized CLIP models
-- Fixed status bar icons always dark in media view when auto-contrast is off
-- Handle missing `ACCESS_NETWORK_STATE` permission gracefully instead of crashing
-- Fixed crash when launching map intent on devices without map apps
-- Fixed AI features not showing on nomaps-withML builds that lack INTERNET permission
-- Use filename-parsed date as fallback when MediaStore `DATE_TAKEN` is null
-- Fixed motion player not released when swiping to non-motion photo
-- Fixed crash on large batch copy operations
-- Corrected auto-contrast help tip navigation
-- Updated dependencies
+- Filter moved from separate UI to inline search bar with a settings toggle to control visibility
+- Dismissible Donate/GitHub banners in Settings
+- Bottom sheet confirmation replaces dismiss X button for a more consistent experience
+- Optimistic UI feedback when trashing images for snappier interaction
+
+### Bug Fixes
+
+- Fixed drag-selection tracking not initializing correctly when no prior selection existed
+- Fixed keyboard overlapping the metadata edit bottom sheet (added imePadding)
+- Preserved original `DATE_TAKEN` and `DATE_ADDED` when overriding an edited photo
 
