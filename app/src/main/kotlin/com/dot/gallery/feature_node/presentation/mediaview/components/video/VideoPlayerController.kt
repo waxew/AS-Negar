@@ -34,7 +34,6 @@ import androidx.compose.material.icons.outlined.SubtitlesOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +49,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,7 +70,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
 import com.dot.gallery.R
 import com.dot.gallery.feature_node.domain.model.PlaybackSpeed
-import com.dot.gallery.feature_node.domain.model.SubtitleTrack
 import com.dot.gallery.feature_node.presentation.util.formatMinSec
 import com.dot.gallery.feature_node.presentation.util.rememberGestureNavigationEnabled
 import kotlin.math.roundToInt
@@ -93,12 +90,9 @@ fun VideoPlayerController(
     onCastPlayPause: ((Boolean) -> Unit)? = null,
     onCastVolume: ((Double) -> Unit)? = null,
     onCastSpeed: ((Double) -> Unit)? = null,
-    subtitleTracks: List<SubtitleTrack> = emptyList(),
-    onSelectSubtitle: (SubtitleTrack) -> Unit = {},
-    onDisableSubtitles: () -> Unit = {},
-    onAddSubtitle: () -> Unit = {},
+    anySubtitleSelected: Boolean = false,
+    onSubtitleClick: () -> Unit = {},
 ) {
-    val scope = rememberCoroutineScope()
 
     val isGestureEnabled = rememberGestureNavigationEnabled()
     val extraNavPadding = remember(isGestureEnabled) {
@@ -168,70 +162,13 @@ fun VideoPlayerController(
                 }
             }
 
-            // Subtitle track picker
-            var showSubMenu by rememberSaveable { mutableStateOf(false) }
-            val anySubSelected = subtitleTracks.any { it.isSelected }
-            Box(contentAlignment = Alignment.TopEnd) {
-                DropdownMenu(
-                    expanded = showSubMenu,
-                    onDismissRequest = { showSubMenu = false }
-                ) {
-                    if (subtitleTracks.isNotEmpty()) {
-                        // "Off" option
-                        DropdownMenuItem(
-                            modifier = Modifier.padding(end = 16.dp),
-                            onClick = {
-                                onDisableSubtitles()
-                                showSubMenu = false
-                            },
-                            leadingIcon = {
-                                RadioButton(
-                                    selected = !anySubSelected,
-                                    onClick = {
-                                        onDisableSubtitles()
-                                        showSubMenu = false
-                                    }
-                                )
-                            },
-                            text = { Text(text = stringResource(R.string.subtitle_off)) }
-                        )
-                        subtitleTracks.forEach { track ->
-                            DropdownMenuItem(
-                                modifier = Modifier.padding(end = 16.dp),
-                                onClick = {
-                                    onSelectSubtitle(track)
-                                    showSubMenu = false
-                                },
-                                leadingIcon = {
-                                    RadioButton(
-                                        selected = track.isSelected,
-                                        onClick = {
-                                            onSelectSubtitle(track)
-                                            showSubMenu = false
-                                        }
-                                    )
-                                },
-                                text = { Text(text = track.label) }
-                            )
-                        }
-                        HorizontalDivider()
-                    }
-                    // "Add subtitle file" option
-                    DropdownMenuItem(
-                        onClick = {
-                            onAddSubtitle()
-                            showSubMenu = false
-                        },
-                        text = { Text(text = stringResource(R.string.add_subtitle_file)) }
-                    )
-                }
-                IconButton(onClick = { showSubMenu = !showSubMenu }) {
-                    Icon(
-                        imageVector = if (anySubSelected) Icons.Outlined.Subtitles else Icons.Outlined.SubtitlesOff,
-                        tint = Color.White,
-                        contentDescription = stringResource(R.string.change_subtitle_track_cd)
-                    )
-                }
+            // Subtitle track picker (opens bottom sheet)
+            IconButton(onClick = onSubtitleClick) {
+                Icon(
+                    imageVector = if (anySubtitleSelected) Icons.Outlined.Subtitles else Icons.Outlined.SubtitlesOff,
+                    tint = Color.White,
+                    contentDescription = stringResource(R.string.change_subtitle_track_cd)
+                )
             }
 
             Box(contentAlignment = Alignment.TopEnd) {

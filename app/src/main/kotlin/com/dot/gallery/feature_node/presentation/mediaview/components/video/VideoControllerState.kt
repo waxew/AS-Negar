@@ -13,4 +13,5 @@ data class VideoControllerState(
     val onSelectSubtitle: (SubtitleTrack) -> Unit,
     val onDisableSubtitles: () -> Unit,
     val onAddExternalSubtitle: (Uri) -> Unit,
+    val onRemoveSubtitle: (SubtitleTrack) -> Unit,
 )

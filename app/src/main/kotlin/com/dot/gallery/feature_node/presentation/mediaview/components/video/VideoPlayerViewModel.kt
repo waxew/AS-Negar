@@ -84,6 +84,7 @@ class VideoPlayerViewModel @AssistedInject constructor(
     private var decryptedFile: File? = null
     private var initialSeekApplied = false
     private var progressJob: Job? = null
+    private val _manualSubtitleConfigs = mutableListOf<MediaItem.SubtitleConfiguration>()
 
     // Public immutable flow
     private val _state =
@@ -367,7 +368,20 @@ class VideoPlayerViewModel @AssistedInject constructor(
                 )
             }
         }
-        printDebug("Subtitle tracks total: ${subs.size}")
+        // Mark manually-added tracks (they appear after embedded ones)
+        val manualCount = _manualSubtitleConfigs.size
+        val embeddedCount = (subs.size - manualCount).coerceAtLeast(0)
+        for (i in embeddedCount until subs.size) {
+            val manualIdx = i - embeddedCount
+            val uri = _manualSubtitleConfigs.getOrNull(manualIdx)?.uri
+            val filename = uri?.lastPathSegment?.substringAfterLast('/') ?: subs[i].label
+            subs[i] = subs[i].copy(
+                label = filename,
+                isManuallyAdded = true,
+                manualIndex = manualIdx
+            )
+        }
+        printDebug("Subtitle tracks total: ${subs.size} (embedded=$embeddedCount, manual=$manualCount)")
         _state.update { it.copy(subtitleTracks = subs) }
     }
 
@@ -398,11 +412,19 @@ class VideoPlayerViewModel @AssistedInject constructor(
 
     @OptIn(UnstableApi::class)
     fun addExternalSubtitle(uri: Uri) {
-        val currentItem = player.currentMediaItem ?: return
-        val currentPosition = player.currentPosition
-        val wasPlaying = player.isPlaying
+        val subtitleConfig = buildSubtitleConfig(uri)
+        _manualSubtitleConfigs.add(subtitleConfig)
+        rebuildMediaItemWithSubtitles()
+    }
 
-        // Guess MIME type from the URI
+    @OptIn(UnstableApi::class)
+    fun removeExternalSubtitle(track: SubtitleTrack) {
+        if (!track.isManuallyAdded || track.manualIndex !in _manualSubtitleConfigs.indices) return
+        _manualSubtitleConfigs.removeAt(track.manualIndex)
+        rebuildMediaItemWithSubtitles()
+    }
+
+    private fun buildSubtitleConfig(uri: Uri): MediaItem.SubtitleConfiguration {
         val path = uri.path?.lowercase() ?: ""
         val subtitleMime = when {
             path.endsWith(".srt") -> MimeTypes.APPLICATION_SUBRIP
@@ -411,16 +433,20 @@ class VideoPlayerViewModel @AssistedInject constructor(
             path.endsWith(".ttml") || path.endsWith(".xml") || path.endsWith(".dfxp") -> MimeTypes.APPLICATION_TTML
             else -> MimeTypes.APPLICATION_SUBRIP // fallback
         }
-
-        val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(uri)
+        return MediaItem.SubtitleConfiguration.Builder(uri)
             .setMimeType(subtitleMime)
             .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
             .build()
+    }
 
-        // Rebuild the MediaItem keeping existing config but adding the subtitle
-        val existingSubtitles = currentItem.localConfiguration?.subtitleConfigurations ?: emptyList()
+    @OptIn(UnstableApi::class)
+    private fun rebuildMediaItemWithSubtitles() {
+        val currentItem = player.currentMediaItem ?: return
+        val currentPosition = player.currentPosition
+        val wasPlaying = player.isPlaying
+
         val newItem = currentItem.buildUpon()
-            .setSubtitleConfigurations(existingSubtitles + subtitleConfig)
+            .setSubtitleConfigurations(_manualSubtitleConfigs.toList())
             .build()
 
         player.setMediaItem(newItem, currentPosition)

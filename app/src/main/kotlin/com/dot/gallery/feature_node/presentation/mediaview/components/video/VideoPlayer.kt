@@ -390,7 +390,8 @@ fun <T : Media> VideoPlayer(
                 subtitleTracks = playback.subtitleTracks,
                 onSelectSubtitle = vm::selectSubtitleTrack,
                 onDisableSubtitles = vm::disableSubtitles,
-                onAddExternalSubtitle = vm::addExternalSubtitle
+                onAddExternalSubtitle = vm::addExternalSubtitle,
+                onRemoveSubtitle = vm::removeExternalSubtitle
             )
         )
     }

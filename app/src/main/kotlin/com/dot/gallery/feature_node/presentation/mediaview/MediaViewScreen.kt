@@ -80,6 +80,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoState
 import com.composables.core.BottomSheet
 import com.composables.core.SheetDetent.Companion.FullyExpanded
@@ -117,7 +119,9 @@ import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewQ
 import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewSheetDetails
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MediaPreviewComponent
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoFilmstrip
+import com.dot.gallery.feature_node.presentation.mediaview.components.video.SubtitleBottomSheet
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.VideoPlayerController
+import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.presentation.cast.FCastViewModel
 import com.dot.gallery.feature_node.presentation.cast.components.CastButton
 import com.dot.gallery.feature_node.presentation.cast.components.FCastDevicePickerDialog
@@ -144,7 +148,6 @@ import com.github.panpf.sketch.sketch
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
-import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -221,6 +224,7 @@ fun <T : Media> MediaViewScreenRoute(
     )
 }
 
+@UnstableApi
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun <T : Media> MediaViewScreen(
@@ -273,7 +277,7 @@ fun <T : Media> MediaViewScreen(
     // Use pagerMedia for paging (only representatives when grouped, otherwise all media)
     val pagerItems by rememberedDerivedState(mediaState.value, pendingTrashIds) {
         val pager = mediaState.value.pagerMedia
-        val items = if (pager.isNotEmpty()) pager else mediaState.value.media
+        val items = pager.ifEmpty { mediaState.value.media }
         if (pendingTrashIds.isEmpty()) items else items.filter { it.id !in pendingTrashIds }
     }
 
@@ -827,11 +831,33 @@ fun <T : Media> MediaViewScreen(
                                         )
                                     }
 
+                                    val onRemoveSubtitle = subtitleState.onRemoveSubtitle
+                                    val subtitleSheetState = rememberAppBottomSheetState()
+
                                     val subtitleFilePicker = rememberLauncherForActivityResult(
                                         contract = ActivityResultContracts.OpenDocument()
                                     ) { uri: Uri? ->
                                         uri?.let { addExternalSubtitle(it) }
                                     }
+
+                                    SubtitleBottomSheet(
+                                        state = subtitleSheetState,
+                                        subtitleTracks = subtitleTracks,
+                                        onSelectSubtitle = onSelectSubtitle,
+                                        onDisableSubtitles = onDisableSubtitles,
+                                        onAddSubtitle = {
+                                            subtitleFilePicker.launch(
+                                                arrayOf(
+                                                    "application/x-subrip",
+                                                    "application/ttml+xml",
+                                                    "text/vtt",
+                                                    "text/x-ssa",
+                                                    "text/plain"
+                                                )
+                                            )
+                                        },
+                                        onRemoveSubtitle = onRemoveSubtitle
+                                    )
 
                                     AnimatedVisibility(
                                         visible = showUI,
@@ -862,11 +888,9 @@ fun <T : Media> MediaViewScreen(
                                             onCastSpeed = if (fcastState.connectedDevice != null) {
                                                 { spd -> fcastVm.setSpeed(spd) }
                                             } else null,
-                                            subtitleTracks = subtitleTracks,
-                                            onSelectSubtitle = onSelectSubtitle,
-                                            onDisableSubtitles = onDisableSubtitles,
-                                            onAddSubtitle = {
-                                                subtitleFilePicker.launch(arrayOf("*/*"))
+                                            anySubtitleSelected = subtitleTracks.any { it.isSelected },
+                                            onSubtitleClick = {
+                                                scope.launch { subtitleSheetState.show() }
                                             }
                                         )
                                     }
