@@ -256,10 +256,25 @@ fun <T : Media> MediaViewScreen(
     var showCastPicker by rememberSaveable { mutableStateOf(false) }
     var showCastPermissions by rememberSaveable { mutableStateOf(false) }
 
+    // IDs of media confirmed for trash/delete but not yet removed from mediaState
+    var pendingTrashIds by rememberSaveable { mutableStateOf(emptySet<Long>()) }
+
+    // Clean up pending IDs once the source has caught up
+    LaunchedEffect(mediaState.value) {
+        if (pendingTrashIds.isNotEmpty()) {
+            val sourceIds = mediaState.value.media.map { it.id }.toSet()
+            val confirmed = pendingTrashIds.filterNot { it in sourceIds }
+            if (confirmed.isNotEmpty()) {
+                pendingTrashIds = pendingTrashIds - confirmed.toSet()
+            }
+        }
+    }
+
     // Use pagerMedia for paging (only representatives when grouped, otherwise all media)
-    val pagerItems by rememberedDerivedState(mediaState.value) {
+    val pagerItems by rememberedDerivedState(mediaState.value, pendingTrashIds) {
         val pager = mediaState.value.pagerMedia
-        if (pager.isNotEmpty()) pager else mediaState.value.media
+        val items = if (pager.isNotEmpty()) pager else mediaState.value.media
+        if (pendingTrashIds.isEmpty()) items else items.filter { it.id !in pendingTrashIds }
     }
 
     // Use only primitive ids/sizes as saveable keys (avoid passing full media list object)
@@ -276,10 +291,11 @@ fun <T : Media> MediaViewScreen(
     )
 
     // Group members for the current page's media
-    val currentGroupMembers by rememberedDerivedState(mediaState.value, currentPage) {
+    val currentGroupMembers by rememberedDerivedState(mediaState.value, currentPage, pendingTrashIds) {
         val currentId =
             pagerItems.getOrNull(currentPage)?.id ?: return@rememberedDerivedState emptyList()
-        mediaState.value.mediaGroups[currentId] ?: emptyList()
+        val members = mediaState.value.mediaGroups[currentId] ?: emptyList()
+        if (pendingTrashIds.isEmpty()) members else members.filter { it.id !in pendingTrashIds }
     }
 
     // Track which group member is selected (null = show representative/pager item)
@@ -1186,7 +1202,22 @@ fun <T : Media> MediaViewScreen(
                                     restoreMedia = restoreMedia,
                                     currentVault = currentVault,
                                     isImageDark = isBottomDark,
-                                    autoContrast = autoContrast
+                                    autoContrast = autoContrast,
+                                    onTrashConfirmed = {
+                                        val trashedId = currentMedia?.id
+                                        if (trashedId != null) {
+                                            val newPending = pendingTrashIds + trashedId
+                                            pendingTrashIds = newPending
+                                            // If all items are now filtered out, navigate up
+                                            val state = mediaState.value
+                                            val allItems = state.pagerMedia.ifEmpty { state.media }
+                                            val remaining = allItems.count { it.id !in newPending }
+                                            if (remaining <= 0 && !isStandalone) {
+                                                windowInsetsController.toggleSystemBars(show = true)
+                                                eventHandler.navigateUp()
+                                            }
+                                        }
+                                    }
                                 )
                             }
                         }
