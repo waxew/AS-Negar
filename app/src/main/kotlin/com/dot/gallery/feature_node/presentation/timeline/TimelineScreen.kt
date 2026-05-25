@@ -227,8 +227,8 @@ fun TimelineScreen(
                 if (hasStoryCards) {
                     StoryCardsRow(
                         cards = storyCards.orEmpty(),
-                        onCardClick = { index, _ ->
-                            eventHandler.navigate(Screen.StoryViewerScreen.cardIndex(index))
+                        onCardClick = { _, card ->
+                            eventHandler.navigate(Screen.StoryViewerScreen.cardId(card.id))
                         },
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
                         contentPadding = PaddingValues(horizontal = 32.dp)

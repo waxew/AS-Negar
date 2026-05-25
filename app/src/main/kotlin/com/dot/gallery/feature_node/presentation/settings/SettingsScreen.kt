@@ -134,12 +134,14 @@ fun SettingsScreen() {
     val tertiaryContainerColor = MaterialTheme.colorScheme.tertiaryContainer
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
     val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
+    val inversePrimaryColor = MaterialTheme.colorScheme.inversePrimary
     val backgroundColors = remember(
         primaryColor, secondaryColor, tertiaryColor,
-        errorColor, primaryContainerColor, secondaryContainerColor, tertiaryContainerColor, surfaceVariantColor
+        errorColor, primaryContainerColor, secondaryContainerColor, tertiaryContainerColor, surfaceVariantColor,
+        inversePrimaryColor
     ) {
         listOf(
-            primaryColor, secondaryColor, tertiaryColor,
+            primaryColor, secondaryColor, inversePrimaryColor, tertiaryColor,
             errorColor, primaryContainerColor, secondaryContainerColor, tertiaryContainerColor, surfaceVariantColor
         )
     }
@@ -151,12 +153,14 @@ fun SettingsScreen() {
     val onSecondaryContainerColor = MaterialTheme.colorScheme.onSecondaryContainer
     val onTertiaryContainerColor = MaterialTheme.colorScheme.onTertiaryContainer
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val onBackgroundColors = remember(
         onPrimaryColor, onSecondaryColor, onTertiaryColor,
-        onErrorColor, onPrimaryContainerColor, onSecondaryContainerColor, onTertiaryContainerColor, onSurfaceVariantColor
+        onErrorColor, onPrimaryContainerColor, onSecondaryContainerColor, onTertiaryContainerColor, onSurfaceVariantColor,
+        onSurfaceColor
     ) {
         listOf(
-            onPrimaryColor, onSecondaryColor, onTertiaryColor,
+            onPrimaryColor, onSecondaryColor, onSurfaceColor, onTertiaryColor,
             onErrorColor, onPrimaryContainerColor, onSecondaryContainerColor, onTertiaryContainerColor, onSurfaceVariantColor
         )
     }

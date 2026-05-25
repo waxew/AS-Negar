@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Gif
@@ -260,6 +261,7 @@ fun SettingsTimelineAlbumsScreen() {
                 favIconPosition = favIconPosition,
                 onDetailClick = { detailKey = it },
                 onDateFormatClick = { eventHandler.navigate(Screen.DateFormatScreen()) },
+                onStoryCardsClick = { eventHandler.navigate(Screen.StoryCardsSettingsScreen()) },
             )
         }
     }
@@ -283,6 +285,7 @@ private fun TimelineAlbumsListScreen(
     favIconPosition: String,
     onDetailClick: (String) -> Unit,
     onDateFormatClick: () -> Unit,
+    onStoryCardsClick: () -> Unit = {},
 ) {
     @Composable
     fun settings(): SnapshotStateList<SettingsEntity> {
@@ -350,6 +353,13 @@ private fun TimelineAlbumsListScreen(
             isChecked = showFilterButton,
             onCheck = onShowFilterButtonChange,
             onClick = { onDetailClick(DETAIL_FILTER_BUTTON) },
+            screenPosition = Position.Middle
+        )
+
+        val storyCardsPref = rememberPreference(
+            title = stringResource(R.string.story_cards_settings_title),
+            summary = stringResource(R.string.story_cards_settings_summary),
+            onClick = onStoryCardsClick,
             screenPosition = Position.Bottom
         )
 
@@ -397,6 +407,7 @@ private fun TimelineAlbumsListScreen(
         return remember(
             groupByMonthPref, timelineLayoutPref, groupSimilarMediaPref,
             allowGifAnimationPref, dateHeaderPref, showFilterButtonPref,
+            storyCardsPref,
             hideTimelineOnAlbumPref, mergeAlbumsByNamePref, favIconPositionPref
         ) {
             mutableStateListOf<SettingsEntity>().apply {
@@ -407,6 +418,7 @@ private fun TimelineAlbumsListScreen(
                 add(allowGifAnimationPref)
                 add(dateHeaderPref)
                 add(showFilterButtonPref)
+                add(storyCardsPref)
 
                 add(albumsHeader)
                 add(hideTimelineOnAlbumPref)

@@ -184,5 +184,12 @@ sealed class Screen(val route: String) {
 
     data object WhatsNewScreen : Screen("whats_new_screen")
 
+    data object StoryViewerScreen : Screen("story_viewer_screen") {
+        fun cardId() = "$route?cardId={cardId}"
+        fun cardId(id: Long) = "$route?cardId=$id"
+    }
+
+    data object StoryCardsSettingsScreen : Screen("story_cards_settings_screen")
+
     operator fun invoke() = route
 }

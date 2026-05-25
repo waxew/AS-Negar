@@ -683,6 +683,34 @@ object Settings {
         fun rememberHeaderBannerDismissed() =
             rememberPreference(key = HEADER_BANNER_DISMISSED, defaultValue = false)
 
+        private val STORY_CARDS_CONFIG = stringPreferencesKey("story_cards_config")
+
+        @Composable
+        fun rememberStoryCardsConfig() =
+            rememberPreferenceSerializable(
+                keyString = STORY_CARDS_CONFIG,
+                defaultValue = com.dot.gallery.feature_node.domain.model.StoryCardsConfig()
+            )
+
+        fun getStoryCardsConfig(context: Context) =
+            context.activeDataStore.data.map {
+                it[STORY_CARDS_CONFIG]?.let { json ->
+                    runCatching { Json.decodeFromString<com.dot.gallery.feature_node.domain.model.StoryCardsConfig>(json) }.getOrNull()
+                } ?: com.dot.gallery.feature_node.domain.model.StoryCardsConfig()
+            }
+
+        private val STORY_VIEWER_AUTO_ADVANCE = booleanPreferencesKey("story_viewer_auto_advance")
+
+        @Composable
+        fun rememberStoryViewerAutoAdvance() =
+            rememberPreference(key = STORY_VIEWER_AUTO_ADVANCE, defaultValue = true)
+
+        private val STORY_VIEWER_DURATION_SECONDS = stringPreferencesKey("story_viewer_duration_seconds")
+
+        @Composable
+        fun rememberStoryViewerDuration() =
+            rememberPreference(key = STORY_VIEWER_DURATION_SECONDS, defaultValue = "5")
+
     }
 
     object Security {

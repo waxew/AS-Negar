@@ -118,6 +118,9 @@ import com.dot.gallery.feature_node.presentation.settings.subsettings.AIModelsMa
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSecurityScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSmartFeaturesScreen
 import com.dot.gallery.feature_node.presentation.setup.SetupScreen
+import com.dot.gallery.feature_node.presentation.storycards.StoryCardsSettingsScreen
+import com.dot.gallery.feature_node.presentation.storycards.StoryCardsViewModel
+import com.dot.gallery.feature_node.presentation.storycards.StoryViewerScreen
 import com.dot.gallery.feature_node.presentation.timeline.TimelineScreen
 import com.dot.gallery.feature_node.presentation.trashed.TrashedGridScreen
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -1300,6 +1303,34 @@ fun NavigationComp(
                     target = "location_${gpsLocationNameCity}_$gpsLocationNameCountry",
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this
+                )
+            }
+
+            composable(
+                route = Screen.StoryViewerScreen.cardId(),
+                arguments = listOf(
+                    navArgument(name = "cardId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                val cardId = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("cardId") ?: -1L
+                }
+                val storyCardsViewModel = hiltViewModel<StoryCardsViewModel>()
+                val cards by storyCardsViewModel.allCards.collectAsStateWithLifecycle()
+
+                StoryViewerScreen(
+                    cards = cards,
+                    initialCardId = cardId,
+                    onDismiss = { navController.navigateUp() }
+                )
+            }
+
+            composable(Screen.StoryCardsSettingsScreen()) {
+                StoryCardsSettingsScreen(
+                    onNavigateBack = { navController.navigateUp() }
                 )
             }
 
