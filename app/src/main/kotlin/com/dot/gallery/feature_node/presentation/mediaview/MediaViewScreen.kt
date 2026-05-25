@@ -5,6 +5,7 @@
 
 package com.dot.gallery.feature_node.presentation.mediaview
 
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Rect
@@ -412,6 +413,13 @@ fun <T : Media> MediaViewScreen(
     val activity = LocalActivity.current
     val window = LocalWindowInfo.current
     val density = LocalDensity.current
+
+    // Reset forced orientation when leaving the media view screen
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
 
     val configuration = LocalConfiguration.current
     val isLandscape = remember(configuration) {
