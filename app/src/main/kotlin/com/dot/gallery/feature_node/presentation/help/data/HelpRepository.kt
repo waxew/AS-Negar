@@ -27,9 +27,11 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Slideshow
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Subtitles
+import androidx.compose.material.icons.outlined.VideoSettings
 import androidx.compose.material.icons.outlined.ZoomIn
 import com.dot.gallery.R
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -254,7 +256,14 @@ object HelpRepository {
             pages = listOf(
                 TutorialPage(title = R.string.help_tip_animated_formats_p1_title, description = R.string.help_tip_animated_formats_p1_desc, previewType = PreviewType.MEDIA_VIEWER),
                 TutorialPage(title = R.string.help_tip_animated_formats_p2_title, description = R.string.help_tip_animated_formats_p2_desc)
-            ), sinceVersion = "4.2.3")
+            ), sinceVersion = "4.2.3"),
+        HelpTip(id = "story_cards", title = R.string.help_tip_story_cards_title, subtitle = R.string.help_tip_story_cards_subtitle,
+            icon = HelpIcon.ofVector(Icons.Outlined.Slideshow), category = HelpCategory.TIMELINE_ALBUMS,
+            deepLink = Screen.StoryCardsSettingsScreen(),
+            pages = listOf(
+                TutorialPage(title = R.string.help_tip_story_cards_p1_title, description = R.string.help_tip_story_cards_p1_desc, previewType = PreviewType.TIMELINE_GRID),
+                TutorialPage(title = R.string.help_tip_story_cards_p2_title, description = R.string.help_tip_story_cards_p2_desc, steps = listOf(R.string.help_tip_story_cards_p2_s1, R.string.help_tip_story_cards_p2_s2, R.string.help_tip_story_cards_p2_s3, R.string.help_tip_story_cards_p2_s4))
+            ), sinceVersion = "4.3.0")
     )
     // endregion
 
@@ -380,7 +389,12 @@ object HelpRepository {
         HelpTip(id = "viewer_auto_contrast", title = R.string.help_tip_viewer_auto_contrast_title, subtitle = R.string.help_tip_viewer_auto_contrast_subtitle,
             icon = HelpIcon.ofVector(Icons.Outlined.Contrast), category = HelpCategory.VIEWER_SETTINGS,
             deepLink = Screen.SettingsAppearanceScreen(),
-            pages = listOf(TutorialPage(title = R.string.help_tip_viewer_auto_contrast_p1_title, description = R.string.help_tip_viewer_auto_contrast_p1_desc, steps = listOf(R.string.help_tip_viewer_auto_contrast_p1_s1, R.string.help_tip_viewer_auto_contrast_p1_s2, R.string.help_tip_viewer_auto_contrast_p1_s3))), sinceVersion = "4.2.1")
+            pages = listOf(TutorialPage(title = R.string.help_tip_viewer_auto_contrast_p1_title, description = R.string.help_tip_viewer_auto_contrast_p1_desc, steps = listOf(R.string.help_tip_viewer_auto_contrast_p1_s1, R.string.help_tip_viewer_auto_contrast_p1_s2, R.string.help_tip_viewer_auto_contrast_p1_s3))), sinceVersion = "4.2.1"),
+        HelpTip(id = "video_options_popup", title = R.string.help_tip_video_options_popup_title, subtitle = R.string.help_tip_video_options_popup_subtitle,
+            icon = HelpIcon.ofVector(Icons.Outlined.VideoSettings), category = HelpCategory.VIEWER_SETTINGS,
+            pages = listOf(
+                TutorialPage(title = R.string.help_tip_video_options_popup_p1_title, description = R.string.help_tip_video_options_popup_p1_desc, previewType = PreviewType.MEDIA_VIEWER)
+            ), sinceVersion = "4.3.0")
     )
     // endregion
 
@@ -800,6 +814,19 @@ object HelpRepository {
         SETTINGS_SECURITY_TIPS + GESTURE_TIPS + SELECTION_TIPS + ACCESSIBILITY_TIPS
 
     private val ALL_RELEASES: List<ReleaseNotes> = listOf(
+        ReleaseNotes(
+            versionName = "4.3.0",
+            versionCode = 43001,
+            releaseDate = "2026-05-25",
+            highlights = listOf(
+                ReleaseHighlight(tipId = "story_cards", title = R.string.help_release_430_story_cards_title, description = R.string.help_release_430_story_cards_desc, icon = HelpIcon.ofVector(Icons.Outlined.Slideshow)),
+                ReleaseHighlight(tipId = "video_options_popup", title = R.string.help_release_430_video_controls_title, description = R.string.help_release_430_video_controls_desc, icon = HelpIcon.ofVector(Icons.Outlined.VideoSettings)),
+                ReleaseHighlight(tipId = "viewer_auto_contrast", title = R.string.help_release_430_video_auto_contrast_title, description = R.string.help_release_430_video_auto_contrast_desc, icon = HelpIcon.ofVector(Icons.Outlined.Contrast)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_430_startup_title, description = R.string.help_release_430_startup_desc, icon = HelpIcon.ofVector(Icons.Outlined.Speed)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_430_shared_elements_title, description = R.string.help_release_430_shared_elements_desc, icon = HelpIcon.ofVector(Icons.Outlined.Collections)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_430_bugfixes_title, description = R.string.help_release_430_bugfixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.BugReport))
+            )
+        ),
         ReleaseNotes(
             versionName = "4.2.3",
             versionCode = 42301,

@@ -1,25 +1,26 @@
-## What's new in 4.2.3
+## What's new in 4.3.0
 
 ### New Features
 
-- **Timeline Filter** — Filter your timeline by media type (photos, videos, GIFs), favorites, year, or album. Access the filter directly from the search bar. Combine multiple filters for precise results.
-- **Animated Format Support** — Play animated AVIF, animated JXL, and APNG images alongside traditional GIF. Modern animated formats with better compression and quality are now fully supported.
-- **Video Subtitles** — Select embedded subtitle tracks or load external subtitle files (.srt, .ass, .ssa, etc.) during video playback. Manage subtitles from a new bottom sheet with track selection and delete support.
-- **Video Pinch-to-Zoom** — Pinch-to-zoom and double-tap-to-zoom during video playback, just like with photos. Pan around while zoomed in to examine fine details in video footage.
-- **Search Descriptions & Metadata** — Search queries now match against image descriptions, EXIF metadata text fields, and other embedded metadata — not just filenames and AI analysis.
-- **Album Picker Search** — A search bar in the copy/move album picker lets you quickly find the target album by name when you have many albums.
-- **Redesigned Trash & Favorites** — Both screens have been completely redesigned with a fresh layout, improved visual hierarchy, and smoother animations.
+- **Story Cards** — A new horizontal carousel above the timeline surfaces highlights from your recent photos, albums, categories, locations, and favorites. Tap any card to open an immersive full-screen story viewer with auto-advancing slides and progress indicators. Fully configurable: toggle card types, reorder them, and adjust viewer timing in Settings > Timeline & albums > Story cards.
+- **Redesigned Video Controls** — Video control buttons (subtitle, speed, volume, rotate) have been consolidated into a single "more options" button that expands into a blurred animated popup with scale+fade transitions. Uses row layout in landscape, column in portrait.
+- **Video Auto-Contrast** — Auto-contrast and adaptive surfaceContainer colors now extend to the video options popup, matching the viewer's luminance-based theme.
 
-### UX Improvements
+### Performance
 
-- Filter moved from separate UI to inline search bar with a settings toggle to control visibility
-- Dismissible Donate/GitHub banners in Settings
-- Bottom sheet confirmation replaces dismiss X button for a more consistent experience
-- Optimistic UI feedback when trashing images for snappier interaction
+- **Faster Cold Startup** — Cold startup optimized from ~900 ms to ~350 ms through lazy Keystore SecretKey caching, deferred database passphrase validation, async media distribution loading, and eager permission checks.
+
+### Improvements
+
+- Improved shared element transitions: single stable registration per media item, switched from sharedBounds to sharedElement, Long-based keys for more accurate photo-to-viewer animations
+- Loading shimmer now shows during timeline startup instead of a blank screen
 
 ### Bug Fixes
 
-- Fixed drag-selection tracking not initializing correctly when no prior selection existed
-- Fixed keyboard overlapping the metadata edit bottom sheet (added imePadding)
-- Preserved original `DATE_TAKEN` and `DATE_ADDED` when overriding an edited photo
+- Fixed move/copy failing for albums outside Pictures/DCIM when app has MANAGE_MEDIA permission (#875)
+- Fixed forced screen orientation not resetting when leaving video player (#880)
+- Fixed status bar icons not syncing with followTheme logic in media viewer
+- Fixed ClassCastException when viewing media from lock screen after unlock (StandaloneActivity) (#877)
+- Fixed grid realignment glitch on back navigation caused by animated sticky header offset
+- Fixed empty-media/loading overlapping above-grid content; hidden collection card when albums list is empty
 
