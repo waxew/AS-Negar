@@ -8,6 +8,7 @@ package com.dot.gallery.feature_node.presentation.mediaview.components.video
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -86,6 +87,7 @@ import com.dot.gallery.feature_node.domain.model.PlaybackSpeed
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.formatMinSec
 import com.dot.gallery.feature_node.presentation.util.rememberGestureNavigationEnabled
+import com.dot.gallery.ui.theme.isDarkTheme
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -110,6 +112,8 @@ fun VideoPlayerController(
     anySubtitleSelected: Boolean = false,
     onSubtitleClick: () -> Unit = {},
     onInteraction: () -> Unit = {},
+    isBottomDark: Boolean = false,
+    autoContrast: Boolean = false,
 ) {
 
     val isGestureEnabled = rememberGestureNavigationEnabled()
@@ -183,7 +187,29 @@ fun VideoPlayerController(
             // "More options" button that expands into a blurred popup
             var showMoreOptions by rememberSaveable { mutableStateOf(false) }
             val hazeState = LocalHazeState.current
-            val surfaceContainer = Color.Black
+            val isDarkTheme = isDarkTheme()
+            val followTheme = remember(autoContrast, isBottomDark) {
+                if (autoContrast) !isBottomDark else false
+            }
+            val surfaceContainer by animateColorAsState(
+                targetValue = when {
+                    autoContrast && !isBottomDark -> Color.White.copy(0.5f)
+                    autoContrast -> Color.Black.copy(0.5f)
+                    followTheme -> MaterialTheme.colorScheme.surfaceContainer.copy(
+                        if (isDarkTheme) 0.5f else 0.8f
+                    )
+                    else -> Color.Black.copy(0.5f)
+                },
+                label = "VideoOptionsSurfaceContainer"
+            )
+            val contentColor by animateColorAsState(
+                targetValue = when {
+                    autoContrast -> if (isBottomDark) Color.White else Color.Black
+                    followTheme -> MaterialTheme.colorScheme.onSurface
+                    else -> Color.White
+                },
+                label = "VideoOptionsContentColor"
+            )
 
             Box(contentAlignment = Alignment.BottomEnd) {
                 AnimatedContent(
@@ -209,13 +235,13 @@ fun VideoPlayerController(
                                 Configuration.ORIENTATION_LANDSCAPE
                         val panelModifier = Modifier
                             .clip(RoundedCornerShape(28.dp))
+                            .background(surfaceContainer)
                             .hazeEffect(
                                 state = hazeState,
                                 style = HazeMaterials.regular(
                                     containerColor = surfaceContainer
                                 )
                             )
-                            .background(surfaceContainer)
                             .padding(8.dp)
                         val optionButtons: @Composable () -> Unit = {
                             // Collapse button
@@ -225,7 +251,7 @@ fun VideoPlayerController(
                             }) {
                                 Icon(
                                     imageVector = Icons.Outlined.Close,
-                                    tint = Color.White,
+                                    tint = contentColor,
                                     contentDescription = stringResource(R.string.close)
                                 )
                             }
@@ -238,7 +264,7 @@ fun VideoPlayerController(
                             }) {
                                 Icon(
                                     imageVector = if (anySubtitleSelected) Icons.Outlined.Subtitles else Icons.Outlined.SubtitlesOff,
-                                    tint = Color.White,
+                                    tint = contentColor,
                                     contentDescription = stringResource(R.string.change_subtitle_track_cd)
                                 )
                             }
@@ -276,7 +302,7 @@ fun VideoPlayerController(
                                 }) {
                                     Icon(
                                         imageVector = Icons.Outlined.Speed,
-                                        tint = Color.White,
+                                        tint = contentColor,
                                         contentDescription = stringResource(R.string.change_playback_speed_cd)
                                     )
                                 }
@@ -303,7 +329,7 @@ fun VideoPlayerController(
                             ) {
                                 Icon(
                                     imageVector = if (isMuted) Icons.AutoMirrored.Outlined.VolumeMute else Icons.AutoMirrored.Outlined.VolumeUp,
-                                    tint = Color.White,
+                                    tint = contentColor,
                                     contentDescription = stringResource(R.string.toggle_audio_cd)
                                 )
                             }
@@ -316,7 +342,7 @@ fun VideoPlayerController(
                             }) {
                                 Icon(
                                     imageVector = Icons.Outlined.ScreenRotation,
-                                    tint = Color.White,
+                                    tint = contentColor,
                                     contentDescription = stringResource(R.string.rotate_screen_cd)
                                 )
                             }
@@ -341,13 +367,13 @@ fun VideoPlayerController(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
+                                .background(surfaceContainer)
                                 .hazeEffect(
                                     state = hazeState,
                                     style = HazeMaterials.regular(
                                         containerColor = surfaceContainer
                                     )
-                                )
-                                .background(surfaceContainer),
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             IconButton(onClick = {
@@ -356,7 +382,7 @@ fun VideoPlayerController(
                             }) {
                                 Icon(
                                     imageVector = Icons.Outlined.MoreVert,
-                                    tint = Color.White,
+                                    tint = contentColor,
                                     contentDescription = stringResource(R.string.more_options_cd)
                                 )
                             }

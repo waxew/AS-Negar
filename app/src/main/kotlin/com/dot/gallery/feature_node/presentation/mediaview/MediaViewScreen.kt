@@ -903,7 +903,9 @@ fun <T : Media> MediaViewScreen(
                                             onSubtitleClick = {
                                                 scope.launch { subtitleSheetState.show() }
                                             },
-                                            onInteraction = { uiInteracted = true }
+                                            onInteraction = { uiInteracted = true },
+                                            isBottomDark = isBottomDark,
+                                            autoContrast = autoContrast
                                         )
                                     }
                                 }
