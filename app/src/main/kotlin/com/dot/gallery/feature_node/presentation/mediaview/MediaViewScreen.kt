@@ -923,9 +923,7 @@ fun <T : Media> MediaViewScreen(
                 eventHandler.setFollowTheme(followTheme)
             }
             DisposableEffect(Unit) {
-                val previousLightStatusBars = windowInsetsController.isAppearanceLightStatusBars
                 onDispose {
-                    windowInsetsController.isAppearanceLightStatusBars = previousLightStatusBars
                     eventHandler.setFollowTheme(true)
                 }
             }
