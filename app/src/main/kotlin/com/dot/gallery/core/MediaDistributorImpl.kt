@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -65,6 +66,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -190,8 +192,24 @@ class MediaDistributorImpl @Inject constructor(
     /**
      * Albums
      */
+    private val _blacklistedAlbumsInternal = MutableStateFlow<List<IgnoredAlbum>?>(null)
+
+    init {
+        // Eagerly load blacklisted albums via a one-shot query that uses a read
+        // connection, bypassing Room's InvalidationTracker setup (which serializes
+        // all DAO Flow observers through the write connection and adds ~1.7s).
+        // After the initial load, the reactive DAO Flow takes over for live updates.
+        appScope.launch {
+            _blacklistedAlbumsInternal.value = repository.getBlacklistedAlbumsAsync()
+            repository.getBlacklistedAlbums().collect {
+                _blacklistedAlbumsInternal.value = it
+            }
+        }
+    }
+
     override val blacklistedAlbumsFlow: StateFlow<List<IgnoredAlbum>> =
-        repository.getBlacklistedAlbums()
+        _blacklistedAlbumsInternal
+            .map { it ?: emptyList() }
             .stateIn(
                 scope = appScope,
                 started = prioritySharingMethod,
@@ -231,6 +249,14 @@ class MediaDistributorImpl @Inject constructor(
                 }
             }
         }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _rawAlbumsFlow: StateFlow<Resource<List<Album>>?> =
+        hasPermission.flatMapLatest { granted ->
+            if (!granted) flowOf(null)
+            else repository.getAlbums(mediaOrder = albumOrder)
+                .map<Resource<List<Album>>, Resource<List<Album>>?> { it }
+        }.stateIn(appScope, prioritySharingMethod, null)
 
     private val albumThumbnails = repository.getAlbumThumbnails()
         .stateIn(
@@ -278,18 +304,13 @@ class MediaDistributorImpl @Inject constructor(
     override fun collectionAlbumIdsInCollection(collectionId: Long): Flow<List<Long>> =
         repository.getAlbumIdsInCollection(collectionId)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    override val albumsFlow: StateFlow<AlbumState> = hasPermission.flatMapLatest { granted ->
-        if (!granted) flowOf(AlbumState())
-        else {
-            StartupTracer.begin("albums.permission_granted→combine_setup").also { s -> StartupTracer.end(s) }
-            combine(
-            repository.getAlbums(mediaOrder = albumOrder)
-                .onEach { StartupTracer.begin("albums.dep.getAlbums(${it.data?.size ?: 0})").also { s -> StartupTracer.end(s) } },
+    override val albumsFlow: StateFlow<AlbumState> = combine(
+            _rawAlbumsFlow
+                .onEach { StartupTracer.begin("albums.dep.getAlbums(${it?.data?.size ?: 0})").also { s -> StartupTracer.end(s) } },
             pinnedAlbumsFlow
                 .onEach { StartupTracer.begin("albums.dep.pinned(${it.size})").also { s -> StartupTracer.end(s) } },
-            blacklistedAlbumsFlow
-                .onEach { StartupTracer.begin("albums.dep.blacklisted(${it.size})").also { s -> StartupTracer.end(s) } },
+            _blacklistedAlbumsInternal
+                .onEach { StartupTracer.begin("albums.dep.blacklisted(${it?.size ?: -1})").also { s -> StartupTracer.end(s) } },
             lockedAlbumsFlow
                 .onEach { StartupTracer.begin("albums.dep.locked(${it.size})").also { s -> StartupTracer.end(s) } },
             settingsFlow
@@ -309,13 +330,15 @@ class MediaDistributorImpl @Inject constructor(
             collectionAlbumIdsFlow
                 .onEach { StartupTracer.begin("albums.dep.collectionAlbumIds(${it.size})").also { s -> StartupTracer.end(s) } },
         ) { values ->
-            val combineSpan = StartupTracer.begin("albums.combine_body(${(values[0] as Resource<*>).data?.let { (it as? List<*>)?.size } ?: 0} albums)")
             @Suppress("UNCHECKED_CAST")
-            val result = values[0] as Resource<List<Album>>
+            val result = values[0] as Resource<List<Album>>?
+            @Suppress("UNCHECKED_CAST")
+            val blacklistedAlbums = values[2] as List<IgnoredAlbum>?
+            // Keep loading until both albums and blacklisted albums are loaded from their sources
+            if (result == null || blacklistedAlbums == null) return@combine AlbumState()
+            val combineSpan = StartupTracer.begin("albums.combine_body(${result.data?.size ?: 0} albums)")
             @Suppress("UNCHECKED_CAST")
             val pinnedAlbums = values[1] as List<PinnedAlbum>
-            @Suppress("UNCHECKED_CAST")
-            val blacklistedAlbums = values[2] as List<IgnoredAlbum>
             @Suppress("UNCHECKED_CAST")
             val lockedAlbums = values[3] as List<LockedAlbum>
             val settings = values[4] as TimelineSettings?
@@ -387,9 +410,7 @@ class MediaDistributorImpl @Inject constructor(
                 isLoading = false,
                 error = if (result is Resource.Error) result.message ?: "An error occurred" else ""
             ).also { StartupTracer.end(combineSpan) }
-        }
-        }
-    }.stateIn(appScope, started = prioritySharingMethod, AlbumState())
+        }.stateIn(appScope, started = prioritySharingMethod, AlbumState())
 
     /**
      * Media
@@ -581,8 +602,19 @@ class MediaDistributorImpl @Inject constructor(
         // Fire-and-forget: don't block data delivery on the DB insert
         appScope.launch {
             val rescanSpan = StartupTracer.begin("$tag.triggerRescan(${it.media.size} items)")
-            triggerRescanForMissingDateTaken(it.media)
+            val scannedItems = triggerRescanForMissingDateTaken(it.media)
             StartupTracer.end(rescanSpan)
+            // Insert scanned IDs in a separate step so the rescan span stays fast.
+            // Defer the heavy DB write well past startup so it doesn't block
+            // Room's DAO Flow InvalidationTracker setup on the write connection.
+            // With a warm page cache the insert takes ~5ms; with a cold cache
+            // it takes 650ms+ and delays settingsFlow/all #2 combines.
+            if (scannedItems.isNotEmpty()) {
+                delay(3000)
+                val dbSpan = StartupTracer.begin("rescan.insertScannedIds(${scannedItems.size})")
+                scannedMediaDao.insertAll(scannedItems)
+                StartupTracer.end(dbSpan)
+            }
         }
         if (it.media.isNotEmpty()) {
             StartupTracer.begin("$tag.READY(${it.media.size} items, ${it.mappedMedia.size} mapped)").also { s -> StartupTracer.end(s) }
@@ -779,9 +811,9 @@ class MediaDistributorImpl @Inject constructor(
      * to read EXIF immediately, populating DATE_TAKEN and triggering a
      * ContentResolver change notification that refreshes the timeline.
      */
-    private suspend fun triggerRescanForMissingDateTaken(media: List<Media.UriMedia>) {
+    private fun triggerRescanForMissingDateTaken(media: List<Media.UriMedia>): List<ScannedMedia> {
         val toScan = media.filter { it.takenTimestamp == null && rescanRequestedIds.add(it.id) }
-        if (toScan.isEmpty()) return
+        if (toScan.isEmpty()) return emptyList()
         StartupTracer.begin("rescan.found(${toScan.size}/${media.size} missing DATE_TAKEN)").also { s -> StartupTracer.end(s) }
         val paths = toScan.mapNotNull { it.path.takeIf { p -> p.isNotBlank() } }.toTypedArray()
         val mimeTypes = toScan.map { it.mimeType }.toTypedArray()
@@ -790,9 +822,7 @@ class MediaDistributorImpl @Inject constructor(
             MediaScannerConnection.scanFile(context, paths, mimeTypes, null)
             StartupTracer.end(scanSpan)
         }
-        val dbSpan = StartupTracer.begin("rescan.insertScannedIds(${toScan.size})")
-        scannedMediaDao.insertAll(toScan.map { ScannedMedia(it.id) })
-        StartupTracer.end(dbSpan)
+        return toScan.map { ScannedMedia(it.id) }
     }
 
     private fun mergeSubfolderAlbums(

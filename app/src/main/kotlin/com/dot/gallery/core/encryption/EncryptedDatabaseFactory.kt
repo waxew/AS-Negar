@@ -81,6 +81,22 @@ object EncryptedDatabaseFactory {
                 .build()
         }
 
+        // Eagerly open the database connection in the background to start
+        // SQLCipher key derivation early, rather than lazily on first query.
+        // This overlaps the expensive PBKDF2 work with other startup tasks.
+        Thread({
+            val rawDb = StartupTracer.trace("EncryptedDB.warmup") {
+                db.openHelper.writableDatabase
+            }
+            // Warm SQLCipher's page cache by reading catalog + data tables.
+            // Without this, the first Room query pays ~1.3s of cold-cache
+            // overhead decrypting system pages from disk.
+            StartupTracer.trace("EncryptedDB.cacheWarmup") {
+                rawDb.query("SELECT * FROM room_master_table").close()
+                rawDb.query("SELECT * FROM blacklist").close()
+            }
+        }, "db-warmup").start()
+
         StartupTracer.end(createSpan)
         return db
     }

@@ -325,7 +325,7 @@ fun AlbumsScreen(
                                 key = "emptyAlbums"
                             ) {
                                 AnimatedVisibility(
-                                    visible = albumsState.value.albums.isEmpty() && albumsState.value.error.isEmpty(),
+                                    visible = albumsState.value.albums.isEmpty() && albumsState.value.error.isEmpty() && !albumsState.value.isLoading,
                                     enter = enterAnimation,
                                     exit = exitAnimation
                                 ) {
@@ -500,7 +500,7 @@ fun AlbumsScreen(
 
                         item(key = "emptyAlbums") {
                             AnimatedVisibility(
-                                visible = albumsState.value.albums.isEmpty() && albumsState.value.error.isEmpty(),
+                                visible = albumsState.value.albums.isEmpty() && albumsState.value.error.isEmpty() && !albumsState.value.isLoading,
                                 enter = enterAnimation,
                                 exit = exitAnimation
                             ) {
