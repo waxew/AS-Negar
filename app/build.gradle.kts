@@ -27,7 +27,12 @@ apkVersioning {
     versionCodeMultiplier.set(10)
     outputFileName.set("{appName}-{versionName}-{versionCode}{suffix}-{flavorName}-{buildType}")
     variables.put("appName", "ReFra")
-    variables.put("suffix", if (includeMaps) "" else "-nomaps")
+    val cloudSuffix = buildList {
+        if (!includeMaps) add("nomaps")
+        if (includeImmich) add("immich")
+        if (includeOwncloud) add("owncloud")
+    }.let { if (it.isEmpty()) "" else "-" + it.joinToString("-") }
+    variables.put("suffix", cloudSuffix)
 }
 
 android {
@@ -38,8 +43,8 @@ android {
         applicationId = "com.dot.gallery"
         minSdk = 29
         targetSdk = 37
-        versionCode = 43101
-        versionName = "4.3.1"
+        versionCode = 50001
+        versionName = "5.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -67,12 +72,15 @@ android {
             manifestPlaceholders["appProvider"] = "com.dot.gallery.debug.media_provider"
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
+            buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
+            buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
             buildConfigField(
                 "String",
                 "CONTENT_AUTHORITY",
                 "\"com.dot.gallery.debug.media_provider\""
             )
             buildConfigField("Boolean", "ENABLE_INDEXING", "false")
+            buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
         getByName("release") {
             manifestPlaceholders += mapOf(
@@ -89,8 +97,11 @@ android {
             signingConfig = signingConfigs.getByName("release")
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
+            buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
+            buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
             buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
+            buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
         create("staging") {
             initWith(getByName("release"))
@@ -107,6 +118,9 @@ android {
             )
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
+            buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
+            buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
+            buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
     }
 
@@ -138,6 +152,17 @@ android {
                 kotlin.srcDir("src/maps/kotlin")
             } else {
                 kotlin.srcDir("src/nomaps/kotlin")
+            }
+            // Conditional cloud provider source sets
+            if (includeImmich) {
+                kotlin.srcDir("src/immich/kotlin")
+            } else {
+                kotlin.srcDir("src/noimmich/kotlin")
+            }
+            if (includeOwncloud) {
+                kotlin.srcDir("src/owncloud/kotlin")
+            } else {
+                kotlin.srcDir("src/noowncloud/kotlin")
             }
         }
         // For withML APK builds, include ML model assets directly
@@ -338,6 +363,23 @@ dependencies {
         implementation(libs.maplibre.native)
     }
 
+    // Cloud Providers - shared networking (only if any cloud provider is enabled)
+    if (includeImmich || includeOwncloud) {
+        implementation(libs.okhttp.logging)
+    }
+
+    // Immich
+    if (includeImmich) {
+        implementation(libs.retrofit)
+        implementation(libs.retrofit.kotlinx.serialization)
+        implementation(libs.retrofit.converter.gson)
+    }
+
+    // ownCloud (WebDAV via OkHttp - no extra dependency needed)
+    if (includeOwncloud) {
+        implementation(libs.okhttp.logging)
+    }
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
@@ -368,5 +410,29 @@ val allowAllFilesAccess: Boolean
             properties.getProperty("ALL_FILES_ACCESS", "true").toBoolean()
         } catch (_: Exception) {
             true
+        }
+    }
+
+val includeImmich: Boolean
+    get() {
+        val fl = rootProject.file("app.properties")
+        return try {
+            val properties = Properties()
+            properties.load(FileInputStream(fl))
+            properties.getProperty("INCLUDE_IMMICH", "false").toBoolean()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+val includeOwncloud: Boolean
+    get() {
+        val fl = rootProject.file("app.properties")
+        return try {
+            val properties = Properties()
+            properties.load(FileInputStream(fl))
+            properties.getProperty("INCLUDE_OWNCLOUD", "false").toBoolean()
+        } catch (_: Exception) {
+            false
         }
     }

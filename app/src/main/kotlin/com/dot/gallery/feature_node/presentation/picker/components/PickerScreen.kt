@@ -305,7 +305,6 @@ fun PickerScreen(
                                 val detailTitle = when (currentNavState) {
                                     is PickerNavState.AlbumDetail -> currentNavState.album.label
                                     is PickerNavState.PrivateFolder -> stringResource(R.string.security_private_folder)
-                                    else -> ""
                                 }
                                 TopAppBar(
                                     title = {

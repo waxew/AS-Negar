@@ -47,15 +47,20 @@ import com.dot.gallery.R
 import com.dot.gallery.core.Settings.Misc.rememberExifDateFormat
 import com.dot.gallery.feature_node.data.data_source.KeychainHolder
 import com.dot.gallery.feature_node.domain.model.InfoRow
+import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
+import com.dot.gallery.cloud.image.CloudFetcherRegistryHolder
 import com.dot.gallery.feature_node.domain.model.Media
 
 import com.dot.gallery.feature_node.domain.model.MediaMetadata
 import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.presentation.mediaview.components.retrieveMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 
@@ -238,20 +243,63 @@ fun <T : Media> rememberMediaInfo(
     }
 }
 
-fun Uri.authorizedUri(context: Context): Uri = if (this.toString()
-        .startsWith("content://")
-) this else FileProvider.getUriForFile(
-    context,
-    BuildConfig.CONTENT_AUTHORITY,
-    this.toFile()
-)
+fun Uri.authorizedUri(context: Context): Uri = when {
+    this.toString().startsWith("content://") -> this
+    this.scheme == "cloud" -> this // cloud URIs need async resolution; see resolveShareableUri
+    else -> FileProvider.getUriForFile(
+        context,
+        BuildConfig.CONTENT_AUTHORITY,
+        this.toFile()
+    )
+}
 
-fun <T : Media> Context.copyMediaToClipboard(media: T) {
-    val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val uri = media.getUri().authorizedUri(this)
-    val clip = ClipData.newUri(contentResolver, media.label, uri)
-    clipboardManager.setPrimaryClip(clip)
-    Toast.makeText(this, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+suspend fun <T : Media> Context.resolveShareableUri(media: T): Uri = withContext(Dispatchers.IO) {
+    val originalUri = media.getUri()
+    if (!media.isCloud) {
+        return@withContext if (originalUri.toString().startsWith("content://")) {
+            originalUri
+        } else {
+            FileProvider.getUriForFile(this@resolveShareableUri, BuildConfig.CONTENT_AUTHORITY, originalUri.toFile())
+        }
+    }
+    // Download cloud media to a temp file
+    val registry = CloudFetcherRegistryHolder.registry
+        ?: throw IllegalStateException("ProviderRegistry not available")
+    val providerName = originalUri.authority ?: throw IllegalStateException("No provider in cloud URI")
+    val remoteId = originalUri.pathSegments.firstOrNull() ?: throw IllegalStateException("No remoteId in cloud URI")
+    val providerType = ProviderType.valueOf(providerName)
+    val provider = registry.get(providerType) as? RemoteMediaProvider
+        ?: throw IllegalStateException("No remote provider for $providerType")
+
+    val url = provider.getOriginalUrl(remoteId)
+    val authHeaders = provider.getAuthHeaders()
+    val requestBuilder = Request.Builder().url(url).get()
+    authHeaders.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
+
+    val client = CloudFetcherRegistryHolder.okHttpClient
+        ?: throw IllegalStateException("Cloud OkHttpClient not initialized")
+    val response = client.newCall(requestBuilder.build()).execute()
+    if (!response.isSuccessful) {
+        throw Exception("Failed to download cloud media: HTTP ${response.code}")
+    }
+
+    val ext = media.label.substringAfterLast('.', "jpg")
+    val tempFile = File(cacheDir, "cloud_share_${remoteId.take(8)}.$ext")
+    response.body?.byteStream()?.use { input ->
+        FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+    } ?: throw Exception("Empty response body")
+
+    FileProvider.getUriForFile(this@resolveShareableUri, BuildConfig.CONTENT_AUTHORITY, tempFile)
+}
+
+suspend fun <T : Media> Context.copyMediaToClipboard(media: T) {
+    val uri = resolveShareableUri(media)
+    withContext(Dispatchers.Main) {
+        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newUri(contentResolver, media.label, uri)
+        clipboardManager.setPrimaryClip(clip)
+        Toast.makeText(this@copyMediaToClipboard, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+    }
 }
 
 suspend fun <T : Media> Context.copyEncryptedMediaToClipboard(
@@ -290,36 +338,35 @@ suspend fun <T : Media> Context.copyEncryptedMediaToClipboard(
     }
 }
 
-fun <T : Media> Context.shareMedia(media: T) {
-    val originalUri = media.getUri()
-    val uri = if (originalUri.toString()
-            .startsWith("content://")
-    ) originalUri else FileProvider.getUriForFile(
-        this,
-        BuildConfig.CONTENT_AUTHORITY,
-        originalUri.toFile()
-    )
+suspend fun <T : Media> Context.shareMedia(media: T) {
+    val uri = resolveShareableUri(media)
 
-    ShareCompat
-        .IntentBuilder(this)
-        .setType(media.mimeType)
-        .addStream(uri)
-        .startChooser()
+    withContext(Dispatchers.Main) {
+        ShareCompat
+            .IntentBuilder(this@shareMedia)
+            .setType(media.mimeType)
+            .addStream(uri)
+            .startChooser()
+    }
 }
 
-fun <T : Media> Context.shareMedia(mediaList: List<T>) {
+suspend fun <T : Media> Context.shareMedia(mediaList: List<T>) {
     val mimeTypes =
         if (mediaList.find { it.duration != null } != null) {
             if (mediaList.find { it.duration == null } != null) "video/*,image/*" else "video/*"
         } else "image/*"
 
-    val shareCompat = ShareCompat
-        .IntentBuilder(this)
-        .setType(mimeTypes)
-    mediaList.forEach {
-        shareCompat.addStream(it.getUri())
+    val uris = withContext(Dispatchers.IO) {
+        mediaList.map { resolveShareableUri(it) }
     }
-    shareCompat.startChooser()
+
+    withContext(Dispatchers.Main) {
+        val shareCompat = ShareCompat
+            .IntentBuilder(this@shareMedia)
+            .setType(mimeTypes)
+        uris.forEach { shareCompat.addStream(it) }
+        shareCompat.startChooser()
+    }
 }
 
 /**
@@ -392,18 +439,7 @@ suspend fun <T : Media> Context.shareMediaWithVaultSupport(
                     shareStreams.add(media.getUri())
                 }
             } else {
-                // Handle regular media
-                val originalUri = media.getUri()
-                val uri = if (originalUri.toString().startsWith("content://")) {
-                    originalUri
-                } else {
-                    FileProvider.getUriForFile(
-                        this@shareMediaWithVaultSupport,
-                        BuildConfig.CONTENT_AUTHORITY,
-                        originalUri.toFile()
-                    )
-                }
-                shareStreams.add(uri)
+                shareStreams.add(resolveShareableUri(media))
             }
         }
         

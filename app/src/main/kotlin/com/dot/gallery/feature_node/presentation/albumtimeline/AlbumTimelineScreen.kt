@@ -29,12 +29,16 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -62,6 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -97,6 +102,7 @@ import com.dot.gallery.feature_node.presentation.common.components.TwoLinedDateT
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
+import com.dot.gallery.cloud.ui.CloudMediaViewModel
 import com.dot.gallery.feature_node.presentation.util.selectedMedia
 import dev.chrisbanes.haze.LocalHazeStyle
 import dev.chrisbanes.haze.hazeEffect
@@ -119,8 +125,23 @@ fun AlbumTimelineScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
 ) {
+    val cloudMediaViewModel: CloudMediaViewModel = hiltViewModel()
+    val cloudUiState by cloudMediaViewModel.uiState.collectAsStateWithLifecycle()
+    val cloudAlbum = remember(cloudUiState.albums, albumId) {
+        if (albumId < 0) cloudMediaViewModel.findCloudAlbumByComputedId(albumId) else null
+    }
+    val isCloudAlbum = cloudAlbum != null
+    val albumSyncPrefs by cloudMediaViewModel.albumSyncPreferences.collectAsStateWithLifecycle()
+    val isSyncEnabled = remember(cloudAlbum, albumSyncPrefs) {
+        if (cloudAlbum == null) true
+        else albumSyncPrefs.find { it.albumRemoteId == cloudAlbum.remoteId }?.syncEnabled ?: true
+    }
+    val onToggleSync: ((Boolean) -> Unit)? = if (cloudAlbum != null) {
+        { enabled -> cloudMediaViewModel.toggleAlbumSync(cloudAlbum, enabled) }
+    } else null
     var canScroll by rememberSaveable { mutableStateOf(true) }
     var lastCellIndex by rememberGridSize()
+    val snackbarHostState = remember { SnackbarHostState() }
     val eventHandler = LocalEventHandler.current
     val distributor = LocalMediaDistributor.current
     val isRefreshing by distributor.isRefreshing.collectAsStateWithLifecycle()
@@ -137,6 +158,7 @@ fun AlbumTimelineScreen(
         } else emptyList()
     }
     var showMergedBanner by rememberSaveable { mutableStateOf(true) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     val selector = LocalMediaSelector.current
     val selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle()
 
@@ -176,6 +198,7 @@ fun AlbumTimelineScreen(
     ) {
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 LargeTopAppBar(
                     modifier = Modifier.hazeEffect(
@@ -196,6 +219,22 @@ fun AlbumTimelineScreen(
                         )
                     },
                     actions = {
+                        if (isCloudAlbum && onToggleSync != null) {
+                            IconButton(onClick = {
+                                val newEnabled = !isSyncEnabled
+                                onToggleSync(newEnabled)
+                                refreshScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = if (newEnabled) context.getString(R.string.cloud_sync_enabled_toast) else context.getString(R.string.cloud_sync_disabled_toast)
+                                    )
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = if (isSyncEnabled) Icons.Outlined.CloudSync else Icons.Outlined.CloudOff,
+                                    contentDescription = if (isSyncEnabled) stringResource(R.string.cloud_sync_disable) else stringResource(R.string.cloud_sync_enable)
+                                )
+                            }
+                        }
                         AlbumSortDropdown(
                             currentSort = albumMediaSort,
                             onSortChange = { newSort ->

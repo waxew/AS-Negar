@@ -9,7 +9,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,28 +52,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberStoryViewerAutoAdvance
 import com.dot.gallery.core.Settings.Misc.rememberStoryViewerDuration
+import com.dot.gallery.feature_node.domain.model.Media
+import com.dot.gallery.feature_node.domain.model.MediaMetadata
 import com.dot.gallery.feature_node.domain.model.StoryCard
-import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.presentation.mediaview.components.actionbuttons.FavoriteButton
 import com.dot.gallery.feature_node.presentation.mediaview.components.actionbuttons.ShareButton
-import com.dot.gallery.feature_node.presentation.mediaview.components.media.BlurredMediaBackground
+import com.dot.gallery.feature_node.presentation.mediaview.components.media.MediaPreviewComponent
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
-import com.dot.gallery.feature_node.presentation.util.LocalHazeState
-import com.github.panpf.sketch.PainterState
-import com.github.panpf.sketch.rememberAsyncImagePainter
-import com.github.panpf.sketch.rememberAsyncImageState
-import com.github.panpf.sketch.request.ComposableImageRequest
-import com.github.panpf.sketch.resize.Precision
 import com.dot.gallery.feature_node.presentation.util.rememberWindowInsetsController
 import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
@@ -83,6 +77,8 @@ import kotlinx.coroutines.launch
 fun StoryViewerScreen(
     cards: List<StoryCard>?,
     initialCardId: Long = -1L,
+    metadataMap: Map<Long, MediaMetadata> = emptyMap(),
+    onEnsureMetadata: (Media?) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     // Force light status bar icons (white) on dark background, restore on exit
@@ -132,6 +128,8 @@ fun StoryViewerScreen(
         }
     }
 
+    val scope = rememberCoroutineScope()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -152,7 +150,18 @@ fun StoryViewerScreen(
             StoryCardViewer(
                 card = card,
                 isCurrentPage = isCurrentPage,
-                onDismiss = onDismiss
+                metadataMap = metadataMap,
+                onEnsureMetadata = onEnsureMetadata,
+                onDismiss = onDismiss,
+                onCardFinished = {
+                    scope.launch {
+                        if (pagerState.currentPage < cards.lastIndex) {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        } else {
+                            onDismiss()
+                        }
+                    }
+                }
             )
         }
     }
@@ -163,7 +172,10 @@ fun StoryViewerScreen(
 private fun StoryCardViewer(
     card: StoryCard,
     isCurrentPage: Boolean,
-    onDismiss: () -> Unit
+    metadataMap: Map<Long, MediaMetadata> = emptyMap(),
+    onEnsureMetadata: (Media?) -> Unit = {},
+    onDismiss: () -> Unit,
+    onCardFinished: () -> Unit
 ) {
     val mediaList = card.mediaList
     if (mediaList.isEmpty()) {
@@ -185,7 +197,7 @@ private fun StoryCardViewer(
     var isPaused by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val allowBlur by rememberAllowBlur()
-    val hazeState = LocalHazeState.current
+    val hazeState = com.dot.gallery.feature_node.presentation.util.LocalHazeState.current
 
     val progress = remember { Animatable(0f) }
 
@@ -200,11 +212,11 @@ private fun StoryCardViewer(
                 easing = LinearEasing
             )
         )
-        // Advance to next media or dismiss
+        // Advance to next media or advance to next card
         if (currentMediaIndex < mediaList.lastIndex) {
             currentMediaIndex++
         } else {
-            onDismiss()
+            onCardFinished()
         }
     }
 
@@ -224,76 +236,68 @@ private fun StoryCardViewer(
     val fallbackContainerColor = remember {
         Color.Black.copy(alpha = 0.4f)
     }
+    val playWhenReady = remember { mutableStateOf(true) }
+
+    // Look up metadata for the current media and trigger collection if needed
+    val mediaMetadata by rememberedDerivedState(metadataMap, currentMedia) {
+        metadataMap[currentMedia.id]
+    }
+    LaunchedEffect(currentMedia.id) {
+        onEnsureMetadata(currentMedia)
+    }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        val width = size.width
-                        if (offset.x < width / 3f) {
-                            if (currentMediaIndex > 0) {
-                                currentMediaIndex--
-                                scope.launch { progress.snapTo(0f) }
-                            }
-                        } else if (offset.x > width * 2f / 3f) {
-                            if (currentMediaIndex < mediaList.lastIndex) {
-                                currentMediaIndex++
-                                scope.launch { progress.snapTo(0f) }
-                            } else {
-                                onDismiss()
-                            }
-                        }
-                    },
-                    onLongPress = {
-                        isPaused = true
-                    },
-                    onPress = {
-                        awaitRelease()
-                        if (isPaused) {
-                            isPaused = false
-                        }
-                    }
-                )
-            }
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Blurred background behind media (like ZoomablePagerImage)
-        BlurredMediaBackground(
+        // Media display using the same component as the media view screen
+        MediaPreviewComponent(
             media = currentMedia,
-            uiEnabled = true
+            uiEnabled = true,
+            playWhenReady = playWhenReady,
+            onItemClick = { /* handled by gesture overlay */ },
+            onSwipeDown = onDismiss,
+            rotationDisabled = true,
+            onImageRotated = {},
+            offset = IntOffset.Zero,
+            isPanorama = mediaMetadata?.isPanorama == true,
+            isPhotosphere = mediaMetadata?.isPhotosphere == true,
+            isMotionPhoto = mediaMetadata?.isMotionPhoto == true,
+            videoController = { _, _, _, _, _, _, _ -> }
         )
 
-        // Media display (haze source for blur)
-        val mediaUri = remember(currentMedia) {
-            currentMedia.getUri().toString()
-        }
-        val previewPainter = rememberAsyncImagePainter(
-            request = ComposableImageRequest(mediaUri) {
-                resize(width = 600, height = 600, precision = Precision.LESS_PIXELS)
-                crossfade(false)
-            },
-            contentScale = ContentScale.Fit
-        )
-        val fullImageState = rememberAsyncImageState()
-        val fullPainter = rememberAsyncImagePainter(
-            request = ComposableImageRequest(mediaUri) {},
-            state = fullImageState,
-            contentScale = ContentScale.Fit
-        )
-        val isFullImageLoaded by rememberedDerivedState(currentMedia) {
-            fullImageState.painterState is PainterState.Success
-        }
-        val activePainter = remember(isFullImageLoaded) {
-            if (isFullImageLoaded) fullPainter else previewPainter
-        }
-        Image(
-            painter = activePainter,
-            contentDescription = currentMedia.label,
+        // Gesture overlay for story navigation (left/right tap, long-press to pause)
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState),
-            contentScale = ContentScale.Fit,
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { offset ->
+                            val width = size.width
+                            if (offset.x < width / 3f) {
+                                if (currentMediaIndex > 0) {
+                                    currentMediaIndex--
+                                    scope.launch { progress.snapTo(0f) }
+                                }
+                            } else if (offset.x > width * 2f / 3f) {
+                                if (currentMediaIndex < mediaList.lastIndex) {
+                                    currentMediaIndex++
+                                    scope.launch { progress.snapTo(0f) }
+                                } else {
+                                    onCardFinished()
+                                }
+                            }
+                        },
+                        onLongPress = {
+                            isPaused = true
+                        },
+                        onPress = {
+                            awaitRelease()
+                            if (isPaused) {
+                                isPaused = false
+                            }
+                        }
+                    )
+                }
         )
 
         // Top gradient overlay

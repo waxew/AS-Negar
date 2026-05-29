@@ -13,6 +13,10 @@ import com.dot.gallery.R
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.presentation.components.FilterKind
 import com.dot.gallery.core.presentation.components.FilterOption
+import com.dot.gallery.cloud.core.ProviderRegistry
+import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
+import com.dot.gallery.cloud.data.dao.CloudMediaDao
 import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
@@ -36,7 +40,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
-    private val repository: MediaRepository
+    private val repository: MediaRepository,
+    private val cloudMediaDao: CloudMediaDao,
+    private val providerRegistry: ProviderRegistry
 ) : ViewModel() {
 
     fun onAlbumClick(navigate: (String) -> Unit): (Album) -> Unit = { album ->
@@ -73,9 +79,22 @@ class AlbumsViewModel @Inject constructor(
 
     fun moveAlbumToTrash(result: ActivityResultLauncher<IntentSenderRequest>, album: Album) {
         viewModelScope.launch(Dispatchers.IO) {
-            val response = repository.getMediaByAlbumId(album.id).firstOrNull()
-            val data = response?.data ?: emptyList()
-            repository.trashMedia(result, data, true)
+            if (album.relativePath.startsWith("cloud/")) {
+                // Cloud album: delete all media in this album from the cloud provider
+                val providerName = album.relativePath.removePrefix("cloud/").split("/").firstOrNull() ?: return@launch
+                val providerType = try { ProviderType.valueOf(providerName) } catch (_: Exception) { return@launch }
+                val provider = providerRegistry.get(providerType) as? RemoteMediaProvider ?: return@launch
+                val cloudMedia = cloudMediaDao.getByProvider(providerType).firstOrNull() ?: emptyList()
+                val albumMedia = cloudMedia.filter { it.relativePath.contains(album.label) }
+                albumMedia.forEach { entity ->
+                    provider.deleteAsset(entity.remoteId)
+                    cloudMediaDao.delete(entity.remoteId, providerType)
+                }
+            } else {
+                val response = repository.getMediaByAlbumId(album.id).firstOrNull()
+                val data = response?.data ?: emptyList()
+                repository.trashMedia(result, data, true)
+            }
         }
     }
 

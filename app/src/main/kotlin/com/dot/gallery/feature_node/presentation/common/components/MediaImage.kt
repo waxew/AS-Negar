@@ -5,6 +5,7 @@
 
 package com.dot.gallery.feature_node.presentation.common.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -12,9 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.BurstMode
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.CloudDone
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.CloudSync
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,43 +43,38 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.dot.gallery.core.Settings
-import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
-import com.dot.gallery.core.Settings.Misc.rememberFavoriteIconPosition
-
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dot.gallery.cloud.core.SyncState
+import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
-import com.dot.gallery.core.presentation.components.LocalMediaImageRenderer
+import com.dot.gallery.core.Settings
+import com.dot.gallery.core.Settings.Misc.rememberFavoriteIconPosition
 import com.dot.gallery.core.presentation.components.CheckBox
+import com.dot.gallery.core.presentation.components.LocalMediaImageRenderer
 import com.dot.gallery.core.presentation.components.util.advancedShadow
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.domain.model.getIcon
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.domain.util.isFavorite
 import com.dot.gallery.feature_node.domain.util.isVideo
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.VideoDurationHeader
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
-import androidx.compose.ui.platform.LocalContext
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.resize.Precision
 import com.github.panpf.sketch.sketch
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
-import dev.chrisbanes.haze.rememberHazeState
-
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun <T : Media> MediaImage(
     modifier: Modifier = Modifier,
     media: T,
     metadataState: State<MediaMetadataState>,
     stackCount: Int = 1,
+    isCloudGroup: Boolean = false,
     aspectRatio: Float = 1f,
     canClick: () -> Boolean,
     onMediaClick: (T) -> Unit,
@@ -126,8 +127,6 @@ fun <T : Media> MediaImage(
     val roundedShape = remember(selectedShapeSize) {
         RoundedCornerShape(selectedShapeSize)
     }
-    val allowBlur by rememberAllowBlur()
-    val badgeHazeState = rememberHazeState(blurEnabled = allowBlur)
     val context = LocalContext.current
 
     Box(
@@ -169,7 +168,6 @@ fun <T : Media> MediaImage(
                 .aspectRatio(aspectRatio)
                 .padding(selectedSize)
                 .clip(roundedShape)
-                .hazeSource(badgeHazeState)
                 .background(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     shape = roundedShape
@@ -195,21 +193,18 @@ fun <T : Media> MediaImage(
             )
         }
 
-        if (stackCount > 1) {
+        AnimatedVisibility(
+            visible = stackCount > 1
+        ) {
             val badgeShape = RoundedCornerShape(6.dp)
             Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
                     .padding(selectedSize / 1.5f)
                     .scale(scale)
                     .padding(6.dp)
                     .clip(badgeShape)
-                    .hazeEffect(
-                        state = badgeHazeState,
-                        style = HazeMaterials.ultraThin(
-                            containerColor = Color.Black.copy(alpha = 0.35f)
-                        )
-                    )
+                    .background(Color.Black.copy(alpha = 0.45f))
                     .padding(horizontal = 5.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -221,7 +216,7 @@ fun <T : Media> MediaImage(
                 Spacer(modifier = Modifier.width(2.dp))
                 Icon(
                     modifier = Modifier.size(12.dp),
-                    imageVector = Icons.Outlined.BurstMode,
+                    imageVector = if (isCloudGroup) Icons.Outlined.CloudSync else Icons.Outlined.BurstMode,
                     tint = Color.White,
                     contentDescription = null
                 )
@@ -266,6 +261,47 @@ fun <T : Media> MediaImage(
                 tint = Color.White,
                 contentDescription = null
             )
+        }
+
+        if (media.isCloud) {
+            val syncStates by LocalMediaDistributor.current.cloudSyncStates.collectAsStateWithLifecycle()
+            val syncState = syncStates[media.id]
+            val syncIcon = when (syncState) {
+                SyncState.SYNCED -> Icons.Outlined.CloudDone
+                SyncState.CONFLICT -> Icons.Outlined.CloudOff
+                else -> Icons.Outlined.Cloud
+            }
+            val showProgress =
+                syncState == SyncState.DOWNLOADING || syncState == SyncState.UPLOAD_PENDING
+            if (showProgress) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(selectedSize / 1.5f)
+                        .scale(scale)
+                        .padding(6.dp)
+                        .size(10.dp),
+                    strokeWidth = 1.5.dp,
+                    color = Color.White
+                )
+            } else {
+                Icon(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(selectedSize / 1.5f)
+                        .scale(scale)
+                        .padding(6.dp)
+                        .size(10.dp)
+                        .advancedShadow(
+                            cornersRadius = 5.dp,
+                            shadowBlurRadius = 4.dp,
+                            alpha = 0.3f
+                        ),
+                    imageVector = syncIcon,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    contentDescription = null
+                )
+            }
         }
 
         if (selectionState) {

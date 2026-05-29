@@ -191,5 +191,79 @@ sealed class Screen(val route: String) {
 
     data object StoryCardsSettingsScreen : Screen("story_cards_settings_screen")
 
+    data object CloudAccountsScreen : Screen("cloud_accounts_screen")
+    data object CloudTimelineScreen : Screen("cloud_timeline_screen")
+    data object CloudAddServerScreen : Screen("cloud_add_server_screen") {
+        fun providerType() = "$route?providerType={providerType}"
+        fun providerType(type: String) = "$route?providerType=$type"
+    }
+    data object CloudEditServerScreen : Screen("cloud_edit_server_screen") {
+        fun configId() = "$route?configId={configId}"
+        fun configId(id: Long) = "$route?configId=$id"
+    }
+
+    data object CloudUploadSettingsScreen : Screen("cloud_upload_settings_screen")
+
+    data object CloudProviderSettingsScreen : Screen("cloud_provider_settings_screen") {
+        fun configId() = "$route?configId={configId}"
+        fun configId(id: Long) = "$route?configId=$id"
+    }
+
+    // Phase 1 – Library Tab
+    data object CloudLibraryScreen : Screen("cloud_library_screen")
+
+    // Phase 2 – Profile
+    data object CloudProfileScreen : Screen("cloud_profile_screen")
+
+    // Phase 3 – Backup
+    data object CloudBackupScreen : Screen("cloud_backup_screen")
+    data object BackupAlbumPickerScreen : Screen("backup_album_picker_screen")
+    data object BackupOptionsScreen : Screen("backup_options_screen")
+    data object UploadDetailsScreen : Screen("upload_details_screen")
+
+    // Phase 3+4 – Merged Backup & Sync
+    data object CloudBackupAndSyncScreen : Screen("cloud_backup_and_sync_screen")
+
+    // Phase 4 – Sync Status
+    data object SyncStatusScreen : Screen("sync_status_screen")
+
+    // Phase 5 – Notifications
+    data object CloudNotificationSettingsScreen : Screen("cloud_notification_settings_screen")
+
+    // Phase 6 – Networking
+    data object CloudNetworkingScreen : Screen("cloud_networking_screen")
+
+    // Phase 7 – Archive
+    data object CloudArchiveScreen : Screen("cloud_archive_screen")
+
+    // Phase 8 – Free Up Space
+    data object FreeUpSpaceScreen : Screen("free_up_space_screen")
+
+    // Phase 9 – Shared Links
+    data object SharedLinksScreen : Screen("shared_links_screen")
+
+    // Phase 10 – Places
+    data object CloudPlacesScreen : Screen("cloud_places_screen")
+    data object PlaceDetailScreen : Screen("place_detail_screen") {
+        fun city() = "$route?city={city}&country={country}"
+        fun city(city: String, country: String) = "$route?city=$city&country=$country"
+    }
+
+    // Phase 11 – Person Detail
+    data object PersonDetailScreen : Screen("person_detail_screen") {
+        fun personId() = "$route?personId={personId}"
+        fun personId(id: String) = "$route?personId=$id"
+    }
+    data object PeopleListScreen : Screen("people_list_screen")
+
+    // Phase 12 – Viewer Settings
+    data object CloudViewerSettingsScreen : Screen("cloud_viewer_settings_screen")
+
+    // Phase 13 – Advanced Settings
+    data object CloudAdvancedSettingsScreen : Screen("cloud_advanced_settings_screen")
+
+    // Phase 16 – Memories
+    data object MemoriesScreen : Screen("memories_screen")
+
     operator fun invoke() = route
 }

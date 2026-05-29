@@ -12,6 +12,7 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -53,8 +54,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
@@ -380,9 +383,18 @@ fun TimelineScreen(
                             exit = exitAnimation
                         ) {
                             val text by rememberedDerivedState(stickyHeaderItem) { stickyHeaderItem ?: "" }
+                            val isDarkTheme = isSystemInDarkTheme()
                             Text(
                                 text = text,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium.let { style ->
+                                    if (!isDarkTheme) style.copy(
+                                        shadow = Shadow(
+                                            color = Color.White,
+                                            offset = Offset.Zero,
+                                            blurRadius = 10f
+                                        )
+                                    ) else style
+                                },
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier
                                     .background(

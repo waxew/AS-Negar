@@ -362,6 +362,7 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
                                 .pinchItem(key = it.key),
                             media = it.media,
                             stackCount = it.stackCount,
+                            isCloudGroup = it.isCloudGroup,
                             canClick = { canScroll },
                             onMediaClick = { onMediaClick(it) },
                             metadataState = metadataState,

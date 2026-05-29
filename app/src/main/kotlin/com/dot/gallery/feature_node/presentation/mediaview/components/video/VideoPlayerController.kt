@@ -94,7 +94,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlin.math.roundToInt
 
 @UnstableApi
-@OptIn(ExperimentalMaterial3Api::class, UnstableApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun VideoPlayerController(
     paddingValues: PaddingValues,

@@ -36,9 +36,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -151,9 +154,18 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
                     exit = exitAnimation
                 ) {
                     val text by rememberedDerivedState(stickyHeaderItem) { stickyHeaderItem ?: "" }
+                    val isDarkTheme = isSystemInDarkTheme()
                     Text(
                         text = text,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.let { style ->
+                            if (!isDarkTheme) style.copy(
+                                shadow = Shadow(
+                                    color = Color.White,
+                                    offset = Offset.Zero,
+                                    blurRadius = 10f
+                                )
+                            ) else style
+                        },
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
                             .background(

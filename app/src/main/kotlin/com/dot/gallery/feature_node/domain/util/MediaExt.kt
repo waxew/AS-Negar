@@ -142,6 +142,9 @@ val Media.isEncrypted: Boolean
     get() = instanceOf(Media.UriMedia::class) && getUri().toString()
         .contains(BuildConfig.APPLICATION_ID)
 
+val Media.isCloud: Boolean
+    get() = instanceOf(Media.UriMedia::class) && getUri().scheme == "cloud"
+
 val Media.isLocalContent: Boolean
     get() = instanceOf(Media.UriMedia::class) && getUri().toString().startsWith("content://media")
 
@@ -301,6 +304,18 @@ private val BURST_PATTERNS = listOf(
     Regex("^DSC(PDC)?_\\d+_BURST(?<key>\\d{17})(_COVER)?$"),
 )
 
+// Pre-compiled regex patterns for groupBaseName suffix stripping.
+// These were previously created inline on every groupBaseName access,
+// causing ~8 Regex compilations × 670 items = 5360 compilations per pass.
+private val PIXEL_SUFFIX_REGEX = Regex("\\.(ORIGINAL|RAW-\\d+|NIGHT|PORTRAIT|LONG_EXPOSURE|MP|MOTION-\\d+|PANO|TOP|BOTTOM|COVER|BURST\\d*)", RegexOption.IGNORE_CASE)
+private val COPY_PARENS_REGEX = Regex("\\(\\d+\\)$")
+private val COPY_TILDE_REGEX = Regex("~\\d+$")
+private val EDITED_UNDERSCORE_REGEX = Regex("_edited$", RegexOption.IGNORE_CASE)
+private val EDITED_DASH_REGEX = Regex("-edited$", RegexOption.IGNORE_CASE)
+private val COVER_SUFFIX_REGEX = Regex("_COVER$", RegexOption.IGNORE_CASE)
+private val BURST_SUFFIX_REGEX = Regex("_BURST\\d*$", RegexOption.IGNORE_CASE)
+private val HDR_SUFFIX_REGEX = Regex("_HDR$", RegexOption.IGNORE_CASE)
+
 /**
  * Extracts the base filename used for grouping related media.
  * Strips the file extension and common edit/burst/RAW suffixes so that
@@ -328,27 +343,37 @@ val Media.groupBaseName: String
         // Fall back to generic suffix stripping for RAW pairs, edits, etc.
         return nameWithoutExt
             // Pixel-style dot-separated suffixes
-            .replace(Regex("\\.(ORIGINAL|RAW-\\d+|NIGHT|PORTRAIT|LONG_EXPOSURE|MP|MOTION-\\d+|PANO|TOP|BOTTOM|COVER|BURST\\d*)", RegexOption.IGNORE_CASE), "")
+            .replace(PIXEL_SUFFIX_REGEX, "")
             // Copy / duplicate suffixes
-            .replace(Regex("\\(\\d+\\)$"), "")           // (1), (2), etc.
-            .replace(Regex("~\\d+$"), "")                 // ~2, ~3, etc.
+            .replace(COPY_PARENS_REGEX, "")           // (1), (2), etc.
+            .replace(COPY_TILDE_REGEX, "")                 // ~2, ~3, etc.
             // Edit suffixes
-            .replace(Regex("_edited$", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("-edited$", RegexOption.IGNORE_CASE), "")
+            .replace(EDITED_UNDERSCORE_REGEX, "")
+            .replace(EDITED_DASH_REGEX, "")
             // Burst / cover suffixes (generic, after manufacturer-specific failed)
-            .replace(Regex("_COVER$", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("_BURST\\d*$", RegexOption.IGNORE_CASE), "")
+            .replace(COVER_SUFFIX_REGEX, "")
+            .replace(BURST_SUFFIX_REGEX, "")
             // HDR suffix
-            .replace(Regex("_HDR$", RegexOption.IGNORE_CASE), "")
+            .replace(HDR_SUFFIX_REGEX, "")
             .trim()
     }
 
 /**
  * Group key combines the base filename with the relative path
  * so that files in different directories are never grouped together.
+ * Cloud media uses only the base filename so it can match with
+ * local copies that share the same name but different path prefixes.
  */
 val Media.groupKey: String
-    get() = "$relativePath/$groupBaseName"
+    get() = if (isCloud) "cloud_match/$groupBaseName" else "$relativePath/$groupBaseName"
+
+/**
+ * Cloud-aware group key that strips path prefixes to allow matching
+ * between cloud and local copies of the same media.
+ * Used only when CLOUD_LOCAL grouping is enabled.
+ */
+val Media.cloudGroupKey: String
+    get() = groupBaseName
 
 /**
  * Selects the "best" representative from a group of related media items.
@@ -357,9 +382,10 @@ val Media.groupKey: String
 fun <T : Media> List<T>.selectRepresentative(): T {
     if (size == 1) return first()
     return sortedWith(
-        compareBy<T> { it.isRaw }             // non-RAW first (false < true)
+        compareBy<T> { it.isCloud }           // local first (false < true)
+            .thenBy { it.isRaw }              // non-RAW first (false < true)
             .thenBy { it.label != it.groupBaseName + "." + it.label.substringAfterLast(".") } // original first
-            .thenByDescending { it.size }      // larger files first
+            .thenByDescending { it.size }     // larger files first
     ).first()
 }
 
@@ -369,16 +395,22 @@ fun <T : Media> List<T>.selectRepresentative(): T {
 enum class MediaGroupType {
     BURST,
     RAW_JPG,
-    EDITS
+    EDITS,
+    CLOUD_LOCAL
 }
 
 /**
  * Classifies a group of related media items into a [MediaGroupType].
+ * - CLOUD_LOCAL: group contains both cloud and local copies of the same media
  * - BURST: at least one filename matches a burst pattern
  * - RAW_JPG: group contains both RAW and non-RAW files
  * - EDITS: fallback for any other multi-member group (edit copies, HDR, etc.)
  */
 fun <T : Media> List<T>.classifyGroupType(): MediaGroupType {
+    val hasCloud = any { it.isCloud }
+    val hasLocal = any { !it.isCloud }
+    if (hasCloud && hasLocal) return MediaGroupType.CLOUD_LOCAL
+
     val hasRaw = any { it.isRaw }
     val hasNonRaw = any { !it.isRaw }
     if (hasRaw && hasNonRaw) return MediaGroupType.RAW_JPG

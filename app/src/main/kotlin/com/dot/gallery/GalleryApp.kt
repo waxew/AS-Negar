@@ -12,6 +12,10 @@ import androidx.work.Configuration
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.dot.gallery.cloud.core.ProviderRegistry
+import com.dot.gallery.cloud.di.CloudProviderInitializer
+import com.dot.gallery.cloud.image.CloudFetcherRegistryHolder
+import com.dot.gallery.cloud.image.supportCloudMedia
 import com.dot.gallery.core.MediaDistributor
 import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.core.sandbox.IsolatedImageDecoder
@@ -48,7 +52,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import com.dot.gallery.core.metrics.StartupTracer
+import okhttp3.OkHttpClient
+import java.security.SecureRandom
 import javax.inject.Inject
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 @HiltAndroidApp
 class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provider {
@@ -69,6 +78,7 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
             supportHeifDecoder()
             supportJxlDecoder()
             supportVaultDecoder()
+            supportCloudMedia()
         }
         val diskCache = DiskCache.Builder(context, FileSystem.SYSTEM)
             .directory(context.appCacheDirectory())
@@ -117,6 +127,12 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
     @Inject
     lateinit var isolatedImageDecoder: IsolatedImageDecoder
 
+    @Inject
+    lateinit var providerRegistry: ProviderRegistry
+
+    @Inject
+    lateinit var cloudProviderInitializer: CloudProviderInitializer
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -127,6 +143,21 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
 
         StartupTracer.trace("App.super.onCreate (Hilt DI)") {
             super.onCreate()
+        }
+
+        CloudFetcherRegistryHolder.registry = providerRegistry
+        if (BuildConfig.ALLOW_INSECURE_TLS) {
+            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
+                override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
+                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+            })
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+            CloudFetcherRegistryHolder.okHttpClient = OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+                .hostnameVerifier { _, _ -> true }
+                .build()
         }
 
         StartupTracer.trace("SandboxedDecoderHolder.init") {
@@ -151,6 +182,11 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
             StartupTracer.trace("ModelManager.initializeModels") {
                 modelManager.initializeModels()
             }
+        }
+
+        // Auto-configure cloud providers asynchronously (off main thread)
+        appScope.launch {
+            cloudProviderInitializer.initializeAsync()
         }
 
         StartupTracer.end(onCreateSpan)

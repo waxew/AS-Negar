@@ -72,6 +72,7 @@ import com.dot.gallery.feature_node.domain.model.TimelineSettings
 import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.retrieveExtraMediaMetadata
 import com.dot.gallery.feature_node.domain.model.toMediaMetadata
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.MediaOrder
 import com.dot.gallery.feature_node.domain.util.OrderType
@@ -1102,6 +1103,10 @@ class MediaRepositoryImpl(
         database.getAlbumThumbnailDao().getAlbumThumbnailsFlow()
 
     override suspend fun collectMetadataFor(media: Media) {
+        if (media.isCloud) {
+            collectCloudMetadata(media)
+            return
+        }
         val metadata = context.retrieveExtraMediaMetadata(isolatedParser, geocoder, media, shouldUsePerFileIsolation())
         if (metadata != null) {
             database.getMetadataDao().addMetadata(metadata)
@@ -1109,6 +1114,66 @@ class MediaRepositoryImpl(
         } else {
             printWarning("collectMetadataFor: no metadata returned for ${media.id} (uri=${media.getUri()})")
         }
+    }
+
+    private suspend fun collectCloudMetadata(media: Media) = withContext(Dispatchers.IO) {
+        val uri = media.getUri()
+        val providerName = uri.authority ?: return@withContext
+        val remoteId = uri.pathSegments.firstOrNull() ?: return@withContext
+        val providerType = try {
+            com.dot.gallery.cloud.core.ProviderType.valueOf(providerName)
+        } catch (_: Exception) { return@withContext }
+        val entity = database.getCloudMediaDao().getByRemoteId(remoteId, providerType)
+            ?: return@withContext
+        val locationName = listOfNotNull(entity.city, entity.state, entity.country)
+            .joinToString(", ").ifBlank { null }
+        val metadata = MediaMetadata(
+            mediaId = media.id,
+            imageDescription = entity.imageDescription,
+            dateTimeOriginal = entity.dateTimeOriginal,
+            manufacturerName = entity.cameraMake,
+            modelName = entity.cameraModel,
+            lensModel = entity.lensModel,
+            aperture = entity.aperture,
+            exposureTime = entity.exposureTime,
+            iso = entity.iso?.toString(),
+            focalLength = entity.focalLength,
+            gpsLatitude = entity.latitude,
+            gpsLongitude = entity.longitude,
+            gpsLocationName = locationName,
+            gpsLocationNameCountry = entity.country,
+            gpsLocationNameCity = entity.city,
+            imageWidth = entity.width,
+            imageHeight = entity.height,
+            imageResolutionX = null,
+            imageResolutionY = null,
+            resolutionUnit = null,
+            durationMs = entity.duration?.let { parseDurationToMs(it) },
+            videoWidth = if (media.duration != null) entity.width else null,
+            videoHeight = if (media.duration != null) entity.height else null,
+            frameRate = null,
+            bitRate = null,
+            isNightMode = false,
+            isPanorama = false,
+            isPhotosphere = false,
+            isLongExposure = false,
+            isMotionPhoto = false
+        )
+        database.getMetadataDao().addMetadata(metadata)
+        printDebug("collectMetadataFor: saved cloud metadata for ${media.id}")
+    }
+
+    private fun parseDurationToMs(duration: String): Long? {
+        // Immich duration format: "0:00:05.123456" or "HH:MM:SS.fraction"
+        return try {
+            val parts = duration.split(":")
+            if (parts.size == 3) {
+                val hours = parts[0].toLong()
+                val minutes = parts[1].toLong()
+                val seconds = parts[2].toDouble()
+                ((hours * 3600 + minutes * 60) * 1000 + (seconds * 1000)).toLong()
+            } else null
+        } catch (_: Exception) { null }
     }
 
     override suspend fun addImageEmbedding(imageEmbedding: ImageEmbedding) {

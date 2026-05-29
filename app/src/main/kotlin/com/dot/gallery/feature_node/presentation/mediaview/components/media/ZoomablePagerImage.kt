@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.core.Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION
 import com.dot.gallery.core.Settings
+import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.cloud.image.CloudImageSource
 import com.dot.gallery.core.decoder.EncryptedRegionDecoder
 import com.dot.gallery.core.presentation.components.util.LocalBatteryStatus
 import com.dot.gallery.core.presentation.components.util.ProvideBatteryStatus
@@ -39,6 +41,7 @@ import com.dot.gallery.feature_node.domain.util.asSubsamplingImage
 import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.domain.util.isApng
 import com.dot.gallery.feature_node.domain.util.isAvif
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.rememberFeedbackManager
@@ -50,6 +53,7 @@ import com.github.panpf.sketch.request.ComposableImageRequest
 import com.github.panpf.sketch.resize.Precision
 import com.github.panpf.zoomimage.ZoomImage
 import com.github.panpf.zoomimage.rememberSketchZoomState
+import com.github.panpf.zoomimage.subsampling.SubsamplingImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -158,6 +162,8 @@ fun <T : Media> ZoomablePagerImage(
         if (isFullImageLoaded) fullPainter else previewPainter
     }
 
+    val isCloudMedia = remember(media) { media.isCloud }
+
     if (isEncrypted) {
         val keychainHolder = remember { KeychainHolder(context) }
         LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
@@ -171,6 +177,15 @@ fun <T : Media> ZoomablePagerImage(
                     )
                 )
             )
+        }
+    } else if (isCloudMedia) {
+        LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
+            val uri = media.getUri()
+            val providerName = uri.authority ?: return@LaunchedEffect
+            val providerType = try { ProviderType.valueOf(providerName) } catch (_: Exception) { return@LaunchedEffect }
+            val remoteId = uri.pathSegments?.firstOrNull() ?: return@LaunchedEffect
+            val cloudSource = CloudImageSource(providerType, remoteId)
+            zoomState.setSubsamplingImage(SubsamplingImage(imageSource = cloudSource))
         }
     } else if (!isAnimated) {
         LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {

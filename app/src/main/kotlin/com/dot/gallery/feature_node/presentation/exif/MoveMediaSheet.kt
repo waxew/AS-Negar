@@ -59,6 +59,7 @@ import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
 import com.dot.gallery.feature_node.domain.model.AlbumState
 import com.dot.gallery.feature_node.domain.model.Media
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.volume
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumComponent
 import com.dot.gallery.feature_node.presentation.albums.components.AlbumGroupComponent
@@ -102,8 +103,9 @@ fun <T: Media> MoveMediaSheet(
 
     val doMove: () -> Unit = {
         scope.launch {
+            val localMedia = mediaList.filter { !it.isCloud }
             val done = async {
-                mediaList.forEachIndexed { index, it ->
+                localMedia.forEachIndexed { index, it ->
                     if (handler.moveMedia(media = it, newPath = newPath)) {
                         MediaScannerConnection.scanFile(
                             context,
@@ -132,12 +134,27 @@ fun <T: Media> MoveMediaSheet(
     val request = rememberActivityResult { doMove() }
 
     fun startMove(albumPath: String) {
-        scope.launch(Dispatchers.Main) {
-            newPath = albumPath
-            request.launchWriteRequest(
-                mediaList.writeRequest(context.contentResolver),
-                doMove
-            )
+        val cloudMedia = mediaList.filter { it.isCloud }
+        val localMedia = mediaList.filter { !it.isCloud }
+        // For cloud media: copy to local destination (download + insert into MediaStore)
+        if (cloudMedia.isNotEmpty()) {
+            scope.launch { handler.copyMedia(*cloudMedia.map { it to albumPath }.toTypedArray()) }
+        }
+        // For local media: use the standard write-request move flow
+        if (localMedia.isNotEmpty()) {
+            scope.launch(Dispatchers.Main) {
+                newPath = albumPath
+                request.launchWriteRequest(
+                    localMedia.writeRequest(context.contentResolver),
+                    doMove
+                )
+            }
+        } else {
+            // All cloud — just finish after enqueue
+            scope.launch {
+                sheetState.hide()
+                onFinish()
+            }
         }
     }
 

@@ -42,8 +42,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 @Immutable
 data class HelpTip(
     val id: String,
-    @StringRes val title: Int,
-    @StringRes val subtitle: Int,
+    @param:StringRes val title: Int,
+    @param:StringRes val subtitle: Int,
     val icon: HelpIcon,
     val category: HelpCategory,
     val pages: List<TutorialPage>,
@@ -53,10 +53,10 @@ data class HelpTip(
 
 @Immutable
 data class TutorialPage(
-    @StringRes val title: Int,
-    @StringRes val description: Int,
+    @param:StringRes val title: Int,
+    @param:StringRes val description: Int,
     val steps: List<Int> = emptyList(),
-    @StringRes val actionLabel: Int = 0,
+    @param:StringRes val actionLabel: Int = 0,
     val actionRoute: String? = null,
     val previewType: PreviewType = PreviewType.NONE
 )
@@ -64,7 +64,7 @@ data class TutorialPage(
 @Immutable
 data class HelpIcon(
     val vector: ImageVector? = null,
-    @DrawableRes val drawableRes: Int? = null
+    @param:DrawableRes val drawableRes: Int? = null
 ) {
     companion object {
         fun ofVector(vector: ImageVector) = HelpIcon(vector = vector)

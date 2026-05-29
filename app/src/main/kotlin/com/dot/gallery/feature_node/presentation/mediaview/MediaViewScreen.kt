@@ -110,6 +110,7 @@ import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.VaultState
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isImage
 import com.dot.gallery.feature_node.domain.util.isVideo
 import com.dot.gallery.feature_node.domain.util.readUriOnly
@@ -1115,6 +1116,9 @@ fun <T : Media> MediaViewScreen(
                         )
                     }
                     key(currentPagerItemId) {
+                        val hasCloudAndLocal = remember(currentGroupMembers) {
+                            currentGroupMembers.any { it.isCloud } && currentGroupMembers.any { !it.isCloud }
+                        }
                         GroupMemberStrip(
                             members = currentGroupMembers,
                             selectedId = selectedMemberOverrideId
@@ -1123,6 +1127,7 @@ fun <T : Media> MediaViewScreen(
                             onSelect = { id ->
                                 selectedMemberOverrideId = id
                             },
+                            showCloudLabels = hasCloudAndLocal,
                             multiSelectMode = groupMultiSelectMode,
                             multiSelectedIds = groupMultiSelectedIds,
                             onEnterMultiSelect = { id ->

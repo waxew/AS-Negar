@@ -156,6 +156,7 @@ suspend fun <T : Media> MutableStateFlow<MediaState<T>>.collectMedia(
     withMonthHeader: Boolean = true,
     groupSimilarMedia: Boolean = false,
     enabledGroupTypes: Set<MediaGroupType> = MediaGroupType.entries.toSet(),
+    cloudGroupKeyOverrides: Map<Long, String> = emptyMap(),
     defaultDateFormat: String,
     extendedDateFormat: String,
     weeklyDateFormat: String
@@ -169,6 +170,7 @@ suspend fun <T : Media> MutableStateFlow<MediaState<T>>.collectMedia(
             withMonthHeader = withMonthHeader,
             groupSimilarMedia = groupSimilarMedia,
             enabledGroupTypes = enabledGroupTypes,
+            cloudGroupKeyOverrides = cloudGroupKeyOverrides,
             defaultDateFormat = defaultDateFormat,
             extendedDateFormat = extendedDateFormat,
             weeklyDateFormat = weeklyDateFormat
@@ -184,6 +186,7 @@ suspend fun <T : Media> mapMediaToItem(
     withMonthHeader: Boolean = true,
     groupSimilarMedia: Boolean = false,
     enabledGroupTypes: Set<MediaGroupType> = MediaGroupType.entries.toSet(),
+    cloudGroupKeyOverrides: Map<Long, String> = emptyMap(),
     defaultDateFormat: String,
     extendedDateFormat: String,
     weeklyDateFormat: String
@@ -196,42 +199,54 @@ suspend fun <T : Media> mapMediaToItem(
     val pagerMediaList = if (groupSimilarMedia) ArrayList<T>(data.size) else mutableListOf()
     val mediaGroupsMap = if (groupSimilarMedia) HashMap<Long, List<T>>() else mutableMapOf()
 
+    // DateGrouper pre-computes locale, todayStartMillis, and currentYear once,
+    // then reuses a single Calendar per item instead of allocating 4 new ones.
+    val dateGrouper = if (!groupByMonth) DateGrouper(
+        format = defaultDateFormat,
+        weeklyFormat = weeklyDateFormat,
+        extendedFormat = extendedDateFormat,
+        /** Localized in composition */
+        stringToday = "Today",
+        stringYesterday = "Yesterday"
+    ) else null
     val groupedData = data.groupBy {
         if (groupByMonth) {
             it.definedTimestamp.getMonth()
         } else {
-            it.definedTimestamp.getDate(
-                /** Localized in composition */
-                stringToday = "Today",
-                stringYesterday = "Yesterday",
-                format = defaultDateFormat,
-                extendedFormat = extendedDateFormat,
-                weeklyFormat = weeklyDateFormat
-            )
+            dateGrouper!!.classify(it.definedTimestamp)
         }
     }
+    val hasCloudOverrides = cloudGroupKeyOverrides.isNotEmpty()
     groupedData.forEach { (date, data) ->
         val dateHeader = MediaItem.Header<T>("header_$date", date, data.mapTo(HashSet(data.size)) { it.id })
         headers.add(dateHeader)
         val groupedMedia = if (groupSimilarMedia) {
-            val groups = data.groupBy { it.groupKey }
+            // Use pre-computed override keys for cloud items so they group with local counterparts
+            val groups = if (hasCloudOverrides) {
+                data.groupBy { cloudGroupKeyOverrides[it.id] ?: it.groupKey }
+            } else {
+                data.groupBy { it.groupKey }
+            }
             groups.values.flatMap { group ->
-                if (group.size > 1 && group.classifyGroupType() in enabledGroupTypes) {
-                    val representative = group.selectRepresentative()
-                    pagerMediaList.add(representative)
-                    mediaGroupsMap[representative.id] = group
-                    listOf(
-                        MediaItem.MediaViewItem(
-                            key = "media_${representative.id}_${representative.label}",
-                            media = representative,
-                            stackCount = group.size
+                if (group.size > 1) {
+                    val groupType = group.classifyGroupType()
+                    if (groupType in enabledGroupTypes) {
+                        val representative = group.selectRepresentative()
+                        pagerMediaList.add(representative)
+                        mediaGroupsMap[representative.id] = group
+                        return@flatMap listOf(
+                            MediaItem.MediaViewItem(
+                                key = "media_${representative.id}_${representative.label}",
+                                media = representative,
+                                stackCount = group.size,
+                                isCloudGroup = groupType == MediaGroupType.CLOUD_LOCAL
+                            )
                         )
-                    )
-                } else {
-                    group.fastMap { media ->
-                        pagerMediaList.add(media)
-                        MediaItem.MediaViewItem("media_${media.id}_${media.label}", media)
                     }
+                }
+                group.fastMap { media ->
+                    pagerMediaList.add(media)
+                    MediaItem.MediaViewItem("media_${media.id}_${media.label}", media)
                 }
             }
         } else {

@@ -157,10 +157,23 @@ fun Long.formatMinSec(): String {
 }
 
 fun String?.formatMinSec(): String {
-    return when (val value = this?.toLong()) {
-        null -> ""
-        else -> value.formatMinSec()
-    }
+    if (this == null) return ""
+    // Try plain numeric millis first
+    this.toLongOrNull()?.let { return it.formatMinSec() }
+    // Handle HH:MM:SS.mmm or MM:SS.mmm format from cloud providers
+    try {
+        val parts = this.split(":")
+        if (parts.size >= 2) {
+            val secParts = parts.last().split(".")
+            val seconds = secParts[0].toLong()
+            val millis = if (secParts.size > 1) secParts[1].toLong() else 0L
+            val minutes = parts[parts.size - 2].toLong()
+            val hours = if (parts.size >= 3) parts[parts.size - 3].toLong() else 0L
+            val totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000 + millis
+            return totalMs.formatMinSec()
+        }
+    } catch (_: Exception) { }
+    return ""
 }
 
 private val FILENAME_DATE_REGEX = Regex("""(\d{4})(\d{2})(\d{2})[_\-](\d{2})(\d{2})(\d{2})""")
@@ -184,6 +197,61 @@ fun String.parseTimestampFromFilename(): Long? {
         cal.timeInMillis
     } catch (_: Exception) {
         null
+    }
+}
+
+/**
+ * Pre-computes date-grouping constants once, then classifies timestamps
+ * using a single reusable Calendar. Eliminates ~4 Calendar allocations
+ * per item compared to the standalone [Long.getDate] extension.
+ *
+ * Not thread-safe — use from a single coroutine only.
+ */
+class DateGrouper(
+    private val format: String,
+    private val weeklyFormat: String,
+    private val extendedFormat: String,
+    private val stringToday: String,
+    private val stringYesterday: String
+) {
+    private val locale: Locale = ComposeLocale.getCurrentAndroid()
+    private val currentYear: Int
+    private val todayStartMillis: Long
+    private val reusableCal: Calendar = Calendar.getInstance(locale)
+
+    init {
+        val now = System.currentTimeMillis()
+        reusableCal.timeInMillis = now
+        currentYear = reusableCal.get(Calendar.YEAR)
+        reusableCal.set(Calendar.HOUR_OF_DAY, 0)
+        reusableCal.set(Calendar.MINUTE, 0)
+        reusableCal.set(Calendar.SECOND, 0)
+        reusableCal.set(Calendar.MILLISECOND, 0)
+        todayStartMillis = reusableCal.timeInMillis
+    }
+
+    fun classify(timestampSec: Long): String {
+        val millis = timestampSec * 1000L
+        reusableCal.timeInMillis = millis
+        // Truncate to day start for day-difference calculation
+        val mediaYear = reusableCal.get(Calendar.YEAR)
+        reusableCal.set(Calendar.HOUR_OF_DAY, 0)
+        reusableCal.set(Calendar.MINUTE, 0)
+        reusableCal.set(Calendar.SECOND, 0)
+        reusableCal.set(Calendar.MILLISECOND, 0)
+        val daysDifference = ((todayStartMillis - reusableCal.timeInMillis) / 86_400_000L).toInt()
+        // Reset to full time for formatting
+        reusableCal.timeInMillis = millis
+        return when {
+            daysDifference <= 0 -> stringToday
+            daysDifference == 1 -> stringYesterday
+            daysDifference in 2..6 -> DateFormat.format(weeklyFormat, reusableCal).toString()
+            else -> {
+                if (currentYear > mediaYear) {
+                    DateFormat.format(extendedFormat, reusableCal).toString()
+                } else DateFormat.format(format, reusableCal).toString()
+            }
+        }
     }
 }
 

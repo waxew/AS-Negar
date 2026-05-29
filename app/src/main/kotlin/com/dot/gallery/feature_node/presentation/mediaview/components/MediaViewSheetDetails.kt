@@ -71,6 +71,7 @@ import com.dot.gallery.feature_node.domain.util.canMakeActions
 import com.dot.gallery.feature_node.domain.util.fileExtension
 import com.dot.gallery.feature_node.domain.util.getCategory
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.domain.util.isRaw
 import com.dot.gallery.feature_node.domain.util.isTrashed
@@ -107,6 +108,9 @@ fun <T : Media> MediaViewSheetDetails(
 ) {
     val metadata by rememberedDerivedState(metadataState.value, currentMedia) {
         currentMedia?.id?.let { metadataState.value.metadataMap[it] }
+    }
+    LaunchedEffect(metadata) {
+        printDebug("Available metadata for ${currentMedia?.id}:\n${metadata.toString()}")
     }
     val handler = LocalMediaHandler.current
     val isBlurEnabled by rememberAllowBlur()
@@ -345,6 +349,13 @@ fun <T : Media> MediaViewSheetDetails(
                                         text = stringResource(R.string.encrypted),
                                         containerColor = MaterialTheme.colorScheme.error,
                                         contentColor = MaterialTheme.colorScheme.onError
+                                    )
+                                }
+                                if (currentMedia.isCloud) {
+                                    MediaInfoChip(
+                                        text = stringResource(R.string.cloud_media),
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
                             }

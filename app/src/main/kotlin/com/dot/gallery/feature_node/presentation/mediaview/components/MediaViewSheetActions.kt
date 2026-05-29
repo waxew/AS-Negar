@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.CopyAll
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Restore
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dot.gallery.R
+import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.util.SdkCompat
@@ -57,6 +59,7 @@ import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.model.VaultState
 import com.dot.gallery.feature_node.domain.util.canMakeActions
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.domain.util.isImage
 import com.dot.gallery.feature_node.domain.util.isLocalContent
@@ -116,6 +119,11 @@ fun <T : Media> MediaViewSheetActions(
     val moveText = stringResource(R.string.move)
     val editText = stringResource(R.string.edit)
     val addToCollectionText = stringResource(R.string.add_to_collection)
+    val downloadText = stringResource(R.string.download)
+    val downloadingText = stringResource(R.string.downloading)
+    val downloadCompleteText = stringResource(R.string.download_complete)
+    val downloadFailedText = stringResource(R.string.download_failed)
+    val handler = LocalMediaHandler.current
     // Lazily create a single KeychainHolder for encrypted operations
     val keychainHolder = remember(currentVault) {
         if (currentVault != null) lazy { KeychainHolder(context) } else null
@@ -143,12 +151,12 @@ fun <T : Media> MediaViewSheetActions(
                 icon = Icons.Outlined.ContentCopy,
                 text = copyToClipboardText,
                 onClick = {
-                    if (media.isEncrypted && currentVault != null && keychainHolder != null) {
-                        scope.launch {
+                    scope.launch {
+                        if (media.isEncrypted && currentVault != null && keychainHolder != null) {
                             context.copyEncryptedMediaToClipboard(media, keychainHolder.value)
+                        } else {
+                            context.copyMediaToClipboard(media)
                         }
-                    } else {
-                        context.copyMediaToClipboard(media)
                     }
                 }
             ))
@@ -203,10 +211,10 @@ fun <T : Media> MediaViewSheetActions(
                             try {
                                 context.launchEditImageIntent(defaultEditor, media.getUri())
                             } catch (_: Exception) {
-                                context.launchEditIntent(media)
+                                scope.launch { context.launchEditIntent(media) }
                             }
                         } else {
-                            context.launchEditIntent(media)
+                            scope.launch { context.launchEditIntent(media) }
                         }
                     }
                 ))
@@ -217,6 +225,25 @@ fun <T : Media> MediaViewSheetActions(
                     icon = Icons.Outlined.Collections,
                     text = addToCollectionText,
                     onClick = { showCollectionSheet = true }
+                ))
+            }
+            // Download (cloud only)
+            if (media.isCloud) {
+                add(ActionGridItem(
+                    icon = Icons.Outlined.Download,
+                    text = downloadText,
+                    onClick = {
+                        scope.launch {
+                            Toast.makeText(context, downloadingText, Toast.LENGTH_SHORT).show()
+                            val result = handler.downloadCloudMedia(listOf(media))
+                            val count = result.getOrDefault(0)
+                            if (count > 0) {
+                                Toast.makeText(context, downloadCompleteText, Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, downloadFailedText, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                 ))
             }
         }

@@ -478,6 +478,12 @@ object Settings {
         fun rememberGroupBurstSequences() =
             rememberPreference(key = GROUP_BURST_SEQUENCES, defaultValue = true)
 
+        val GROUP_CLOUD_LOCAL = booleanPreferencesKey("group_cloud_local")
+
+        @Composable
+        fun rememberGroupCloudLocal() =
+            rememberPreference(key = GROUP_CLOUD_LOCAL, defaultValue = true)
+
         private val ALLOW_BLUR = booleanPreferencesKey("allow_blur")
 
         @Composable

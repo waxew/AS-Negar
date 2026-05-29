@@ -29,6 +29,7 @@ import com.dot.gallery.core.decoder.glide.SandboxedJxlBitmapDecoder
 import com.dot.gallery.core.decoder.glide.JxlEncryptedDecoder
 import com.dot.gallery.core.decoder.glide.JxlEncryptedSourceDecoder
 import com.dot.gallery.core.decoder.glide.MimeInputStream
+import com.dot.gallery.cloud.image.CloudGlideModelLoader
 import com.dot.gallery.core.decoder.glide.MimeInputStreamModelLoader
 import com.dot.gallery.core.decoder.glide.StreamingEncryptedVideoFrameDecoder
 import java.io.File
@@ -39,6 +40,13 @@ class GlideModule: AppGlideModule() {
 
     override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
         val pool: BitmapPool = glide.bitmapPool
+
+        // Cloud media URI loader (cloud://{provider}/{remoteId})
+        registry.prepend(
+            Uri::class.java,
+            InputStream::class.java,
+            CloudGlideModelLoader.Factory()
+        )
 
         // New streaming model loaders (File/Uri -> EncryptedMediaSource -> InputStream) placed first.
         registry.prepend(

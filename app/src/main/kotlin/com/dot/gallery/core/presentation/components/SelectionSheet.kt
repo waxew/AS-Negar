@@ -47,7 +47,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -98,6 +99,7 @@ import com.dot.gallery.feature_node.domain.model.MediaState
 import com.dot.gallery.feature_node.domain.model.SelectionAction
 import com.dot.gallery.feature_node.domain.model.Vault
 import com.dot.gallery.feature_node.domain.util.getUri
+import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
 import com.dot.gallery.feature_node.presentation.collection.components.AddToCollectionSheet
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
@@ -510,7 +512,7 @@ fun <T : Media> BoxScope.SelectionSheet(
                                     title = stringResource(action.labelRes)
                                 ) {
                                     selectedMedia.firstOrNull()?.let { media ->
-                                        context.launchEditIntent(media)
+                                        scope.launch { context.launchEditIntent(media) }
                                     }
                                 }
                             }
@@ -524,6 +526,31 @@ fun <T : Media> BoxScope.SelectionSheet(
                                         handler.rotateImage(media, 90)
                                     }
                                     selector.clearSelection()
+                                }
+                            }
+                            SelectionAction.DOWNLOAD -> {
+                                val cloudItems = selectedMedia.filter { it.isCloud }
+                                if (cloudItems.isNotEmpty()) {
+                                    val downloadingText = context.getString(R.string.downloading)
+                                    val completeText = context.getString(R.string.download_complete)
+                                    val failedText = context.getString(R.string.download_failed)
+                                    SelectionBarColumn(
+                                        imageVector = action.icon,
+                                        tabletMode = tabletMode,
+                                        title = stringResource(action.labelRes)
+                                    ) {
+                                        scope.launch {
+                                            Toast.makeText(context, downloadingText, Toast.LENGTH_SHORT).show()
+                                            val result = handler.downloadCloudMedia(cloudItems)
+                                            val count = result.getOrDefault(0)
+                                            if (count > 0) {
+                                                Toast.makeText(context, completeText, Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, failedText, Toast.LENGTH_SHORT).show()
+                                            }
+                                            selector.clearSelection()
+                                        }
+                                    }
                                 }
                             }
                             else -> {} // Top-zone actions don't appear in bottom bar
@@ -699,7 +726,7 @@ fun <T : Media> BoxScope.SelectionSheet(
         )
         ModalBottomSheet(
             onDismissRequest = { showInfoSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
         ) {
             Column(
                 modifier = Modifier
@@ -744,7 +771,7 @@ private fun isActionVisible(
     }
     return when (action.requiresCondition) {
         ActionCondition.NONE -> true
-        ActionCondition.SUPPORTS_FAVORITES -> showFavoriteButton && SdkCompat.supportsFavorites
+        ActionCondition.SUPPORTS_FAVORITES -> showFavoriteButton
         ActionCondition.IN_COLLECTION -> collectionId != null
     }
 }

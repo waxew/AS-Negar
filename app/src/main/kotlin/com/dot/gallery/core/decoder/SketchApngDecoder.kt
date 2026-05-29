@@ -118,7 +118,7 @@ class SketchApngDecoder(
 
         private fun isApplicable(fetchResult: FetchResult): Boolean {
             // Check MIME type first (fast path)
-            val mimeType = fetchResult.dataFrom?.toString() ?: ""
+            val mimeType = fetchResult.dataFrom.toString()
             if (mimeType == "image/apng") return true
             // Check header bytes for APNG signature (acTL chunk)
             return fetchResult.headerBytes.isApng()

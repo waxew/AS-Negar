@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -97,6 +98,15 @@ fun SettingsScreen() {
             },
             screenPosition = Position.Middle
         )
+        val cloudPref = rememberPreference(
+            icon = Icons.Outlined.Cloud,
+            title = stringResource(R.string.settings_cloud_accounts),
+            summary = stringResource(R.string.settings_cloud_accounts_summary),
+            onClick = {
+                eventHandler.navigate(Screen.CloudAccountsScreen())
+            },
+            screenPosition = Position.Middle
+        )
         val smartPref = rememberPreference(
             icon = Icons.Outlined.SettingsSuggest,
             title = stringResource(R.string.ai_category),
@@ -117,11 +127,11 @@ fun SettingsScreen() {
         )
         return remember(
             appearancePref, timelineAlbumsPref, mediaViewerPref,
-            navigationPref, generalPref, securityPref, smartPref, helpPref
+            navigationPref, generalPref, securityPref, cloudPref, smartPref, helpPref
         ) {
             mutableStateListOf(
                 appearancePref, timelineAlbumsPref, mediaViewerPref,
-                navigationPref, generalPref, securityPref, smartPref, helpPref
+                navigationPref, generalPref, securityPref, cloudPref, smartPref, helpPref
             )
         }
     }

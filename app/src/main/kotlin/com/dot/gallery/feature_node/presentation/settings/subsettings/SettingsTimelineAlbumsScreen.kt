@@ -61,6 +61,7 @@ import com.dot.gallery.core.Settings.Misc.rememberAllowGifAnimation
 import com.dot.gallery.core.Settings.Misc.rememberFavoriteIconPosition
 import com.dot.gallery.core.Settings.Misc.rememberShowFilterButton
 import com.dot.gallery.core.Settings.Misc.rememberGroupBurstSequences
+import com.dot.gallery.core.Settings.Misc.rememberGroupCloudLocal
 import com.dot.gallery.core.Settings.Misc.rememberGroupEditedCopies
 import com.dot.gallery.core.Settings.Misc.rememberGroupRawJpg
 import com.dot.gallery.core.Settings.Misc.rememberGroupSimilarMedia
@@ -103,6 +104,7 @@ fun SettingsTimelineAlbumsScreen() {
     var groupRawJpg by rememberGroupRawJpg()
     var groupEditedCopies by rememberGroupEditedCopies()
     var groupBurstSequences by rememberGroupBurstSequences()
+    var groupCloudLocal by rememberGroupCloudLocal()
     var allowGifAnimation by rememberAllowGifAnimation()
     var showFilterButton by rememberShowFilterButton()
     var hideTimelineOnAlbum by Settings.Album.rememberHideTimelineOnAlbum()
@@ -173,6 +175,15 @@ fun SettingsTimelineAlbumsScreen() {
                                 summary = stringResource(R.string.group_burst_sequences_summary),
                                 isChecked = groupBurstSequences,
                                 onCheck = { groupBurstSequences = it },
+                                screenPosition = Position.Middle
+                            )
+                        )
+                        SettingsItem(
+                            item = SettingsEntity.SwitchPreference(
+                                title = stringResource(R.string.group_cloud_local_title),
+                                summary = stringResource(R.string.group_cloud_local_summary),
+                                isChecked = groupCloudLocal,
+                                onCheck = { groupCloudLocal = it },
                                 screenPosition = Position.Bottom
                             )
                         )
