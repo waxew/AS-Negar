@@ -12,6 +12,20 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.kotlinSerialization)
     id("apk-versioning")
+    id("manifest-config")
+}
+
+manifestConfig {
+    if (isOffline) {
+        stripPermissions.set(
+            listOf(
+                "android.permission.INTERNET",
+                "android.permission.ACCESS_WIFI_STATE",
+                "android.permission.ACCESS_NETWORK_STATE",
+                "android.permission.CHANGE_WIFI_MULTICAST_STATE"
+            )
+        )
+    }
 }
 
 val abiVersionCodes = mapOf(
@@ -25,14 +39,10 @@ val abiVersionCodes = mapOf(
 apkVersioning {
     flavorVersionCodes.set(abiVersionCodes)
     versionCodeMultiplier.set(10)
-    outputFileName.set("{appName}-{versionName}-{versionCode}{suffix}-{flavorName}-{buildType}")
+    outputFileName.set("{appName}-{versionName}-{versionCode}{suffix}-{ml}-{abi}-{buildType}")
     variables.put("appName", "ReFra")
-    val cloudSuffix = buildList {
-        if (!includeMaps) add("nomaps")
-        if (includeImmich) add("immich")
-        if (includeOwncloud) add("owncloud")
-    }.let { if (it.isEmpty()) "" else "-" + it.joinToString("-") }
-    variables.put("suffix", cloudSuffix)
+    val offlineSuffix = if (isOffline) "-offline" else ""
+    variables.put("suffix", offlineSuffix)
 }
 
 android {
@@ -50,8 +60,8 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        val mapsPrefix = if (includeMaps) "" else "-nomaps"
-        base.archivesName.set("ReFra-${versionName}-$versionCode$mapsPrefix")
+        val offlinePrefix = if (isOffline) "-offline" else ""
+        base.archivesName.set("ReFra-${versionName}-$versionCode$offlinePrefix")
     }
 
     lint.baseline = file("lint-baseline.xml")
@@ -71,6 +81,7 @@ android {
             versionNameSuffix = "-debug"
             manifestPlaceholders["appProvider"] = "com.dot.gallery.debug.media_provider"
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
+            buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
@@ -96,6 +107,7 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
+            buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
@@ -116,11 +128,28 @@ android {
                 "CONTENT_AUTHORITY",
                 "\"com.dot.staging.debug.media_provider\""
             )
+            buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
+            buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
+        }
+        create("gplay") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            applicationIdSuffix = ".gplay"
+            ndk.debugSymbolLevel = "FULL"
+            manifestPlaceholders["appProvider"] = "com.dot.gallery.gplay.media_provider"
+            buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "false")
+            buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
+            buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
+            buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
+            buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
+            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.gplay.media_provider\"")
+            buildConfigField("Boolean", "ENABLE_INDEXING", "true")
+            buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "false")
         }
     }
 
@@ -147,11 +176,11 @@ android {
 
     sourceSets {
         getByName("main") {
-            // Conditional maps/nomaps source set
-            if (includeMaps) {
+            // Conditional maps/offline source set
+            if (!isOffline) {
                 kotlin.srcDir("src/maps/kotlin")
             } else {
-                kotlin.srcDir("src/nomaps/kotlin")
+                kotlin.srcDir("src/offline/kotlin")
             }
             // Conditional cloud provider source sets
             if (includeImmich) {
@@ -171,7 +200,7 @@ android {
             it.contains("bundle", ignoreCase = true)
         }
         if (!isBundleBuild) {
-            maybeCreate("withML").apply {
+            maybeCreate("WithML").apply {
                 assets.srcDirs("../ml-models/src/main/assets")
             }
         }
@@ -189,11 +218,11 @@ android {
                 }
             }
         }
-        create("withML") {
+        create("WithML") {
             dimension = "ml"
             buildConfigField("Boolean", "ML_MODELS_BUNDLED", "true")
         }
-        create("noML") {
+        create("NoML") {
             dimension = "ml"
             buildConfigField("Boolean", "ML_MODELS_BUNDLED", "false")
         }
@@ -388,17 +417,20 @@ dependencies {
     debugRuntimeOnly(libs.compose.ui.test.manifest)
 }
 
-val includeMaps: Boolean
+val isOffline: Boolean
     get() {
         val fl = rootProject.file("app.properties")
         return try {
             val properties = Properties()
             properties.load(FileInputStream(fl))
-            properties.getProperty("INCLUDE_MAPS", "true").toBoolean()
+            properties.getProperty("OFFLINE", "false").toBoolean()
         } catch (_: Exception) {
-            true
+            false
         }
     }
+
+val includeMaps: Boolean
+    get() = !isOffline
 
 val allowAllFilesAccess: Boolean
     get() {
@@ -415,6 +447,7 @@ val allowAllFilesAccess: Boolean
 
 val includeImmich: Boolean
     get() {
+        if (isOffline) return false
         val fl = rootProject.file("app.properties")
         return try {
             val properties = Properties()
@@ -427,6 +460,7 @@ val includeImmich: Boolean
 
 val includeOwncloud: Boolean
     get() {
+        if (isOffline) return false
         val fl = rootProject.file("app.properties")
         return try {
             val properties = Properties()
