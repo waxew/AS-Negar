@@ -6,7 +6,6 @@
 package com.dot.gallery.feature_node.presentation.mediaview
 
 import android.content.pm.ActivityInfo
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
@@ -69,7 +68,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onVisibilityChanged
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
@@ -424,25 +422,18 @@ fun <T : Media> MediaViewScreen(
         }
     }
 
-    val configuration = LocalConfiguration.current
-    val isLandscape = remember(configuration) {
-        configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    }
     val isGestureEnabled = rememberGestureNavigationEnabled()
     // Extra padding for navigation bar with 3/2-buttons
-    val extraPaddingWithNavButtons by remember(isLandscape, isGestureEnabled) {
+    val extraPaddingWithNavButtons by remember(isGestureEnabled) {
         mutableStateOf(
-            if (!isGestureEnabled && !isLandscape) {
+            if (!isGestureEnabled) {
                 32.dp
             } else 0.dp
         )
     }
     val navigationBarHeight = rememberNavigationBarHeight()
-    val bottomBarHeightDefault by remember(isGestureEnabled, isLandscape) {
-        mutableStateOf(
-            if (!isGestureEnabled && isLandscape) 84.dp
-            else BOTTOM_BAR_HEIGHT
-        )
+    val bottomBarHeightDefault by remember {
+        mutableStateOf(BOTTOM_BAR_HEIGHT)
     }
 
     val bottomPadding = remember(paddingValues) {

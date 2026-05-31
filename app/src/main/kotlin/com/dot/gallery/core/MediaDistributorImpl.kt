@@ -1026,7 +1026,7 @@ class MediaDistributorImpl @Inject constructor(
             .mapTo(HashSet()) { it.mediaId }
         val filteredMedia = timelineState.media.filter {
             it.id in matchingMediaIds
-        }
+        }.deduplicateCloudLocal()
         return@combine mapMediaToItem(
             data = filteredMedia,
             error = timelineState.error,
@@ -1041,8 +1041,9 @@ class MediaDistributorImpl @Inject constructor(
         repository.getMetadata(),
         timelineMediaFlow
     ) { metadata, timelineState ->
-        val mediaById = HashMap<Long, Media.UriMedia>(timelineState.media.size)
-        for (m in timelineState.media) { mediaById[m.id] = m }
+        val dedupedMedia = timelineState.media.deduplicateCloudLocal()
+        val mediaById = HashMap<Long, Media.UriMedia>(dedupedMedia.size)
+        for (m in dedupedMedia) { mediaById[m.id] = m }
 
         val locationGroupMap = LinkedHashMap<String, Media.UriMedia>()
         val geoList = ArrayList<GeoMedia>(metadata.size / 2)
@@ -1260,6 +1261,20 @@ class MediaDistributorImpl @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Remove cloud duplicates when a local counterpart with the same
+     * [cloudGroupKey] exists. Keeps local items and cloud-only items.
+     */
+    private fun List<Media.UriMedia>.deduplicateCloudLocal(): List<Media.UriMedia> {
+        if (none { it.isCloud }) return this
+        val localKeys = HashSet<String>()
+        for (m in this) {
+            if (!m.isCloud) localKeys.add(m.cloudGroupKey)
+        }
+        if (localKeys.isEmpty()) return this
+        return filter { !it.isCloud || it.cloudGroupKey !in localKeys }
     }
 
 }
