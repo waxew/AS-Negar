@@ -177,6 +177,11 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
             TempVaultCleanupWorker.schedule(workManager)
         }
 
+        // One-time cleanup of leaked vault temp files for users upgrading from affected versions
+        appScope.launch(Dispatchers.IO) {
+            TempVaultCleanupWorker.runLegacyFilesdirCleanup(this@GalleryApp)
+        }
+
         // Initialize ML models (copies from assets on withML, checks presence on noML)
         appScope.launch {
             StartupTracer.trace("ModelManager.initializeModels") {

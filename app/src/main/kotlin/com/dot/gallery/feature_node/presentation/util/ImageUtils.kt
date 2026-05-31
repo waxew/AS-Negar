@@ -486,7 +486,7 @@ private fun <T : Media> createDecryptedTempFile(
     
     // Decrypt the media
     val decryptedMedia = keychainHolder.decryptVaultMedia(encryptedFile)
-    
+
     // Create temp file with appropriate extension
     val extension = when {
         media.mimeType.startsWith("image/") -> when (media.mimeType) {
@@ -517,6 +517,7 @@ private fun <T : Media> createDecryptedTempFile(
             input.copyTo(outputStream)
         }
     }
+    decryptedMedia.cleanup()
     
     return tempFile
 }
