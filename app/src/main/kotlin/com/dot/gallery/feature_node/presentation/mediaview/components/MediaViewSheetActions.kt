@@ -81,6 +81,7 @@ import com.dot.gallery.feature_node.presentation.util.shareEncryptedMedia
 import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
 import com.dot.gallery.feature_node.presentation.vault.components.AddToVaultSheet
+import com.dot.gallery.feature_node.presentation.vault.components.ConfirmationSheet
 import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -102,6 +103,7 @@ fun <T : Media> MediaViewSheetActions(
 
     // Sheet states for complex actions
     val hideSheetState = rememberAppBottomSheetState()
+    val restoreConfirmState = rememberAppBottomSheetState()
     val copySheetState = rememberAppBottomSheetState()
     val moveSheetState = rememberAppBottomSheetState()
     var showCollectionSheet by rememberSaveable { mutableStateOf(false) }
@@ -162,11 +164,18 @@ fun <T : Media> MediaViewSheetActions(
             ))
             // Hide
             if (media.isLocalContent) {
+                val noVaults = vaults.value.vaults.isEmpty()
+                val createFirstText = context.getString(R.string.vault_create_first)
                 add(ActionGridItem(
                     icon = Icons.Outlined.Lock,
                     text = hideText,
-                    enabled = vaults.value.vaults.isNotEmpty(),
-                    onClick = { scope.launch { hideSheetState.show() } }
+                    onClick = {
+                        if (noVaults) {
+                            Toast.makeText(context, createFirstText, Toast.LENGTH_SHORT).show()
+                        } else {
+                            scope.launch { hideSheetState.show() }
+                        }
+                    }
                 ))
             }
             // Restore
@@ -174,7 +183,7 @@ fun <T : Media> MediaViewSheetActions(
                 add(ActionGridItem(
                     icon = Icons.Outlined.Restore,
                     text = restoreText,
-                    onClick = { scope.launch { restoreMedia(currentVault, media) {} } }
+                    onClick = { scope.launch { restoreConfirmState.show() } }
                 ))
             }
             // Open As / Use As
@@ -276,6 +285,18 @@ fun <T : Media> MediaViewSheetActions(
     }
 
     // --- Complex action sheets ---
+
+    // Restore confirmation
+    if (media.isEncrypted && restoreMedia != null && currentVault != null) {
+        ConfirmationSheet(
+            state = restoreConfirmState,
+            title = stringResource(R.string.vault_confirm_restore_title),
+            summary = stringResource(R.string.vault_confirm_restore_summary),
+            onConfirm = {
+                scope.launch { restoreMedia(currentVault, media) {} }
+            }
+        )
+    }
 
     // Hide (vault selection)
     if (media.isLocalContent) {

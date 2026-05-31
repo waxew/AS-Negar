@@ -116,6 +116,7 @@ import com.dot.gallery.feature_node.presentation.util.rememberMediaInfo
 import com.dot.gallery.feature_node.presentation.util.shareMediaWithVaultSupport
 import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
 import com.dot.gallery.feature_node.presentation.vault.components.AddToVaultSheet
+import com.dot.gallery.feature_node.presentation.vault.components.ConfirmationSheet
 import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
 import com.dot.gallery.ui.theme.Shapes
 import dev.chrisbanes.haze.hazeEffect
@@ -150,6 +151,8 @@ fun <T : Media> BoxScope.SelectionSheet(
     val collectionViewModel = hiltViewModel<CollectionViewModel>()
     val vaultViewModel = hiltViewModel<VaultViewModel>()
     val vaultSheetState = rememberAppBottomSheetState()
+    val vaultDeleteConfirmState = rememberAppBottomSheetState()
+    val vaultRestoreConfirmState = rememberAppBottomSheetState()
     // Tracks what the vault sheet is for: "hide", "copy", or "move"
     var vaultSheetAction by rememberSaveable { mutableStateOf("hide") }
     var vaultEncryptBehavior by Settings.Vault.rememberVaultEncryptBehavior()
@@ -452,13 +455,7 @@ fun <T : Media> BoxScope.SelectionSheet(
                                         tabletMode = tabletMode,
                                         title = stringResource(R.string.trash_delete)
                                     ) {
-                                        scope.launch {
-                                            val vault = currentVault ?: vaultViewModel.currentVault.value ?: return@launch
-                                            selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
-                                                vaultViewModel.deleteMedia(vault, media) {}
-                                            }
-                                            selector.clearSelection()
-                                        }
+                                        scope.launch { vaultDeleteConfirmState.show() }
                                     }
                                 } else {
                                     val trashEnabledRes = remember(trashEnabled) {
@@ -492,13 +489,7 @@ fun <T : Media> BoxScope.SelectionSheet(
                                     )
                                 ) {
                                     if (isInVault) {
-                                        scope.launch {
-                                            val vault = currentVault ?: vaultViewModel.currentVault.value ?: return@launch
-                                            selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
-                                                vaultViewModel.restoreMedia(vault, media) {}
-                                            }
-                                            selector.clearSelection()
-                                        }
+                                        scope.launch { vaultRestoreConfirmState.show() }
                                     } else {
                                         vaultSheetAction = "hide"
                                         scope.launch { vaultSheetState.show() }
@@ -692,6 +683,36 @@ fun <T : Media> BoxScope.SelectionSheet(
             handler.deleteMedia(result, it)
         }
     }
+
+    ConfirmationSheet(
+        state = vaultDeleteConfirmState,
+        title = stringResource(R.string.vault_confirm_delete_items_title),
+        summary = stringResource(R.string.vault_confirm_delete_items_summary),
+        onConfirm = {
+            scope.launch {
+                val vault = currentVault ?: vaultViewModel.currentVault.value ?: return@launch
+                selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
+                    vaultViewModel.deleteMedia(vault, media) {}
+                }
+                selector.clearSelection()
+            }
+        }
+    )
+
+    ConfirmationSheet(
+        state = vaultRestoreConfirmState,
+        title = stringResource(R.string.vault_confirm_restore_title),
+        summary = stringResource(R.string.vault_confirm_restore_summary),
+        onConfirm = {
+            scope.launch {
+                val vault = currentVault ?: vaultViewModel.currentVault.value ?: return@launch
+                selectedMedia.filterIsInstance<Media.UriMedia>().forEach { media ->
+                    vaultViewModel.restoreMedia(vault, media) {}
+                }
+                selector.clearSelection()
+            }
+        }
+    )
 
     AddToCollectionSheet(
         visible = showCollectionSheet,

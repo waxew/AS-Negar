@@ -495,7 +495,7 @@
     <string name="vault_hide_in_progress">Hiding media…</string>
     <string name="vault_setup_password_prompt">Would you like to set a custom password for this vault?</string>
     <string name="vault_skip_password">Use device security</string>
-    <string name="vault_set_password">Set custom password</string>
+    <string name="vault_set_password">Set password</string>
     <string name="vault_deletion_title_named">Delete \"%1$s\"?</string>
     <string name="vault_deletion_summary_named">Vault \"%1$s\" and all its content will be deleted permanently.\nThis action cannot be undone.</string>
     <string name="vault_manage_security">Manage security</string>
@@ -503,6 +503,12 @@
     <string name="vault_change_security_summary">Use a PIN, pattern, or password instead of device security</string>
     <string name="vault_remove_custom_security">Remove custom password</string>
     <string name="vault_remove_custom_security_summary">Revert to device security (biometric or screen lock)</string>
+    <string name="vault_confirm_restore_title">Restore media?</string>
+    <string name="vault_confirm_restore_summary">Selected media will be decrypted and restored to your gallery.\nIt will be removed from the vault.</string>
+    <string name="vault_confirm_delete_items_title">Delete from vault?</string>
+    <string name="vault_confirm_delete_items_summary">Selected items will be permanently deleted from the vault.\nThis action cannot be undone.</string>
+    <string name="vault_originals_question">What should happen to the originals?</string>
+    <string name="vault_change_custom_password">Change custom password</string>
     <string name="vault_gate_setup_title">Vault selector security</string>
     <string name="vault_gate_setup_subtitle">Would you like to protect the vault selector screen?</string>
     <string name="vault_gate_setup_summary">This adds an extra layer of security before your vault list is visible.</string>
