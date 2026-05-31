@@ -28,6 +28,8 @@ import com.dot.gallery.cloud.data.entity.CloudUploadPrefEntity
 import com.dot.gallery.cloud.data.entity.SyncStateEntity
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
+import com.dot.gallery.feature_node.domain.model.AlbumSection
+import com.dot.gallery.feature_node.domain.model.AlbumSectionMember
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.Category
 import com.dot.gallery.feature_node.domain.model.Collection
@@ -83,9 +85,11 @@ import com.dot.gallery.feature_node.domain.util.Converters
         OcrResultEntity::class,
         SyncStateEntity::class,
         CloudAlbumSyncEntity::class,
-        CloudUploadPrefEntity::class
+        CloudUploadPrefEntity::class,
+        AlbumSection::class,
+        AlbumSectionMember::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -118,6 +122,7 @@ import com.dot.gallery.feature_node.domain.util.Converters
         AutoMigration(from = 28, to = 29),
         AutoMigration(from = 29, to = 30),
         AutoMigration(from = 30, to = 31),
+        AutoMigration(from = 31, to = 32),
     ]
 )
 @TypeConverters(Converters::class, CloudConverters::class)
@@ -167,6 +172,8 @@ abstract class InternalDatabase : RoomDatabase() {
     abstract fun getCloudAlbumSyncDao(): CloudAlbumSyncDao
 
     abstract fun getCloudUploadPrefDao(): CloudUploadPrefDao
+
+    abstract fun getAlbumSectionDao(): AlbumSectionDao
 
     companion object {
         const val NAME = "internal_db"

@@ -21,6 +21,10 @@ import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
+import com.dot.gallery.feature_node.domain.model.AlbumSection
+import com.dot.gallery.feature_node.domain.model.AlbumSectionMember
+import com.dot.gallery.feature_node.domain.model.AlbumSectionType
+import com.dot.gallery.feature_node.domain.model.AlbumSectionWithAlbums
 import com.dot.gallery.feature_node.domain.model.IgnoredAlbum
 import com.dot.gallery.feature_node.domain.model.LockedAlbum
 import com.dot.gallery.feature_node.domain.model.MergedSubfolderAlbum
@@ -44,6 +48,9 @@ class AlbumsViewModel @Inject constructor(
     private val cloudMediaDao: CloudMediaDao,
     private val providerRegistry: ProviderRegistry
 ) : ViewModel() {
+
+    val sectionsFlow = repository.getAllAlbumSections()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun onAlbumClick(navigate: (String) -> Unit): (Album) -> Unit = { album ->
         navigate(Screen.AlbumViewScreen.route + "?albumId=${album.id}&albumName=${album.label}")
@@ -245,6 +252,95 @@ class AlbumsViewModel @Inject constructor(
                     ?.let { mediaIds ->
                         repository.addMediaListToCollection(collectionId, mediaIds)
                     }
+            }
+        }
+    }
+
+    // ============ Album Sections ============
+
+    fun ensureDefaultSections() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = repository.getAlbumSectionCount()
+            if (count > 0) return@launch
+            repository.insertAlbumSection(
+                AlbumSection(
+                    label = "Common",
+                    type = AlbumSectionType.COMMON.value,
+                    displayOrder = 0
+                )
+            )
+            repository.insertAlbumSection(
+                AlbumSection(
+                    label = "Apps",
+                    type = AlbumSectionType.APPS.value,
+                    displayOrder = 1
+                )
+            )
+            repository.insertAlbumSection(
+                AlbumSection(
+                    label = "Other",
+                    type = AlbumSectionType.UNCATEGORIZED.value,
+                    displayOrder = 2
+                )
+            )
+        }
+    }
+
+    fun createSection(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val maxOrder = repository.getAllAlbumSectionsAsync().maxOfOrNull { it.displayOrder } ?: 0
+            repository.insertAlbumSection(
+                AlbumSection(
+                    label = name,
+                    type = AlbumSectionType.CUSTOM.value,
+                    displayOrder = maxOrder + 1
+                )
+            )
+        }
+    }
+
+    fun renameSection(sectionId: Long, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = repository.getAlbumSectionAsync(sectionId) ?: return@launch
+            repository.updateAlbumSection(existing.copy(label = newName))
+        }
+    }
+
+    fun deleteSection(sectionId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteAlbumSection(sectionId)
+        }
+    }
+
+    fun toggleSectionVisibility(sectionId: Long, visible: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateSectionVisibility(sectionId, visible)
+        }
+    }
+
+    fun toggleSectionExpanded(sectionId: Long, expanded: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateSectionExpanded(sectionId, expanded)
+        }
+    }
+
+    fun moveAlbumToSection(albumId: Long, sectionId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.removeAlbumFromAllSections(albumId)
+            repository.addAlbumToSection(AlbumSectionMember(sectionId = sectionId, albumId = albumId))
+        }
+    }
+
+    fun resetAlbumSectionOverride(albumId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.removeAlbumFromAllSections(albumId)
+        }
+    }
+
+    fun reorderSections(orderedIds: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            orderedIds.forEachIndexed { index, sectionId ->
+                repository.updateSectionDisplayOrder(sectionId, index)
             }
         }
     }

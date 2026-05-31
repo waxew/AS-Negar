@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.PushPin
@@ -101,6 +102,7 @@ fun AlbumComponent(
     onDeleteAlbumThumbnailClick: ((Album) -> Unit)? = null,
     onAddToGroup: ((Album) -> Unit)? = null,
     onRemoveFromGroup: ((Album) -> Unit)? = null,
+    onMoveToSection: ((Album) -> Unit)? = null,
     onToggleMergeSubfolders: ((Album) -> Unit)? = null,
     isMergedSubfolder: Boolean = false
 ) {
@@ -121,6 +123,7 @@ fun AlbumComponent(
             onDeleteAlbumThumbnailClick = onDeleteAlbumThumbnailClick,
             onAddToGroup = onAddToGroup,
             onRemoveFromGroup = onRemoveFromGroup,
+            onMoveToSection = onMoveToSection,
             onToggleMergeSubfolders = onToggleMergeSubfolders,
             isMergedSubfolder = isMergedSubfolder
         )
@@ -211,6 +214,7 @@ fun AlbumRowComponent(
     onToggleIgnoreClick: ((Album) -> Unit)? = null,
     onToggleLockClick: ((Album) -> Unit)? = null,
     onAddToGroup: ((Album) -> Unit)? = null,
+    onMoveToSection: ((Album) -> Unit)? = null,
     onToggleMergeSubfolders: ((Album) -> Unit)? = null,
     isMergedSubfolder: Boolean = false
 ) {
@@ -243,6 +247,7 @@ fun AlbumRowComponent(
             onToggleIgnoreClick = onToggleIgnoreClick,
             onToggleLockClick = onToggleLockClick,
             onAddToGroup = onAddToGroup,
+            onMoveToSection = onMoveToSection,
             onToggleMergeSubfolders = onToggleMergeSubfolders,
             isMergedSubfolder = isMergedSubfolder
         )
@@ -328,6 +333,7 @@ fun AlbumOptionSheet(
     onDeleteAlbumThumbnailClick: ((Album) -> Unit)? = null,
     onAddToGroup: ((Album) -> Unit)? = null,
     onRemoveFromGroup: ((Album) -> Unit)? = null,
+    onMoveToSection: ((Album) -> Unit)? = null,
     onToggleMergeSubfolders: ((Album) -> Unit)? = null,
     isMergedSubfolder: Boolean = false
 ) {
@@ -340,6 +346,7 @@ fun AlbumOptionSheet(
     val lockTitle = stringResource(if (album.isLocked) R.string.unlock_album else R.string.lock_album)
     val addToGroupTitle = stringResource(R.string.add_to_group)
     val removeFromGroupTitle = stringResource(R.string.remove_album_from_group)
+    val moveToSectionTitle = stringResource(R.string.move_to_section)
     val mergeSubfoldersTitle = stringResource(
         if (isMergedSubfolder) R.string.unmerge_subfolders else R.string.merge_subfolders
     )
@@ -462,6 +469,20 @@ fun AlbumOptionSheet(
                             scope.launch {
                                 appBottomSheetState.hide()
                                 onAddToGroup(album)
+                            }
+                        }
+                    )
+                )
+            }
+            if (onMoveToSection != null && !isCloudAlbum) {
+                add(
+                    OptionItem(
+                        icon = Icons.Outlined.Folder,
+                        text = moveToSectionTitle,
+                        onClick = {
+                            scope.launch {
+                                appBottomSheetState.hide()
+                                onMoveToSection(album)
                             }
                         }
                     )

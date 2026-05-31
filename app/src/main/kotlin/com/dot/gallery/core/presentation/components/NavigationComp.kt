@@ -54,6 +54,7 @@ import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.feature_node.presentation.util.AppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.domain.model.Album
+import com.dot.gallery.feature_node.domain.model.AlbumSectionWithAlbums
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.dot.gallery.core.Constants.Animation.navigateInAnimation
@@ -309,6 +310,12 @@ fun NavigationComp(
                 route = Screen.AlbumsScreen()
             ) {
                 val albumsViewModel = hiltViewModel<AlbumsViewModel>()
+                val albumSectionsEnabled by Settings.Album.rememberAlbumSectionsEnabled()
+                LaunchedEffect(albumSectionsEnabled) {
+                    if (albumSectionsEnabled) {
+                        albumsViewModel.ensureDefaultSections()
+                    }
+                }
                 val scope = rememberCoroutineScope()
                 var pendingAlbum by remember { mutableStateOf<Album?>(null) }
                 var biometricAction by remember { mutableStateOf<String?>(null) }
@@ -447,6 +454,31 @@ fun NavigationComp(
                     }
                 )
 
+                // Move to section sheet state
+                val moveToSectionSheetState = rememberAppBottomSheetState()
+                var pendingMoveAlbum by remember { mutableStateOf<Album?>(null) }
+                var pendingMoveCurrentSectionId by remember { mutableStateOf<Long?>(null) }
+
+                MoveToSectionSheet(
+                    sheetState = moveToSectionSheetState,
+                    sections = albumsStateForGroups.albumSections,
+                    currentSectionId = pendingMoveCurrentSectionId,
+                    onMoveToSection = { sectionId ->
+                        pendingMoveAlbum?.let { album ->
+                            albumsViewModel.moveAlbumToSection(album.id, sectionId)
+                        }
+                        pendingMoveAlbum = null
+                        pendingMoveCurrentSectionId = null
+                    },
+                    onResetOverride = {
+                        pendingMoveAlbum?.let { album ->
+                            albumsViewModel.resetAlbumSectionOverride(album.id)
+                        }
+                        pendingMoveAlbum = null
+                        pendingMoveCurrentSectionId = null
+                    }
+                )
+
                 AlbumsScreen(
                     isScrolling = isScrolling,
                     onAlbumClick = onAlbumClickWithLock,
@@ -507,6 +539,19 @@ fun NavigationComp(
                         collectionDialogId = null
                         collectionDialogInitialName = ""
                         scope.launch { collectionSheetState.show() }
+                    },
+                    onMoveToSection = if (albumSectionsEnabled) { album ->
+                        pendingMoveAlbum = album
+                        pendingMoveCurrentSectionId = albumsStateForGroups.albumSections
+                            .firstOrNull { swa -> swa.albums.any { it.id == album.id } }
+                            ?.section?.id
+                        scope.launch { moveToSectionSheetState.show() }
+                    } else null,
+                    onToggleSectionExpanded = { sectionWithAlbums, expanded ->
+                        albumsViewModel.toggleSectionExpanded(
+                            sectionWithAlbums.section.id,
+                            expanded
+                        )
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this

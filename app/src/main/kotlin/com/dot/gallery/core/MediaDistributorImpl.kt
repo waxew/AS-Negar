@@ -14,6 +14,11 @@ import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
 import com.dot.gallery.feature_node.domain.model.AlbumGroupWithAlbums
+import com.dot.gallery.feature_node.domain.model.AlbumSection
+import com.dot.gallery.feature_node.domain.model.AlbumSectionMember
+import com.dot.gallery.feature_node.domain.model.AlbumSectionType
+import com.dot.gallery.feature_node.domain.model.AlbumSectionWithAlbums
+import com.dot.gallery.feature_node.domain.util.AlbumClassifier
 import com.dot.gallery.feature_node.domain.model.AlbumState
 import com.dot.gallery.feature_node.domain.model.AlbumThumbnail
 import com.dot.gallery.feature_node.domain.model.CollectionWithCount
@@ -175,6 +180,16 @@ class MediaDistributorImpl @Inject constructor(
         set(value) {
             appScope.launch {
                 settingsFlow.value?.copy(groupTimelineByMonth = value)?.let {
+                    repository.updateTimelineSettings(it)
+                }
+            }
+        }
+
+    override var groupByYear: Boolean
+        get() = settingsFlow.value?.groupTimelineByYear == true
+        set(value) {
+            appScope.launch {
+                settingsFlow.value?.copy(groupTimelineByYear = value)?.let {
                     repository.updateTimelineSettings(it)
                 }
             }
@@ -475,6 +490,26 @@ class MediaDistributorImpl @Inject constructor(
     override fun collectionAlbumIdsInCollection(collectionId: Long): Flow<List<Long>> =
         repository.getAlbumIdsInCollection(collectionId)
 
+    private val albumSectionsDbFlow: StateFlow<List<AlbumSection>> =
+        repository.getAllAlbumSections()
+            .stateIn(
+                scope = appScope,
+                started = prioritySharingMethod,
+                initialValue = emptyList()
+            )
+
+    private val albumSectionMembersDbFlow: StateFlow<List<AlbumSectionMember>> =
+        repository.getAllSectionMembers()
+            .stateIn(
+                scope = appScope,
+                started = prioritySharingMethod,
+                initialValue = emptyList()
+            )
+
+    private val sectionsEnabled: StateFlow<Boolean> =
+        repository.getSetting(Settings.Album.ALBUM_SECTIONS_ENABLED, false)
+            .stateIn(appScope, prioritySharingMethod, false)
+
     override val albumsFlow: StateFlow<AlbumState> = combine(
             _rawAlbumsFlow
                 .onEach { StartupTracer.begin("albums.dep.getAlbums(${it?.data?.size ?: 0})").also { s -> StartupTracer.end(s) } },
@@ -504,6 +539,12 @@ class MediaDistributorImpl @Inject constructor(
                 .onEach { StartupTracer.begin("albums.dep.cloudAlbums(${it.size})").also { s -> StartupTracer.end(s) } },
             _unsortedCloudAlbumsFlow
                 .onEach { StartupTracer.begin("albums.dep.unsortedCloud(${it.size})").also { s -> StartupTracer.end(s) } },
+            albumSectionsDbFlow
+                .onEach { StartupTracer.begin("albums.dep.sections(${it.size})").also { s -> StartupTracer.end(s) } },
+            albumSectionMembersDbFlow
+                .onEach { StartupTracer.begin("albums.dep.sectionMembers(${it.size})").also { s -> StartupTracer.end(s) } },
+            sectionsEnabled
+                .onEach { StartupTracer.begin("albums.dep.sectionsEnabled=$it").also { s -> StartupTracer.end(s) } },
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val result = values[0] as Resource<List<Album>>?
@@ -534,6 +575,11 @@ class MediaDistributorImpl @Inject constructor(
             val cloudAlbums = values[12] as List<CloudAlbum>
             @Suppress("UNCHECKED_CAST")
             val unsortedCloudAlbums = values[13] as List<Album>
+            @Suppress("UNCHECKED_CAST")
+            val sections = values[14] as List<AlbumSection>
+            @Suppress("UNCHECKED_CAST")
+            val sectionMembers = values[15] as List<AlbumSectionMember>
+            val areSectionsEnabled = values[16] as Boolean
             val newOrder = settings?.albumMediaOrder ?: albumOrder
             val thumbnailMap = thumbnails.associateBy { it.albumId }
             val localAlbums = newOrder.sortAlbums(result.data ?: emptyList()).map { album ->
@@ -572,20 +618,40 @@ class MediaDistributorImpl @Inject constructor(
                 }
                 .mapTo(HashSet()) { it.id }
 
+            val unpinnedUngrouped = mergedData.filter { album ->
+                !album.isPinned && album.id !in groupedMergedIds &&
+                    (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
+                     else album.id !in collectionAlbumIds)
+            }
+
+            val albumSections = if (areSectionsEnabled && sections.isNotEmpty()) {
+                val manualOverrides = sectionMembers.associate { it.albumId to it.sectionId }
+                val sectionIdByType = sections.associate { it.sectionType to it.id }
+                val classified = AlbumClassifier.classifyAlbums(
+                    unpinnedUngrouped, manualOverrides, sectionIdByType
+                )
+                sections
+                    .filter { it.isVisible }
+                    .map { section ->
+                        AlbumSectionWithAlbums(
+                            section = section,
+                            albums = classified[section.id] ?: emptyList()
+                        )
+                    }
+                    .filter { it.albums.isNotEmpty() }
+            } else emptyList()
+
             AlbumState(
                 albums = mergedData,
                 albumsWithBlacklisted = data,
-                albumsUnpinned = mergedData.filter { album ->
-                    !album.isPinned && album.id !in groupedMergedIds &&
-                        (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
-                         else album.id !in collectionAlbumIds)
-                },
+                albumsUnpinned = if (areSectionsEnabled && sections.isNotEmpty()) emptyList() else unpinnedUngrouped,
                 albumsPinned = mergedData.filter { album ->
                     album.isPinned &&
                         (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
                          else album.id !in collectionAlbumIds)
                 }.sortedBy { it.label },
                 albumGroups = albumGroups,
+                albumSections = albumSections,
                 collections = collections,
                 isLoading = false,
                 error = if (result is Resource.Error) result.message ?: "An error occurred" else ""

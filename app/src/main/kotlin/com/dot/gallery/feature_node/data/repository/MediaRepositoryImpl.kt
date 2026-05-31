@@ -50,6 +50,8 @@ import com.dot.gallery.feature_node.data.data_source.mediastore.queries.MediaUri
 import com.dot.gallery.feature_node.domain.model.Album
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
+import com.dot.gallery.feature_node.domain.model.AlbumSection
+import com.dot.gallery.feature_node.domain.model.AlbumSectionMember
 import com.dot.gallery.feature_node.domain.model.Collection
 import com.dot.gallery.feature_node.domain.model.CollectionMedia
 import com.dot.gallery.feature_node.domain.model.CollectionWithCount
@@ -1313,6 +1315,56 @@ class MediaRepositoryImpl(
 
     override fun getAlbumIdsInCollection(collectionId: Long): Flow<List<Long>> =
         collectionDao.getAlbumIdsInCollection(collectionId)
+
+    // ============ Album Sections ============
+
+    override suspend fun insertAlbumSection(section: AlbumSection): Long =
+        database.getAlbumSectionDao().insertSection(section)
+
+    override suspend fun updateAlbumSection(section: AlbumSection) =
+        database.getAlbumSectionDao().updateSection(section)
+
+    override suspend fun deleteAlbumSection(sectionId: Long) =
+        database.getAlbumSectionDao().deleteSection(sectionId)
+
+    override fun getAllAlbumSections(): Flow<List<AlbumSection>> =
+        database.getAlbumSectionDao().getAllSections()
+
+    override suspend fun getAllAlbumSectionsAsync(): List<AlbumSection> =
+        database.getAlbumSectionDao().getAllSectionsAsync()
+
+    override suspend fun getAlbumSectionAsync(sectionId: Long): AlbumSection? =
+        database.getAlbumSectionDao().getSectionAsync(sectionId)
+
+    override suspend fun getAlbumSectionByType(type: Int): AlbumSection? =
+        database.getAlbumSectionDao().getSectionByType(type)
+
+    override suspend fun updateSectionDisplayOrder(sectionId: Long, order: Int) =
+        database.getAlbumSectionDao().updateDisplayOrder(sectionId, order)
+
+    override suspend fun updateSectionVisibility(sectionId: Long, visible: Boolean) =
+        database.getAlbumSectionDao().updateVisibility(sectionId, visible)
+
+    override suspend fun updateSectionExpanded(sectionId: Long, expanded: Boolean) =
+        database.getAlbumSectionDao().updateExpanded(sectionId, expanded)
+
+    override suspend fun getAlbumSectionCount(): Int =
+        database.getAlbumSectionDao().getSectionCount()
+
+    override suspend fun addAlbumToSection(member: AlbumSectionMember) =
+        database.getAlbumSectionDao().addAlbumToSection(member)
+
+    override suspend fun removeAlbumFromSection(member: AlbumSectionMember) =
+        database.getAlbumSectionDao().removeAlbumFromSection(member)
+
+    override suspend fun removeAlbumFromAllSections(albumId: Long) =
+        database.getAlbumSectionDao().removeAlbumFromAllSections(albumId)
+
+    override fun getAllSectionMembers(): Flow<List<AlbumSectionMember>> =
+        database.getAlbumSectionDao().getAllSectionMembers()
+
+    override suspend fun getSectionIdForAlbum(albumId: Long): Long? =
+        database.getAlbumSectionDao().getSectionIdForAlbum(albumId)
 
     companion object {
         private fun relativePath(newPath: String) = ContentValues().apply {

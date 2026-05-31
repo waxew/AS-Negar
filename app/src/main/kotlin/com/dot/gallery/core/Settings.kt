@@ -191,6 +191,12 @@ object Settings {
         @Composable
         fun rememberMergeAlbumsByName() =
             rememberPreference(key = MERGE_ALBUMS_BY_NAME, defaultValue = true)
+
+        val ALBUM_SECTIONS_ENABLED = booleanPreferencesKey("album_sections_enabled")
+
+        @Composable
+        fun rememberAlbumSectionsEnabled() =
+            rememberPreference(key = ALBUM_SECTIONS_ENABLED, defaultValue = false)
     }
 
     object Search {
