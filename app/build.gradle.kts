@@ -182,6 +182,12 @@ android {
             } else {
                 kotlin.srcDir("src/offline/kotlin")
             }
+            // Conditional cloud networking source set
+            if (!isOffline) {
+                kotlin.srcDir("src/cloud/kotlin")
+            } else {
+                kotlin.srcDir("src/nocloud/kotlin")
+            }
             // Conditional cloud provider source sets
             if (includeImmich) {
                 kotlin.srcDir("src/immich/kotlin")

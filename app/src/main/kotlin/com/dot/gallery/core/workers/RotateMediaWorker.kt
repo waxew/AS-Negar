@@ -20,9 +20,8 @@ import androidx.work.workDataOf
 import com.awxkee.jxlcoder.JxlCoder
 import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.core.ProviderType
-import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
 import com.dot.gallery.cloud.core.capabilities.SyncCapableProvider
-import com.dot.gallery.cloud.image.CloudFetcherRegistryHolder
+import com.dot.gallery.cloud.util.CloudMediaDownloader
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.util.getUri
 import com.github.panpf.sketch.util.rotate
@@ -31,7 +30,6 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.Request
 import java.io.InputStream
 import java.util.UUID
 
@@ -186,19 +184,7 @@ class RotateMediaWorker @AssistedInject constructor(
     }
 
     private fun openCloudInputStream(cloudUri: Uri): InputStream? {
-        val registry = CloudFetcherRegistryHolder.registry ?: return null
-        val providerName = cloudUri.authority ?: return null
-        val remoteId = cloudUri.pathSegments.firstOrNull() ?: return null
-        val providerType = try { ProviderType.valueOf(providerName) } catch (_: Exception) { return null }
-        val provider = registry.get(providerType) as? RemoteMediaProvider ?: return null
-        val url = provider.getOriginalUrl(remoteId)
-        val authHeaders = provider.getAuthHeaders()
-        val requestBuilder = Request.Builder().url(url).get()
-        authHeaders.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
-        val client = CloudFetcherRegistryHolder.okHttpClient ?: return null
-        val response = client.newCall(requestBuilder.build()).execute()
-        if (!response.isSuccessful) return null
-        return response.body?.byteStream()
+        return CloudMediaDownloader.downloadCloudMedia(cloudUri)
     }
 
     private fun saveRotatedAsNewLocalUri(

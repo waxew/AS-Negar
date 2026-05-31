@@ -47,9 +47,6 @@ import com.dot.gallery.R
 import com.dot.gallery.core.Settings.Misc.rememberExifDateFormat
 import com.dot.gallery.feature_node.data.data_source.KeychainHolder
 import com.dot.gallery.feature_node.domain.model.InfoRow
-import com.dot.gallery.cloud.core.ProviderType
-import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
-import com.dot.gallery.cloud.image.CloudFetcherRegistryHolder
 import com.dot.gallery.feature_node.domain.model.Media
 
 import com.dot.gallery.feature_node.domain.model.MediaMetadata
@@ -60,7 +57,7 @@ import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.presentation.mediaview.components.retrieveMetadata
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.Request
+import com.dot.gallery.cloud.util.CloudMediaDownloader
 import java.io.File
 import java.io.FileOutputStream
 
@@ -263,31 +260,16 @@ suspend fun <T : Media> Context.resolveShareableUri(media: T): Uri = withContext
         }
     }
     // Download cloud media to a temp file
-    val registry = CloudFetcherRegistryHolder.registry
-        ?: throw IllegalStateException("ProviderRegistry not available")
-    val providerName = originalUri.authority ?: throw IllegalStateException("No provider in cloud URI")
-    val remoteId = originalUri.pathSegments.firstOrNull() ?: throw IllegalStateException("No remoteId in cloud URI")
-    val providerType = ProviderType.valueOf(providerName)
-    val provider = registry.get(providerType) as? RemoteMediaProvider
-        ?: throw IllegalStateException("No remote provider for $providerType")
-
-    val url = provider.getOriginalUrl(remoteId)
-    val authHeaders = provider.getAuthHeaders()
-    val requestBuilder = Request.Builder().url(url).get()
-    authHeaders.forEach { (k, v) -> requestBuilder.addHeader(k, v) }
-
-    val client = CloudFetcherRegistryHolder.okHttpClient
-        ?: throw IllegalStateException("Cloud OkHttpClient not initialized")
-    val response = client.newCall(requestBuilder.build()).execute()
-    if (!response.isSuccessful) {
-        throw Exception("Failed to download cloud media: HTTP ${response.code}")
-    }
+    val remoteId = originalUri.pathSegments.firstOrNull()
+        ?: throw IllegalStateException("No remoteId in cloud URI")
+    val stream = CloudMediaDownloader.downloadCloudMedia(originalUri)
+        ?: throw Exception("Failed to download cloud media")
 
     val ext = media.label.substringAfterLast('.', "jpg")
     val tempFile = File(cacheDir, "cloud_share_${remoteId.take(8)}.$ext")
-    response.body?.byteStream()?.use { input ->
+    stream.use { input ->
         FileOutputStream(tempFile).use { output -> input.copyTo(output) }
-    } ?: throw Exception("Empty response body")
+    }
 
     FileProvider.getUriForFile(this@resolveShareableUri, BuildConfig.CONTENT_AUTHORITY, tempFile)
 }
