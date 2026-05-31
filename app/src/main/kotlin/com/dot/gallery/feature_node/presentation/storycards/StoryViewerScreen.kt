@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -250,20 +251,24 @@ private fun StoryCardViewer(
         modifier = Modifier.fillMaxSize()
     ) {
         // Media display using the same component as the media view screen
-        MediaPreviewComponent(
-            media = currentMedia,
-            uiEnabled = true,
-            playWhenReady = playWhenReady,
-            onItemClick = { /* handled by gesture overlay */ },
-            onSwipeDown = onDismiss,
-            rotationDisabled = true,
-            onImageRotated = {},
-            offset = IntOffset.Zero,
-            isPanorama = mediaMetadata?.isPanorama == true,
-            isPhotosphere = mediaMetadata?.isPhotosphere == true,
-            isMotionPhoto = mediaMetadata?.isMotionPhoto == true,
-            videoController = { _, _, _, _, _, _, _ -> }
-        )
+        // key() forces full tear-down/rebuild when media changes, ensuring
+        // the VideoPlayer's SurfaceView and ExoPlayer are properly recycled
+        key(currentMedia.id) {
+            MediaPreviewComponent(
+                media = currentMedia,
+                uiEnabled = true,
+                playWhenReady = playWhenReady,
+                onItemClick = { /* handled by gesture overlay */ },
+                onSwipeDown = onDismiss,
+                rotationDisabled = true,
+                onImageRotated = {},
+                offset = IntOffset.Zero,
+                isPanorama = mediaMetadata?.isPanorama == true,
+                isPhotosphere = mediaMetadata?.isPhotosphere == true,
+                isMotionPhoto = mediaMetadata?.isMotionPhoto == true,
+                videoController = { _, _, _, _, _, _, _ -> }
+            )
+        }
 
         // Gesture overlay for story navigation (left/right tap, long-press to pause)
         Box(

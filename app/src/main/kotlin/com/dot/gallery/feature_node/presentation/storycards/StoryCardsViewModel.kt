@@ -121,11 +121,11 @@ class StoryCardsViewModel @Inject constructor(
     }
 
     private fun buildCloudMemoryCards(memories: List<MemoryInfo>): List<StoryCard> {
-        return memories.filter { it.media.isNotEmpty() }.map { memory ->
+        return memories.filter { it.media.isNotEmpty() }.mapIndexed { index, memory ->
             val currentYear = Calendar.getInstance().get(Calendar.YEAR)
             val yearsAgo = currentYear - memory.year
             StoryCard(
-                id = 6_000_000L + memory.year.toLong(),
+                id = 6_000_000L + memory.year.toLong() * 100 + index,
                 type = StoryCardType.CLOUD_MEMORIES,
                 title = if (yearsAgo > 0) "$yearsAgo ${if (yearsAgo == 1) "year" else "years"} ago"
                     else "This year",
