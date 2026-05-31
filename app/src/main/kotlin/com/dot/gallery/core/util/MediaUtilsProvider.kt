@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import com.dot.gallery.core.Settings
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.ColorDrawable
 import androidx.core.graphics.drawable.toDrawable
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -46,6 +47,10 @@ val GlideMediaImageRenderer = object : MediaImageRenderer {
         val allowGifAnimation by Settings.Misc.rememberAllowGifAnimation()
         val signatureStr = signature?.toString() ?: ""
         val isGif = allowGifAnimation && signatureStr.contains(".gif", ignoreCase = true)
+        val isAnimatable = allowGifAnimation && (
+            signatureStr.contains(".avif", ignoreCase = true) ||
+            signatureStr.contains(".apng", ignoreCase = true)
+        )
         GlideImage(
             modifier = modifier,
             model = model,
@@ -61,6 +66,8 @@ val GlideMediaImageRenderer = object : MediaImageRenderer {
                 }
                 if (isGif) {
                     request = request.decode(GifDrawable::class.java)
+                } else if (isAnimatable) {
+                    request = request.decode(Drawable::class.java)
                 }
                 request
             }

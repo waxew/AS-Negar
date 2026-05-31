@@ -128,11 +128,14 @@ val Media.isRawFile: Boolean get() = mimeType in listOf(
 )
 
 val Media.isApng: Boolean
-    get() = mimeType == "image/apng" || (mimeType == "image/png" && label.endsWith(".apng", ignoreCase = true))
+    get() = mimeType == "image/apng" || label.endsWith(".apng", ignoreCase = true)
 
 val Media.isAvif: Boolean
     get() = mimeType == "image/avif" || mimeType == "image/avis" ||
             label.endsWith(".avif", ignoreCase = true)
+
+val Media.isJxl: Boolean
+    get() = mimeType == "image/jxl" || label.endsWith(".jxl", ignoreCase = true)
 
 val Media.isTrashed: Boolean get() = trashed == 1
 

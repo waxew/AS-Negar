@@ -43,6 +43,7 @@ import com.dot.gallery.feature_node.domain.util.isApng
 import com.dot.gallery.feature_node.domain.util.isAvif
 import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
+import com.dot.gallery.feature_node.domain.util.isJxl
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.rememberFeedbackManager
 import com.github.panpf.sketch.AsyncImage
@@ -78,10 +79,9 @@ fun <T : Media> BlurredMediaBackground(
                 request = ComposableImageRequest(media.getUri().toString()) {
                     resize(width = 600, height = 600, precision = Precision.LESS_PIXELS)
                     crossfade(false)
-
+                    setExtra("realMimeType", media.mimeType)
                     if (isEncrypted) {
                         setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
-                        setExtra("realMimeType", media.mimeType)
                     }
                 },
                 modifier = Modifier
@@ -123,7 +123,7 @@ fun <T : Media> ZoomablePagerImage(
         media.isEncrypted
     }
     val isAnimated = remember(media) {
-        media.isApng || (media.isAvif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        media.isApng || media.isJxl || (media.isAvif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
     }
 
     // Fast low-res preview painter, shown until full image loads
@@ -131,9 +131,9 @@ fun <T : Media> ZoomablePagerImage(
         request = ComposableImageRequest(mediaUri) {
             resize(width = 600, height = 600, precision = Precision.LESS_PIXELS)
             crossfade(false)
+            setExtra("realMimeType", media.mimeType)
             if (isEncrypted) {
                 setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
-                setExtra("realMimeType", media.mimeType)
             }
         },
         contentScale = ContentScale.Fit
@@ -146,9 +146,9 @@ fun <T : Media> ZoomablePagerImage(
             if (isEncrypted || isAnimated) {
                 crossfade(durationMillis = 200)
             }
+            setExtra("realMimeType", media.mimeType)
             if (isEncrypted) {
                 setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
-                setExtra("realMimeType", media.mimeType)
             }
         },
         state = fullImageState,

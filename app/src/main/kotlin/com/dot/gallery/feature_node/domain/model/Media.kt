@@ -240,6 +240,11 @@ sealed class Media : Parcelable {
             if (uri.path == null) return null
             val extension = uri.toString().substringAfterLast(".")
             var mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+                ?: when (extension.lowercase()) {
+                    "apng" -> "image/apng"
+                    "jxl" -> "image/jxl"
+                    else -> null
+                }
             var duration: String? = null
             var timestamp = 0L
             uri.path?.let { File(it) }?.let {

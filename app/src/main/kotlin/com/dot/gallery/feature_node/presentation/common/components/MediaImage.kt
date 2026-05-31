@@ -141,9 +141,9 @@ fun <T : Media> MediaImage(
                         context.sketch.enqueue(
                             ImageRequest(context, media.getUri().toString()) {
                                 resize(width = 600, height = 600, precision = Precision.LESS_PIXELS)
+                                setExtra("realMimeType", media.mimeType)
                                 if (media.isEncrypted) {
                                     setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
-                                    setExtra("realMimeType", media.mimeType)
                                 }
                             }
                         )
