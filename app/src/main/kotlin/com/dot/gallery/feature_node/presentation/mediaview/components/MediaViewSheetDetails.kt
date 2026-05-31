@@ -366,7 +366,11 @@ fun <T : Media> MediaViewSheetDetails(
                                         state = LocalHazeState.current,
                                         style = iconBackgroundHazeStyle
                                     ),
-                                locationData = locationData
+                                locationData = locationData,
+                                mediaUri = currentMedia.getUri(),
+                                onShowInApp = {
+                                    allMetadataEventHandler.navigate(Screen.LocationsScreen())
+                                }
                             )
                             AnimatedVisibility(
                                 visible = currentMedia.canMakeActions
