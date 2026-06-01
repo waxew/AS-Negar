@@ -69,6 +69,7 @@ import com.dot.gallery.feature_node.presentation.collection.components.AddToColl
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
 import com.dot.gallery.feature_node.presentation.exif.MoveMediaSheet
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import com.dot.gallery.feature_node.presentation.util.copyEncryptedMediaToClipboard
 import com.dot.gallery.feature_node.presentation.util.copyMediaToClipboard
 import com.dot.gallery.feature_node.presentation.util.launchEditImageIntent
@@ -83,7 +84,6 @@ import com.dot.gallery.feature_node.presentation.vault.VaultViewModel
 import com.dot.gallery.feature_node.presentation.vault.components.AddToVaultSheet
 import com.dot.gallery.feature_node.presentation.vault.components.ConfirmationSheet
 import com.dot.gallery.feature_node.presentation.vault.components.SelectVaultSheet
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.Dispatchers
@@ -441,7 +441,7 @@ private fun ActionGridCell(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .then(backgroundModifier)
-            .hazeEffect(
+            .hazeEffectScaled(
                 state = LocalHazeState.current,
                 style = hazeStyle
             )

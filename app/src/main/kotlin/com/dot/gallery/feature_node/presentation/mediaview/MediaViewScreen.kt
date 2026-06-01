@@ -132,6 +132,7 @@ import com.dot.gallery.feature_node.presentation.cast.components.CastStatusBanne
 import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.FullBrightnessWindow
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import com.dot.gallery.feature_node.presentation.util.ProvideInsets
 import com.dot.gallery.feature_node.presentation.util.ViewScreenConstants.BOTTOM_BAR_HEIGHT
 import com.dot.gallery.feature_node.presentation.util.ViewScreenConstants.ImageOnly
@@ -147,7 +148,6 @@ import com.dot.gallery.ui.theme.isDarkTheme
 import com.github.panpf.sketch.BitmapImage
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.sketch
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.Dispatchers
@@ -1223,7 +1223,7 @@ fun <T : Media> MediaViewScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(100))
                                     .then(backgroundModifier)
-                                    .hazeEffect(
+                                    .hazeEffectScaled(
                                         state = LocalHazeState.current,
                                         style = HazeMaterials.ultraThin(
                                             containerColor = surfaceContainer

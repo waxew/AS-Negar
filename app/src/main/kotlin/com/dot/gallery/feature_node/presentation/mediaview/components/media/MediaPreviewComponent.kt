@@ -85,7 +85,8 @@ fun <T : Media> MediaPreviewComponent(
                         videoController = videoController,
                         onItemClick = onItemClick,
                         onSwipeDown = onSwipeDown,
-                        onZoomChange = onZoomChange
+                        onZoomChange = onZoomChange,
+                        captureBlur = uiEnabled
                     )
                 }
 
@@ -119,7 +120,8 @@ fun <T : Media> MediaPreviewComponent(
                         isPhotosphere = isPhotosphere,
                         modifier = Modifier,
                         onItemClick = onItemClick,
-                        currentVault = currentVault
+                        currentVault = currentVault,
+                        captureBlur = uiEnabled
                     )
                 }
             }

@@ -85,7 +85,8 @@ fun <T : Media> VideoPlayer(
     videoController: @Composable (ExoPlayer, MutableState<Boolean>, MutableLongState, Long, Int, Float, VideoControllerState) -> Unit,
     onItemClick: () -> Unit,
     onSwipeDown: () -> Unit,
-    onZoomChange: (Boolean) -> Unit = {}
+    onZoomChange: (Boolean) -> Unit = {},
+    captureBlur: Boolean = true
 ) {
     // Acquire or create the ViewModel for this media id
     val vm: VideoPlayerViewModel =
@@ -176,7 +177,7 @@ fun <T : Media> VideoPlayer(
     val hazeState = LocalHazeState.current
     val videoCapture by rememberSurfaceCapture(
         view = surfaceViewRef,
-        enabled = allowBlur
+        enabled = allowBlur && captureBlur
     )
 
     // Zoom state

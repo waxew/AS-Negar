@@ -53,7 +53,8 @@ fun <T : Media> PanoramaImageViewer(
     isPhotosphere: Boolean,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit = {},
-    currentVault: Vault? = null
+    currentVault: Vault? = null,
+    captureBlur: Boolean = true
 ) {
     val projectionType = if (isPhotosphere) ProjectionType.SPHERE else ProjectionType.CYLINDER
 
@@ -78,7 +79,7 @@ fun <T : Media> PanoramaImageViewer(
     val hazeState = LocalHazeState.current
     val panoramaCapture by rememberSurfaceCapture(
         view = glViewRef,
-        enabled = allowBlur,
+        enabled = allowBlur && captureBlur,
         captureWidth = 64
     )
 
