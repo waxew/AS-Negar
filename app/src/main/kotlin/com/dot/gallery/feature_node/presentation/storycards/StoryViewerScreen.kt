@@ -57,9 +57,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberStoryViewerAutoAdvance
 import com.dot.gallery.core.Settings.Misc.rememberStoryViewerDuration
+import com.dot.gallery.core.setFollowTheme
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadata
 import com.dot.gallery.feature_node.domain.model.StoryCard
@@ -84,11 +86,14 @@ fun StoryViewerScreen(
 ) {
     // Force light status bar icons (white) on dark background, restore on exit
     val windowInsetsController = rememberWindowInsetsController()
+    val eventHandler = LocalEventHandler.current
     DisposableEffect(Unit) {
         val previousLight = windowInsetsController.isAppearanceLightStatusBars
         windowInsetsController.isAppearanceLightStatusBars = false
+        eventHandler.setFollowTheme(false)
         onDispose {
             windowInsetsController.isAppearanceLightStatusBars = previousLight
+            eventHandler.setFollowTheme(true)
         }
     }
 

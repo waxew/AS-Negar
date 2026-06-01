@@ -68,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onVisibilityChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
@@ -910,11 +911,14 @@ fun <T : Media> MediaViewScreen(
             val isCurrentVideo by rememberedDerivedState(currentMedia) {
                 currentMedia?.isVideo == true
             }
-            LaunchedEffect(isTopDark, autoContrast, isDarkTheme, allowBlur, isCurrentVideo) {
+            val configuration = LocalConfiguration.current
+            LaunchedEffect(isTopDark, autoContrast, isDarkTheme, allowBlur, isCurrentVideo, configuration) {
                 val followTheme = if (autoContrast) !isTopDark
                     else !allowBlur && !isCurrentVideo
                 windowInsetsController.isAppearanceLightStatusBars =
-                    if (followTheme) !isDarkTheme else false
+                    if (followTheme) !isDarkTheme
+                    else if (autoContrast) isTopDark
+                    else false
                 eventHandler.setFollowTheme(followTheme)
             }
             DisposableEffect(Unit) {

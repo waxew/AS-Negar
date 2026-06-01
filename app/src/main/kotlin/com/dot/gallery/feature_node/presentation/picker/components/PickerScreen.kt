@@ -83,6 +83,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dot.gallery.R
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.LocalMediaSelector
+import com.dot.gallery.core.setFollowTheme
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.presentation.components.DragHandle
 import com.dot.gallery.feature_node.domain.model.Album
@@ -553,8 +554,10 @@ fun PickerScreen(
                     val previousLightStatusBars = remember { windowInsetsController.isAppearanceLightStatusBars }
                     LaunchedEffect(Unit) {
                         windowInsetsController.isAppearanceLightStatusBars = false
+                        eventHandler.setFollowTheme(false)
                         eventHandler.navigateUpAction = {
                             windowInsetsController.isAppearanceLightStatusBars = previousLightStatusBars
+                            eventHandler.setFollowTheme(true)
                             showPreview = false
                         }
                     }
@@ -577,6 +580,7 @@ fun PickerScreen(
                     BackHandler {
                         windowInsetsController.isAppearanceLightStatusBars = previousLightStatusBars
                         eventHandler.navigateUpAction = previousNavigateUp
+                        eventHandler.setFollowTheme(true)
                         showPreview = false
                     }
                 } else {
