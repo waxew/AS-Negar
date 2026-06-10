@@ -12,7 +12,15 @@ introduced in Android 17. One APK works everywhere:
 - Android 17+ verifies the PQC (ML-DSA) signature block.
 - Older Android versions verify the classical v2/v3 signature and ignore the PQC block.
 
-Reference: https://developer.android.com/about/versions/17/features#pqc-apk-signing
+References:
+- https://developer.android.com/about/versions/17/features#pqc-apk-signing
+- https://blog.google/security/security-for-the-quantum-era-implementing-post-quantum-cryptography-in-android/
+
+Android 17 exposes **ML-DSA-65** and **ML-DSA-87** via the standard
+`java.security.KeyPairGenerator` API (Android Keystore). However, the **public
+`apksigner` CLI flags for attaching an ML-DSA signer to an APK are not yet
+documented**, so the PQC leg below is intentionally stubbed; the classical-key
+rotation + lineage is runnable today.
 
 ## Critical constraint (read first)
 Google's guidance for **self-managed keys** is that you rotate to a hybrid identity
@@ -38,55 +46,56 @@ produce **unsigned (or classically-signed) APKs**, then re-sign with the
 Android 17 `apksigner` in a dedicated CI step using the new key + lineage.
 
 ### One-time key setup (local, secure machine)
+Use the helper script `scripts/signing/generate-pqc-keys.sh`, which generates the
+new classical key and builds the rotation lineage:
 ```bash
-# 1. New classical key (RSA 4096). You CANNOT reuse the old one.
-keytool -genkeypair -v -keystore new_release.jks -alias refra-new \
-  -keyalg RSA -keysize 4096 -validity 10000
-
-# 2. ML-DSA (PQC) key — requires Android 17 build-tools apksigner / keytool support.
-#    Exact CLI flags are still stabilizing; confirm against the build-tools shipped
-#    with the Android 17 SDK before relying on them.
-#    (Placeholder — verify flag names: -keyalg ML-DSA / ML-DSA-65)
-
-# 3. Build the rotation lineage proving old -> new.
-apksigner rotate --out refra.lineage \
-  --old-signer --ks release_key.jks --ks-key-alias <OLD_ALIAS> \
-  --new-signer --ks new_release.jks --ks-key-alias refra-new
+APKSIGNER=$ANDROID_HOME/build-tools/37.0.0/apksigner \
+OLD_KEYSTORE=app/release_key.jks OLD_ALIAS=<OLD_ALIAS> \
+  scripts/signing/generate-pqc-keys.sh
 ```
-Store as new GitHub secrets (base64): `SIGNING_KEY_NEW`, `SIGNING_LINEAGE`, plus
-`ALIAS_NEW`, `KEY_PASSWORD_NEW`, `KEY_STORE_PASSWORD_NEW`.
+The ML-DSA key generation/pairing step inside the script is a marked TODO
+(pending public tooling). Store the outputs as new GitHub secrets (base64):
+`SIGNING_KEY_NEW`, `SIGNING_LINEAGE`, plus `ALIAS_NEW`, `KEY_PASSWORD_NEW`,
+`KEY_STORE_PASSWORD_NEW`. **Never commit the keystore or lineage.**
 
-### CI re-sign step (add to each APK build job in `stable.yml`, after the build)
+### CI re-sign step (gated, add to each APK build job in `stable.yml` after the build)
+The re-sign logic lives in `scripts/signing/pqc-hybrid-sign.sh`. Gate it on the
+presence of the new secret so current releases keep working until you opt in:
 ```yaml
+      - name: Detect hybrid-signing secret
+        id: hybrid
+        run: |
+          if [ -n "${{ secrets.SIGNING_KEY_NEW }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Android 17 build-tools
+        if: steps.hybrid.outputs.enabled == 'true'
         run: |
           sdkmanager "build-tools;37.0.0"   # confirm exact version with PQC support
           echo "APKSIGNER=$ANDROID_HOME/build-tools/37.0.0/apksigner" >> $GITHUB_ENV
 
-      - name: Decode new keystore + lineage
+      - name: Hybrid re-sign (classical + lineage; ML-DSA pending)
+        if: steps.hybrid.outputs.enabled == 'true'
+        env:
+          NEW_KEYSTORE: new_release.jks
+          NEW_ALIAS: ${{ secrets.ALIAS_NEW }}
+          NEW_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD_NEW }}
+          NEW_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD_NEW }}
+          LINEAGE: refra.lineage
         run: |
           echo "${{ secrets.SIGNING_KEY_NEW }}" | base64 -d > new_release.jks
           echo "${{ secrets.SIGNING_LINEAGE }}" | base64 -d > refra.lineage
-
-      - name: Hybrid (classical + ML-DSA) re-sign
-        run: |
-          for apk in $(find app/build/outputs/apk-renamed -name "*.apk"); do
-            "$APKSIGNER" sign \
-              --ks new_release.jks --ks-key-alias "${{ secrets.ALIAS_NEW }}" \
-              --lineage refra.lineage \
-              --ks-pass pass:"${{ secrets.KEY_STORE_PASSWORD_NEW }}" \
-              --key-pass pass:"${{ secrets.KEY_PASSWORD_NEW }}" \
-              # NOTE: add the PQC/ML-DSA signer flags here once confirmed in the
-              #       Android 17 apksigner (e.g. a second --next-signer with the
-              #       ML-DSA key, or the hybrid flag the final tooling exposes).
-              "$apk"
-            "$APKSIGNER" verify --verbose "$apk"
-          done
+          scripts/signing/pqc-hybrid-sign.sh
 ```
 
 > The exact `apksigner` invocation for pairing an ML-DSA key is **not finalized in
-> public tooling yet**. The block above is a scaffold: keep classical+lineage
-> working first, then add the ML-DSA signer flag once the SDK ships stable support.
+> public tooling yet**. The script keeps classical+lineage working now; add the
+> ML-DSA signer args to `PQC_SIGNER_ARGS` in `pqc-hybrid-sign.sh` once the SDK
+> ships stable support. Until `SIGNING_KEY_NEW` exists the step is skipped, so the
+> release pipeline is unaffected.
 
 ## Rollout checklist
 - [ ] Confirm Android 17 SDK `build-tools` version that supports ML-DSA in `apksigner`.
