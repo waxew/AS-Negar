@@ -256,22 +256,22 @@ sealed class Media : Parcelable {
             }
             if (context != null) {
                 try {
-                    val retriever = MediaMetadataRetriever().apply {
-                        setDataSource(context, uri)
-                    }
-                    val hasVideo =
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO)
-                    val isVideo = "yes" == hasVideo
-                    if (isVideo) {
-                        duration =
-                            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                        if (timestamp == 0L) {
-                            timestamp = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)?.toLongOrNull() ?: 0L
+                    MediaMetadataRetriever().use { retriever ->
+                        retriever.setDataSource(context, uri)
+                        val hasVideo =
+                            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO)
+                        val isVideo = "yes" == hasVideo
+                        if (isVideo) {
+                            duration =
+                                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                            if (timestamp == 0L) {
+                                timestamp = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)?.toLongOrNull() ?: 0L
+                            }
                         }
-                    }
-                    val originMimeType = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
-                    if (mimeType == null) {
-                        mimeType = if (isVideo) originMimeType else "image/*"
+                        val originMimeType = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
+                        if (mimeType == null) {
+                            mimeType = if (isVideo) originMimeType else "image/*"
+                        }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
