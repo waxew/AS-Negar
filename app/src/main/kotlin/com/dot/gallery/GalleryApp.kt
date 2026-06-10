@@ -20,6 +20,7 @@ import com.dot.gallery.core.MediaDistributor
 import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.core.sandbox.IsolatedImageDecoder
 import com.dot.gallery.core.sandbox.SandboxedDecoderHolder
+import com.dot.gallery.core.security.AdvancedProtectionMonitor
 import com.dot.gallery.core.decoder.supportApng
 import com.dot.gallery.core.decoder.supportHeifDecoder
 import com.dot.gallery.core.decoder.supportAnimatedJxlDecoder
@@ -158,6 +159,10 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
                 .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
                 .hostnameVerifier { _, _ -> true }
                 .build()
+        }
+
+        StartupTracer.trace("AdvancedProtectionMonitor.init") {
+            AdvancedProtectionMonitor.init(this)
         }
 
         StartupTracer.trace("SandboxedDecoderHolder.init") {

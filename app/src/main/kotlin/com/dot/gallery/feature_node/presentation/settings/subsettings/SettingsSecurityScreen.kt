@@ -10,6 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import com.dot.gallery.core.Position
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.sandbox.PrivateFolderManager
+import com.dot.gallery.core.security.AdvancedProtectionMonitor
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
 import com.dot.gallery.feature_node.presentation.settings.components.ChooserPreferenceDetailScreen
 import com.dot.gallery.feature_node.presentation.settings.components.PreferenceOption
@@ -49,6 +51,16 @@ fun SettingsSecurityScreen() {
     var sandboxedDecode by Settings.Security.rememberSandboxedDecode()
     var privateFolderUri by Settings.Security.rememberPrivateFolderUri()
 
+    // When Android Advanced Protection Mode (AAPM) is enabled, sandboxed decoding
+    // is forced on and metadata isolation is raised to at least Hybrid. The stored
+    // user preferences are left untouched; we only override what is shown/applied.
+    val advancedProtection by AdvancedProtectionMonitor.enabled.collectAsState()
+    val effectiveSandboxedDecode = sandboxedDecode || advancedProtection
+    val effectiveMetadataIsolationMode =
+        if (advancedProtection && metadataIsolationMode == Settings.Security.METADATA_ISOLATION_SHARED)
+            Settings.Security.METADATA_ISOLATION_HYBRID
+        else metadataIsolationMode
+
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
@@ -63,39 +75,57 @@ fun SettingsSecurityScreen() {
     when (detailKey) {
         DETAIL_METADATA_ISOLATION -> {
             BackHandler { detailKey = null }
+            val isolationDescription = if (advancedProtection) {
+                stringResource(R.string.security_metadata_isolation_summary) + "\n\n" +
+                    stringResource(R.string.security_enforced_by_advanced_protection)
+            } else {
+                stringResource(R.string.security_metadata_isolation_summary)
+            }
             ChooserPreferenceDetailScreen(
                 title = stringResource(R.string.security_metadata_isolation),
-                description = stringResource(R.string.security_metadata_isolation_summary),
+                description = isolationDescription,
                 options = listOf(
                     PreferenceOption(
                         Settings.Security.METADATA_ISOLATION_SHARED,
                         stringResource(R.string.security_metadata_isolation_shared),
-                        metadataIsolationMode == Settings.Security.METADATA_ISOLATION_SHARED,
+                        effectiveMetadataIsolationMode == Settings.Security.METADATA_ISOLATION_SHARED,
                         stringResource(R.string.security_metadata_isolation_shared_summary)
                     ),
                     PreferenceOption(
                         Settings.Security.METADATA_ISOLATION_HYBRID,
                         stringResource(R.string.security_metadata_isolation_hybrid),
-                        metadataIsolationMode == Settings.Security.METADATA_ISOLATION_HYBRID,
+                        effectiveMetadataIsolationMode == Settings.Security.METADATA_ISOLATION_HYBRID,
                         stringResource(R.string.security_metadata_isolation_hybrid_summary)
                     ),
                     PreferenceOption(
                         Settings.Security.METADATA_ISOLATION_PER_FILE,
                         stringResource(R.string.security_metadata_isolation_per_file),
-                        metadataIsolationMode == Settings.Security.METADATA_ISOLATION_PER_FILE,
+                        effectiveMetadataIsolationMode == Settings.Security.METADATA_ISOLATION_PER_FILE,
                         stringResource(R.string.security_metadata_isolation_per_file_summary)
                     ),
                 ),
-                onOptionSelected = { metadataIsolationMode = it },
+                onOptionSelected = {
+                    // Under AAPM the "shared" mode is not allowed; ignore that selection.
+                    if (!(advancedProtection && it == Settings.Security.METADATA_ISOLATION_SHARED)) {
+                        metadataIsolationMode = it
+                    }
+                },
             )
         }
         DETAIL_SANDBOXED_DECODE -> {
             BackHandler { detailKey = null }
+            val sandboxDescription = if (advancedProtection) {
+                stringResource(R.string.security_sandboxed_decode_description) + "\n\n" +
+                    stringResource(R.string.security_enforced_by_advanced_protection)
+            } else {
+                stringResource(R.string.security_sandboxed_decode_description)
+            }
             SwitchPreferenceDetailScreen(
                 title = stringResource(R.string.security_sandboxed_decode),
-                isChecked = sandboxedDecode,
-                onCheckedChange = { sandboxedDecode = it },
-                description = stringResource(R.string.security_sandboxed_decode_description),
+                isChecked = effectiveSandboxedDecode,
+                onCheckedChange = { if (!advancedProtection) sandboxedDecode = it },
+                description = sandboxDescription,
+                enabled = !advancedProtection,
             )
         }
         DETAIL_PRIVATE_FOLDER -> {
@@ -121,9 +151,10 @@ fun SettingsSecurityScreen() {
         }
         else -> {
             SecurityListScreen(
-                metadataIsolationMode = metadataIsolationMode,
-                sandboxedDecode = sandboxedDecode,
-                onSandboxedDecodeChange = { sandboxedDecode = it },
+                metadataIsolationMode = effectiveMetadataIsolationMode,
+                sandboxedDecode = effectiveSandboxedDecode,
+                onSandboxedDecodeChange = { if (!advancedProtection) sandboxedDecode = it },
+                advancedProtection = advancedProtection,
                 privateFolderUri = privateFolderUri,
                 onDetailClick = { detailKey = it },
             )
@@ -136,6 +167,7 @@ private fun SecurityListScreen(
     metadataIsolationMode: String,
     sandboxedDecode: Boolean,
     onSandboxedDecodeChange: (Boolean) -> Unit,
+    advancedProtection: Boolean,
     privateFolderUri: String,
     onDetailClick: (String) -> Unit,
 ) {
@@ -147,11 +179,13 @@ private fun SecurityListScreen(
             SettingsEntity.Header(title = res.getString(R.string.security_sandbox_header))
         }
 
+        val enforcedSuffix = if (advancedProtection)
+            " • " + stringResource(R.string.security_enforced_by_advanced_protection_short) else ""
         val metadataIsolationSummary = when (metadataIsolationMode) {
             Settings.Security.METADATA_ISOLATION_HYBRID -> stringResource(R.string.security_metadata_isolation_hybrid)
             Settings.Security.METADATA_ISOLATION_PER_FILE -> stringResource(R.string.security_metadata_isolation_per_file)
             else -> stringResource(R.string.security_metadata_isolation_shared)
-        }
+        } + enforcedSuffix
         val metadataIsolationPref = rememberPreference(
             metadataIsolationMode,
             title = stringResource(R.string.security_metadata_isolation),
@@ -163,7 +197,7 @@ private fun SecurityListScreen(
         val sandboxedDecodePref = rememberSwitchPreference(
             sandboxedDecode,
             title = stringResource(R.string.security_sandboxed_decode),
-            summary = stringResource(R.string.security_sandboxed_decode_summary),
+            summary = stringResource(R.string.security_sandboxed_decode_summary) + enforcedSuffix,
             isChecked = sandboxedDecode,
             onCheck = onSandboxedDecodeChange,
             onClick = { onDetailClick(DETAIL_SANDBOXED_DECODE) },

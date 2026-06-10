@@ -51,7 +51,9 @@ import com.dot.gallery.feature_node.domain.util.OrderType
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.Screen
 import com.dot.gallery.feature_node.presentation.util.printDebug
+import com.dot.gallery.core.security.AdvancedProtectionMonitor
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
@@ -812,8 +814,18 @@ object Settings {
         fun rememberMetadataIsolationMode() =
             rememberPreference(key = METADATA_ISOLATION_MODE, defaultValue = METADATA_ISOLATION_SHARED)
 
+        /**
+         * Effective metadata isolation mode. When Android Advanced Protection Mode
+         * (AAPM) is enabled, the "shared" mode is raised to "hybrid" automatically;
+         * the user's stored preference is left untouched and is restored once AAPM
+         * is turned off.
+         */
         fun getMetadataIsolationMode(context: Context) =
-            context.activeDataStore.data.map { it[METADATA_ISOLATION_MODE] ?: METADATA_ISOLATION_SHARED }
+            context.activeDataStore.data
+                .map { it[METADATA_ISOLATION_MODE] ?: METADATA_ISOLATION_SHARED }
+                .combine(AdvancedProtectionMonitor.enabled) { mode, aapm ->
+                    if (aapm && mode == METADATA_ISOLATION_SHARED) METADATA_ISOLATION_HYBRID else mode
+                }
 
         private val SANDBOXED_DECODE = booleanPreferencesKey("sandboxed_decode")
 
@@ -821,8 +833,14 @@ object Settings {
         fun rememberSandboxedDecode() =
             rememberPreference(key = SANDBOXED_DECODE, defaultValue = false)
 
+        /**
+         * Effective sandboxed-decode state. Forced on whenever Android Advanced
+         * Protection Mode (AAPM) is enabled, regardless of the stored preference.
+         */
         fun getSandboxedDecode(context: Context) =
-            context.activeDataStore.data.map { it[SANDBOXED_DECODE] ?: false }
+            context.activeDataStore.data
+                .map { it[SANDBOXED_DECODE] ?: false }
+                .combine(AdvancedProtectionMonitor.enabled) { pref, aapm -> pref || aapm }
 
         private val PRIVATE_FOLDER_ENABLED = booleanPreferencesKey("private_folder_enabled")
 

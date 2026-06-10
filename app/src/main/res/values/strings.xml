@@ -910,6 +910,8 @@
     <string name="security_sandboxed_decode">Sandboxed image decoding</string>
     <string name="security_sandboxed_decode_summary">Decode HEIF/AVIF/JXL images in an isolated process</string>
     <string name="security_sandboxed_decode_description">Moves the decoding of complex image formats (HEIF, AVIF, JPEG XL) into a separate isolated process with no permissions. If the decoder encounters a malformed file, it cannot affect the main app.\n\nThis adds a small overhead (~5–15%) to initial image loads but has no effect on cached thumbnails.</string>
+    <string name="security_enforced_by_advanced_protection">This setting is enforced because Android Advanced Protection Mode is enabled on this device. It will be restored to your preference when Advanced Protection is turned off.</string>
+    <string name="security_enforced_by_advanced_protection_short">Enforced by Advanced Protection</string>
     <string name="security_data_protection_header">Data Protection</string>
     <string name="security_encryption_status">Encryption</string>
     <string name="security_encryption_active">Settings and database are encrypted</string>
