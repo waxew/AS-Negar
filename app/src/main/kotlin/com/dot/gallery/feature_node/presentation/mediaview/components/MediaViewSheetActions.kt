@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.CopyAll
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MovieCreation
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
@@ -64,6 +65,7 @@ import com.dot.gallery.feature_node.domain.util.isEncrypted
 import com.dot.gallery.feature_node.domain.util.isImage
 import com.dot.gallery.feature_node.domain.util.isLocalContent
 import com.dot.gallery.feature_node.domain.util.isVideo
+import com.dot.gallery.feature_node.domain.util.MotionPhotoHelper
 import com.dot.gallery.feature_node.presentation.collection.CollectionViewModel
 import com.dot.gallery.feature_node.presentation.collection.components.AddToCollectionSheet
 import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
@@ -125,14 +127,28 @@ fun <T : Media> MediaViewSheetActions(
     val downloadingText = stringResource(R.string.downloading)
     val downloadCompleteText = stringResource(R.string.download_complete)
     val downloadFailedText = stringResource(R.string.download_failed)
+    val exportVideoText = stringResource(R.string.motion_photo_export_video)
+    val exportingText = stringResource(R.string.motion_photo_exporting)
+    val exportSuccessText = stringResource(R.string.motion_photo_export_success)
+    val exportFailedText = stringResource(R.string.motion_photo_export_failed)
     val handler = LocalMediaHandler.current
     // Lazily create a single KeychainHolder for encrypted operations
     val keychainHolder = remember(currentVault) {
         if (currentVault != null) lazy { KeychainHolder(context) } else null
     }
 
+    // Detect Motion Photo (embedded video) to offer a "Save as video" export
+    var isMotionPhoto by remember(media) { mutableStateOf(false) }
+    LaunchedEffect(media) {
+        isMotionPhoto = if (!media.isEncrypted && !media.isCloud && media.isImage) {
+            withContext(Dispatchers.IO) {
+                MotionPhotoHelper.parseInfo(context, media.getUri()) != null
+            }
+        } else false
+    }
+
     // Build action list
-    val actions = remember(media, albumsState.value, vaults.value, currentVault) {
+    val actions = remember(media, albumsState.value, vaults.value, currentVault, isMotionPhoto) {
         buildList<ActionGridItem> {
             // Share
             add(ActionGridItem(
@@ -197,6 +213,28 @@ fun <T : Media> MediaViewSheetActions(
                     }
                 }
             ))
+            // Save Motion Photo embedded video as a standalone file
+            if (isMotionPhoto) {
+                add(ActionGridItem(
+                    icon = Icons.Outlined.MovieCreation,
+                    text = exportVideoText,
+                    onClick = {
+                        scope.launch {
+                            Toast.makeText(context, exportingText, Toast.LENGTH_SHORT).show()
+                            val saved = MotionPhotoHelper.saveVideoToGallery(
+                                context = context,
+                                uri = media.getUri(),
+                                sourceLabel = media.label
+                            )
+                            Toast.makeText(
+                                context,
+                                if (saved != null) exportSuccessText else exportFailedText,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                ))
+            }
             // Copy & Move
             if (albumsState.value.albums.isNotEmpty() && media.canMakeActions) {
                 add(ActionGridItem(

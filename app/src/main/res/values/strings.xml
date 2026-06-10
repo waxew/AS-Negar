@@ -667,6 +667,10 @@
     <string name="long_exposures">Long Exposures</string>
     <string name="motion_photos">Motion Photos</string>
     <string name="motion_photo_pill">Motion</string>
+    <string name="motion_photo_export_video">Save as video</string>
+    <string name="motion_photo_exporting">Saving video…</string>
+    <string name="motion_photo_export_success">Video saved to gallery</string>
+    <string name="motion_photo_export_failed">Couldn\'t save video</string>
     <string name="media_groupings">Media Groupings</string>
     <string name="group_type_bursts">Bursts</string>
     <string name="group_type_raw_jpg">RAW + JPG</string>
