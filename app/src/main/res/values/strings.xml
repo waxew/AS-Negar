@@ -864,6 +864,7 @@
     <string name="help_cat_ai">AI features</string>
     <string name="help_cat_albums">Albums &amp; collections</string>
     <string name="help_cat_vault">Vault</string>
+    <string name="help_cat_cloud_sync">Cloud &amp; sync</string>
     <string name="help_cat_fav_trash">Favorites &amp; trash</string>
     <string name="help_cat_locations">Location browsing</string>
     <string name="help_cat_metadata">Metadata &amp; EXIF</string>
