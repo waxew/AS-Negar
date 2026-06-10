@@ -25,7 +25,6 @@ core-ktx = "1.18.0"
 junit = "4.13.2"
 androidx-test-ext-junit = "1.3.0"
 espresso-core = "3.7.0"
-lazycolumnscrollbar = "2.2.0"
 maplibreNative = "13.2.0"
 lifecycle-runtime = "2.10.0"
 activity-compose = "1.13.0"
@@ -100,6 +99,7 @@ compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", versi
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name= "ui-tooling-preview", version.ref = "composealpha" }
 compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composealpha" }
 compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "composealpha" }
+compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "composealpha" }
 
 # Compose-shimmer
 compose-shimmer = { group = "com.valentinilk.shimmer", name = "compose-shimmer", version = "1.4.0"}
@@ -120,7 +120,6 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "hazeMaterials" }
 jxl-coder-coil = { module = "io.github.awxkee:jxl-coder-coil", version.ref = "jxlCoder" }
-lazycolumnscrollbar = { module = "com.github.nanihadesuka:LazyColumnScrollbar", version.ref = "lazycolumnscrollbar" }
 maplibre-native = { module = "org.maplibre.gl:android-sdk", version.ref = "maplibreNative" }
 metadata-extractor = { module = "com.drewnoakes:metadata-extractor", version.ref = "metadataExtractor" }
 nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }

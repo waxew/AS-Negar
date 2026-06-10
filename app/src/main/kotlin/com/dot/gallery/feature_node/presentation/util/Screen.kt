@@ -39,6 +39,10 @@ sealed class Screen(val route: String) {
 
         fun idAndCollection(id: Long, collectionId: Long) = "$route?mediaId=$id&collectionId=$collectionId"
 
+        fun idAndPerson() = "$route?mediaId={mediaId}&personId={personId}"
+
+        fun idAndPerson(id: Long, personId: String) = "$route?mediaId=$id&personId=$personId"
+
         fun idAndLocation() = "$route?mediaId={mediaId}&gpsLocationNameCity={gpsLocationNameCity}&gpsLocationNameCountry={gpsLocationNameCountry}"
 
         fun idAndLocation(id: Long, gpsLocationNameCity: String, gpsLocationNameCountry: String) = "$route?mediaId=$id&gpsLocationNameCity=$gpsLocationNameCity&gpsLocationNameCountry=$gpsLocationNameCountry"
@@ -66,6 +70,9 @@ sealed class Screen(val route: String) {
     data object SettingsMediaViewerScreen : Screen("settings_media_viewer_screen")
     data object SettingsNavigationScreen : Screen("settings_navigation_screen")
     data object SettingsSecurityScreen : Screen("settings_security_screen")
+    data object SettingsBackupScreen : Screen("settings_backup_screen")
+    data object SettingsBackupExportScreen : Screen("settings_backup_export_screen")
+    data object SettingsBackupImportScreen : Screen("settings_backup_import_screen")
     data object SettingsSelectionActionsScreen : Screen("settings_selection_actions_screen")
 
     data object IgnoredScreen : Screen("ignored_screen")

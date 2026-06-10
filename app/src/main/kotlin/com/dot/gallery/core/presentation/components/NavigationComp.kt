@@ -119,6 +119,9 @@ import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsTi
 import com.dot.gallery.feature_node.presentation.settings.subsettings.EditBackupsViewerScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.AIModelsManagerScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSecurityScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsBackupScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsBackupExportScreen
+import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsBackupImportScreen
 import com.dot.gallery.feature_node.presentation.settings.subsettings.SettingsSmartFeaturesScreen
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.ui.CloudAccountsScreen
@@ -135,6 +138,7 @@ import com.dot.gallery.cloud.ui.backup.UploadDetailsScreen
 import com.dot.gallery.cloud.ui.memories.MemoriesScreen
 import com.dot.gallery.cloud.ui.people.PeopleListScreen
 import com.dot.gallery.cloud.ui.people.PersonDetailScreen
+import com.dot.gallery.cloud.ui.people.PersonDetailViewModel
 import com.dot.gallery.cloud.ui.profile.CloudProfileScreen
 import com.dot.gallery.cloud.ui.sharing.SharedLinksScreen
 import com.dot.gallery.cloud.ui.settings.CloudAdvancedSettingsScreen
@@ -1236,6 +1240,22 @@ fun NavigationComp(
             composable(Screen.SettingsSecurityScreen()) {
                 SettingsSecurityScreen()
             }
+            composable(Screen.SettingsBackupScreen()) {
+                SettingsBackupScreen(
+                    onExport = { navController.navigate(Screen.SettingsBackupExportScreen()) },
+                    onImport = { navController.navigate(Screen.SettingsBackupImportScreen()) }
+                )
+            }
+            composable(Screen.SettingsBackupExportScreen()) {
+                SettingsBackupExportScreen(
+                    navigateUp = { navController.navigateUp() }
+                )
+            }
+            composable(Screen.SettingsBackupImportScreen()) {
+                SettingsBackupImportScreen(
+                    navigateUp = { navController.navigateUp() }
+                )
+            }
             composable(Screen.SettingsSelectionActionsScreen()) {
                 SettingsSelectionActionsScreen()
             }
@@ -1399,6 +1419,44 @@ fun NavigationComp(
                     metadataState = metadataState,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this,
+                )
+            }
+
+            composable(
+                route = Screen.MediaViewScreen.idAndPerson(),
+                arguments = listOf(
+                    navArgument(name = "mediaId") {
+                        type = NavType.LongType
+                        defaultValue = -1
+                    },
+                    navArgument(name = "personId") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val mediaId: Long = remember(backStackEntry) {
+                    backStackEntry.arguments?.getLong("mediaId") ?: -1
+                }
+                val personId: String = remember(backStackEntry) {
+                    backStackEntry.arguments?.getString("personId").orEmpty()
+                }
+                // hiltViewModel reads personId from this entry's SavedStateHandle (the nav arg),
+                // so the viewer pages over the person's media instead of the whole timeline.
+                val personViewModel = hiltViewModel<PersonDetailViewModel>()
+                val mediaState = personViewModel.mediaState.collectAsStateWithLifecycle()
+
+                MediaViewScreenRoute(
+                    toggleRotate = toggleRotate,
+                    paddingValues = paddingValues,
+                    mediaId = mediaId,
+                    target = "person_$personId",
+                    mediaState = mediaState,
+                    metadataState = metadataState,
+                    albumsState = albumsState,
+                    vaultState = vaultState,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this
                 )
             }
 

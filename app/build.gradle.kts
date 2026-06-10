@@ -384,7 +384,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     // Composable - Scrollbar
-    implementation(libs.lazycolumnscrollbar)
+    implementation(project(":libs:scrollbar"))
 
     // ONNX Runtime (CPU + NNAPI)
     implementation(libs.onnxruntime.android)

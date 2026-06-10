@@ -1016,8 +1016,10 @@ class MediaDistributorImpl @Inject constructor(
         gpsLocationNameCountry: String
     ): Flow<MediaState<Media.UriMedia>> = combine(
         repository.getMetadata(),
-        timelineMediaFlow
-    ) { metadata, timelineState ->
+        timelineMediaFlow,
+        groupSimilarMedia,
+        enabledGroupTypes
+    ) { metadata, timelineState, shouldGroupSimilar, groupTypes ->
         val matchingMediaIds = metadata
             .filter {
                 it.gpsLocationNameCity == gpsLocationNameCity &&
@@ -1031,6 +1033,8 @@ class MediaDistributorImpl @Inject constructor(
             data = filteredMedia,
             error = timelineState.error,
             albumId = -1L,
+            groupSimilarMedia = shouldGroupSimilar,
+            enabledGroupTypes = groupTypes,
             defaultDateFormat = dateFormatsFlow.value.first,
             extendedDateFormat = dateFormatsFlow.value.second,
             weeklyDateFormat = dateFormatsFlow.value.third

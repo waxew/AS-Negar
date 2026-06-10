@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -34,7 +35,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bumptech.glide.Glide
 import com.dot.gallery.cloud.core.SyncState
 import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
@@ -68,6 +75,60 @@ import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedStat
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.resize.Precision
 import com.github.panpf.sketch.sketch
+
+/**
+ * Per-grid hoist of the global flows every [MediaImage] cell would otherwise collect
+ * individually (selection state, the favorite-icon preference, cloud sync states).
+ *
+ * Heavy grids (timeline, mosaic) collect these once at grid scope and provide them via
+ * [LocalMediaCellState] so each cell becomes a pure reader — no per-cell
+ * `collectAsStateWithLifecycle` coroutine/observer churn while cells recycle during a fast fling.
+ */
+@Immutable
+data class MediaCellState(
+    val selectionActive: Boolean,
+    val selectedMedia: Set<Long>,
+    val favoriteIconPosition: String,
+    val cloudSyncStates: Map<Long, SyncState>,
+)
+
+/** Null by default: callers that don't provide it (search, picker) fall back to per-cell collection. */
+val LocalMediaCellState = compositionLocalOf<MediaCellState?> { null }
+
+/**
+ * True while the user is actively dragging the fast-scroll scrollbar thumb. Provided by
+ * [com.dot.gallery.feature_node.presentation.common.components.TimelineScroller]; defaults to a
+ * constant `false` for callers without a scrollbar.
+ */
+val LocalScrollbarDragging = compositionLocalOf<State<Boolean>> {
+    object : State<Boolean> {
+        override val value: Boolean = false
+    }
+}
+
+/**
+ * Pauses Glide image requests while the user is fast-scrolling via the *scrollbar thumb* and
+ * resumes them the instant the drag ends. This avoids the decode/bitmap-upload flood that drops
+ * frames when jumping across a large library with the scrollbar. Normal scrolling and flings are
+ * NOT paused, so content always loads under the user's thumb; only scrollbar-driven jumps defer loads.
+ */
+@Composable
+internal fun PauseImageLoadingOnFling(gridState: LazyGridState) {
+    val context = LocalContext.current
+    // Resolve the RequestManager once and reuse it: Glide caches a single manager per Activity,
+    // which is the same instance GlideImage cells use, so pausing it actually defers their loads.
+    val glide = remember(context) { Glide.with(context) }
+    val isScrollbarDragging by LocalScrollbarDragging.current
+    LaunchedEffect(glide, isScrollbarDragging) {
+        if (isScrollbarDragging) glide.pauseRequests() else glide.resumeRequests()
+    }
+    DisposableEffect(glide) {
+        onDispose {
+            if (glide.isPaused) glide.resumeRequests()
+        }
+    }
+}
+
 @Composable
 fun <T : Media> MediaImage(
     modifier: Modifier = Modifier,
@@ -81,10 +142,18 @@ fun <T : Media> MediaImage(
     onItemSelect: (T) -> Unit,
 ) {
     val selector = LocalMediaSelector.current
-    val selectionState by selector.isSelectionActive.collectAsStateWithLifecycle()
-    val selectedMedia by selector.selectedMedia.collectAsStateWithLifecycle()
+    val cellState = LocalMediaCellState.current
+    val selectionState: Boolean
+    val selectedMedia: Set<Long>
+    if (cellState != null) {
+        selectionState = cellState.selectionActive
+        selectedMedia = cellState.selectedMedia
+    } else {
+        selectionState = selector.isSelectionActive.collectAsStateWithLifecycle().value
+        selectedMedia = selector.selectedMedia.collectAsStateWithLifecycle().value
+    }
     val isSelected by rememberedDerivedState(selectionState, selectedMedia, media) {
-        selectionState && selectedMedia.any { it == media.id }
+        selectionState && media.id in selectedMedia
     }
     val metadata by rememberedDerivedState(metadataState.value) {
         metadataState.value.metadataMap[media.id]
@@ -223,7 +292,7 @@ fun <T : Media> MediaImage(
             }
         }
 
-        val favIconPosition by rememberFavoriteIconPosition()
+        val favIconPosition = cellState?.favoriteIconPosition ?: rememberFavoriteIconPosition().value
         if (media.isFavorite && favIconPosition != Settings.Misc.FAV_ICON_DISABLED) {
             val favAlignment = when (favIconPosition) {
                 Settings.Misc.FAV_ICON_BOTTOM_START -> Alignment.BottomStart
@@ -264,7 +333,8 @@ fun <T : Media> MediaImage(
         }
 
         if (media.isCloud) {
-            val syncStates by LocalMediaDistributor.current.cloudSyncStates.collectAsStateWithLifecycle()
+            val syncStates = cellState?.cloudSyncStates
+                ?: LocalMediaDistributor.current.cloudSyncStates.collectAsStateWithLifecycle().value
             val syncState = syncStates[media.id]
             val syncIcon = when (syncState) {
                 SyncState.SYNCED -> Icons.Outlined.CloudDone

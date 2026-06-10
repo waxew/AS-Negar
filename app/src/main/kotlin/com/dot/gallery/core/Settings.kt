@@ -719,7 +719,7 @@ object Settings {
         private val TIMELINE_GROUP_METHOD = stringPreferencesKey("timeline_group_method")
         @Composable
         fun rememberTimelineGroupMethod() =
-            rememberPreference(key = TIMELINE_GROUP_METHOD, defaultValue = GROUP_MONTHLY)
+            rememberPreference(key = TIMELINE_GROUP_METHOD, defaultValue = GROUP_NORMAL)
 
         private val ALBUMS_GROUP_METHOD = stringPreferencesKey("albums_group_method")
         @Composable

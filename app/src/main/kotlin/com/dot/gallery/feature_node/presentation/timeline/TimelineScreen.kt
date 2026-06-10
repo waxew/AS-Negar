@@ -101,6 +101,7 @@ import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGr
 import com.dot.gallery.feature_node.presentation.common.components.MosaicPinchZoomLayout
 import com.dot.gallery.feature_node.presentation.common.components.StickyHeaderGrid
 import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
+import com.dot.gallery.feature_node.presentation.common.components.rememberMosaicMonthSegments
 import com.dot.gallery.feature_node.presentation.common.components.rememberMosaicPinchZoomState
 import com.dot.gallery.feature_node.presentation.common.components.rememberStickyHeaderItem
 import com.dot.gallery.feature_node.presentation.help.components.WhatsNewHeroCard
@@ -435,9 +436,17 @@ fun TimelineScreen(
                             .padding(mosaicPaddingValues)
                             .padding(top = 32.dp)
                             .padding(vertical = 32.dp),
-                        mappedData = mappedData,
+                        segments = rememberMosaicMonthSegments(
+                            mappedData = mappedData,
+                            columns = currentColumns,
+                            allowHeaders = timelineGroupByDate,
+                            leadingItemCount = if (aboveGridContent != null) 1 else 0,
+                        ),
                         headers = headers,
                         state = mosaicGridState,
+                        snapScrollOffset = remember(density, searchBarPaddingPx) {
+                            with(density) { 80.dp.roundToPx() } - (28.roundSpToPx(density) + searchBarPaddingPx)
+                        },
                     ) {
                         MosaicMediaGrid(
                             modifier = Modifier.hazeSource(LocalHazeState.current),
@@ -450,6 +459,7 @@ fun TimelineScreen(
                             allowSelection = true,
                             canScroll = !mosaicPinchState.isZooming,
                             allowHeaders = timelineGroupByDate,
+                            bigHeaders = timelineGroupMethod != Settings.Misc.GROUP_NORMAL,
                             aboveGridContent = aboveGridContent,
                             isScrolling = isScrolling,
                             emptyContent = { EmptyMedia() },

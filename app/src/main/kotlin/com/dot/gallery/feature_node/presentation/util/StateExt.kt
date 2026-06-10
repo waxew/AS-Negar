@@ -279,14 +279,16 @@ suspend fun <T : Media> mapMediaToItem(
             )
             if (month.isNotEmpty() && !monthHeaderList.contains(month)) {
                 monthHeaderList.add(month)
+                val bigMonthHeader = MediaItem.Header<T>(
+                    "header_big_${month}_${data.size}",
+                    month,
+                    dateHeader.data
+                )
+                if (mappedData.isNotEmpty()) {
+                    mappedData.add(bigMonthHeader)
+                }
                 if (withMonthHeader && mappedDataWithMonthly.isNotEmpty()) {
-                    mappedDataWithMonthly.add(
-                        MediaItem.Header(
-                            "header_big_${month}_${data.size}",
-                            month,
-                            dateHeader.data
-                        )
-                    )
+                    mappedDataWithMonthly.add(bigMonthHeader)
                 }
             }
             mappedData.add(dateHeader)

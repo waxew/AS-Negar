@@ -59,9 +59,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.dot.gallery.R
+import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.components.SetupButton
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
 import com.dot.gallery.feature_node.presentation.common.MediaScreen
+import com.dot.gallery.feature_node.presentation.util.Screen
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -85,12 +88,19 @@ fun PersonDetailScreen(
         stringResource(R.string.cloud_people_unknown)
     } ?: stringResource(R.string.cloud_person_detail_title)
 
+    val eventHandler = LocalEventHandler.current
+
     MediaScreen(
         albumName = personName,
         customDateHeader = stringResource(R.string.cloud_person_photo_count, mediaState.value.media.size),
         mediaState = mediaState,
         metadataState = metadataState,
         target = "person_${state.person?.id}",
+        customViewingNavigation = state.person?.id?.let { personId ->
+            { media ->
+                eventHandler.navigate(Screen.MediaViewScreen.idAndPerson(media.id, personId))
+            }
+        },
         navActionsContent = { _, _ -> },
         aboveGridContent = {
             PersonHeader(

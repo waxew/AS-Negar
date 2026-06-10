@@ -98,6 +98,7 @@ import com.dot.gallery.feature_node.presentation.common.components.MediaGridView
 import com.dot.gallery.feature_node.presentation.common.components.MosaicMediaGrid
 import com.dot.gallery.feature_node.presentation.common.components.MosaicPinchZoomLayout
 import com.dot.gallery.feature_node.presentation.common.components.TimelineScroller
+import com.dot.gallery.feature_node.presentation.common.components.rememberMosaicMonthSegments
 import com.dot.gallery.feature_node.presentation.common.components.rememberMosaicPinchZoomState
 import com.dot.gallery.feature_node.presentation.common.components.TwoLinedDateToolbarTitle
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
@@ -299,7 +300,12 @@ fun AlbumTimelineScreen(
                         .padding(mosaicPaddingValues)
                         .padding(top = 32.dp)
                         .padding(vertical = 32.dp),
-                    mappedData = mappedData,
+                    segments = rememberMosaicMonthSegments(
+                        mappedData = mappedData,
+                        columns = currentColumns,
+                        allowHeaders = true,
+                        leadingItemCount = if (constituentAlbums.size > 1 && showMergedBanner) 1 else 0,
+                    ),
                     headers = headers,
                     state = mosaicGridState,
                 ) {

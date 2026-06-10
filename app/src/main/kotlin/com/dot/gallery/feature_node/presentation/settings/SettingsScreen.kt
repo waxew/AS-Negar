@@ -6,6 +6,7 @@
 package com.dot.gallery.feature_node.presentation.settings
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Fullscreen
@@ -99,6 +100,15 @@ fun SettingsScreen() {
             },
             screenPosition = Position.Middle
         )
+        val backupPref = rememberPreference(
+            icon = Icons.Outlined.Backup,
+            title = stringResource(R.string.settings_backup),
+            summary = stringResource(R.string.settings_backup_summary),
+            onClick = {
+                eventHandler.navigate(Screen.SettingsBackupScreen())
+            },
+            screenPosition = Position.Middle
+        )
         val hasCloudProviders = remember { ProviderType.hasAnyRemoteProvider() }
         val cloudPref = if (hasCloudProviders) rememberPreference(
             icon = Icons.Outlined.Cloud,
@@ -129,11 +139,11 @@ fun SettingsScreen() {
         )
         return remember(
             appearancePref, timelineAlbumsPref, mediaViewerPref,
-            navigationPref, generalPref, securityPref, cloudPref, smartPref, helpPref
+            navigationPref, generalPref, securityPref, backupPref, cloudPref, smartPref, helpPref
         ) {
             mutableStateListOf<SettingsEntity>(
                 appearancePref, timelineAlbumsPref, mediaViewerPref,
-                navigationPref, generalPref, securityPref,
+                navigationPref, generalPref, securityPref, backupPref,
             ).apply {
                 if (cloudPref != null) add(cloudPref)
                 addAll(listOf(smartPref, helpPref))
@@ -198,8 +208,8 @@ fun SettingsScreen() {
                         iconVector = icon,
                         iconUri = iconUri,
                         iconRes = iconRes,
-                        containerColor = backgroundColors[index],
-                        contentColor = onBackgroundColors[index]
+                        containerColor = backgroundColors[index % backgroundColors.size],
+                        contentColor = onBackgroundColors[index % onBackgroundColors.size]
                     )
                 }
             )
