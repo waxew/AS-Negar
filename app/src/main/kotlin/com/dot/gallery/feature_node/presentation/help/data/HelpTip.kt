@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.AccessibilityNew
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.ChecklistRtl
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.Colorize
 import androidx.compose.material.icons.outlined.Explore
@@ -110,6 +111,7 @@ enum class HelpCategory {
     AI_FEATURES,
     ALBUMS,
     VAULT,
+    CLOUD_SYNC,
     FAVORITES_TRASH,
     LOCATIONS,
     METADATA,
@@ -138,6 +140,7 @@ fun HelpCategory.displayTitle(): String = when (this) {
     HelpCategory.AI_FEATURES -> stringResource(R.string.help_cat_ai)
     HelpCategory.ALBUMS -> stringResource(R.string.help_cat_albums)
     HelpCategory.VAULT -> stringResource(R.string.help_cat_vault)
+    HelpCategory.CLOUD_SYNC -> stringResource(R.string.help_cat_cloud_sync)
     HelpCategory.FAVORITES_TRASH -> stringResource(R.string.help_cat_fav_trash)
     HelpCategory.LOCATIONS -> stringResource(R.string.help_cat_locations)
     HelpCategory.METADATA -> stringResource(R.string.help_cat_metadata)
@@ -165,6 +168,7 @@ fun HelpCategory.icon(): ImageVector = when (this) {
     HelpCategory.AI_FEATURES -> Icons.Outlined.AutoAwesome
     HelpCategory.ALBUMS -> Icons.Outlined.Collections
     HelpCategory.VAULT -> Icons.Outlined.Lock
+    HelpCategory.CLOUD_SYNC -> Icons.Outlined.Cloud
     HelpCategory.FAVORITES_TRASH -> Icons.Outlined.FavoriteBorder
     HelpCategory.LOCATIONS -> Icons.Outlined.LocationOn
     HelpCategory.METADATA -> Icons.Outlined.Info
