@@ -1,4 +1,4 @@
-package com.dot.gallery.feature_node.presentation.edit.components.colour
+package com.dot.gallery.feature_node.presentation.edit.components.effects
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,21 +12,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.feature_node.domain.model.editor.Adjustment
-import com.dot.gallery.feature_node.domain.model.editor.ColourTool
+import com.dot.gallery.feature_node.domain.model.editor.EffectTool
+import com.dot.gallery.feature_node.presentation.edit.adjustments.varfilter.VariableFilterTypes
 import com.dot.gallery.feature_node.presentation.edit.components.adjustment.SelectableItem
 import com.dot.gallery.feature_node.presentation.edit.components.core.SupportiveLazyLayout
 import com.dot.gallery.feature_node.presentation.edit.utils.isApplied
-import com.dot.gallery.feature_node.presentation.edit.adjustments.varfilter.VariableFilterTypes
 
 @Composable
-fun ColourSection(
+fun EffectsSection(
     modifier: Modifier = Modifier,
     appliedAdjustments: List<Adjustment> = emptyList(),
     isSupportingPanel: Boolean,
-    onItemClick: (ColourTool) -> Unit = {},
-    onLongItemClick: (ColourTool) -> Unit = {}
+    onItemClick: (EffectTool) -> Unit = {},
+    onLongItemClick: (EffectTool) -> Unit = {}
 ) {
-    val tools = remember { ColourTool.entries.toList() }
+    val tools = remember { EffectTool.entries.toList() }
 
     val padding = remember(isSupportingPanel) {
         if (isSupportingPanel) PaddingValues(0.dp) else PaddingValues(horizontal = 12.dp)
@@ -62,12 +62,8 @@ fun ColourSection(
     }
 }
 
-fun ColourTool.toVariableFilterType(): VariableFilterTypes = when (this) {
-    ColourTool.Saturation -> VariableFilterTypes.Saturation
-    ColourTool.Warmth -> VariableFilterTypes.Warmth
-    ColourTool.Tint -> VariableFilterTypes.Tint
-    ColourTool.SkinTone -> VariableFilterTypes.SkinTone
-    ColourTool.BlueTone -> VariableFilterTypes.BlueTone
-    ColourTool.Hue -> VariableFilterTypes.Hue
-    ColourTool.BlackWhite -> VariableFilterTypes.BlackWhite
+fun EffectTool.toVariableFilterType(): VariableFilterTypes = when (this) {
+    EffectTool.Posterize -> VariableFilterTypes.Posterize
+    EffectTool.Edges -> VariableFilterTypes.Edges
+    EffectTool.Borders -> VariableFilterTypes.Borders
 }

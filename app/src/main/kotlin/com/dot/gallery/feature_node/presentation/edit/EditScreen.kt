@@ -208,6 +208,7 @@ fun EditScreen2(
         navBackStackEntry?.destination?.hasRoute<EditorDestination.Markup>() == true ||
         navBackStackEntry?.destination?.hasRoute<EditorDestination.Lighting>() == true ||
         navBackStackEntry?.destination?.hasRoute<EditorDestination.Colour>() == true ||
+        navBackStackEntry?.destination?.hasRoute<EditorDestination.Effects>() == true ||
         navBackStackEntry?.destination?.hasRoute<EditorDestination.More>() == true ||
         navBackStackEntry?.destination?.hasRoute<EditorDestination.Filters>() == true
     }
@@ -866,6 +867,7 @@ fun EditScreen2(
                                 dest?.hasRoute<EditorDestination.Filters>() == true -> EditorItems.Filters
                                 dest?.hasRoute<EditorDestination.Markup>() == true -> EditorItems.Markup
                                 dest?.hasRoute<EditorDestination.Colour>() == true -> EditorItems.Colour
+                                dest?.hasRoute<EditorDestination.Effects>() == true -> EditorItems.Effects
                                 dest?.hasRoute<EditorDestination.More>() == true -> EditorItems.More
                                 else -> null
                             }
@@ -886,6 +888,7 @@ fun EditScreen2(
                                     EditorItems.Filters -> EditorDestination.Filters
                                     EditorItems.Markup -> EditorDestination.Markup
                                     EditorItems.Colour -> EditorDestination.Colour
+                                    EditorItems.Effects -> EditorDestination.Effects
                                     EditorItems.More -> EditorDestination.More
                                 }
                                 navController.navigate(dest) {

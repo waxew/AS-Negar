@@ -699,6 +699,7 @@
     <!-- Editor tabs -->
     <string name="editor_lighting">Lighting</string>
     <string name="editor_colour">Colour</string>
+    <string name="editor_effects">Effects</string>
     <string name="editor_more">More</string>
     <string name="editor_done">Done</string>
     <string name="editor_save_subtitle">You can always undo these changes</string>
@@ -737,6 +738,13 @@
     <string name="tool_tint">Tint</string>
     <string name="tool_skin_tone">Skin tone</string>
     <string name="tool_blue_tone">Blue tone</string>
+    <string name="tool_hue">Hue</string>
+    <string name="tool_black_white">B&amp;W</string>
+
+    <!-- Effect tools -->
+    <string name="effect_posterize">Posterize</string>
+    <string name="effect_edges">Edges</string>
+    <string name="effect_borders">Borders</string>
 
     <!-- Actions tools -->
 
