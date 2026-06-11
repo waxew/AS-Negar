@@ -764,8 +764,9 @@ fun <T : Media> MediaViewScreen(
                                         }
                                     }
                                     val resources = LocalResources.current
+                                    val videoConfiguration = LocalConfiguration.current
                                     val width =
-                                        remember(context) { resources.displayMetrics.widthPixels }
+                                        remember(videoConfiguration) { resources.displayMetrics.widthPixels }
                                     if (!isVideoZoomed) {
                                         Spacer(
                                             modifier = Modifier
