@@ -285,7 +285,6 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
         val cellState = remember(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates) {
             MediaCellState(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates)
         }
-        PauseImageLoadingOnFling(gridState)
         CompositionLocalProvider(LocalMediaCellState provides cellState) {
         LazyVerticalGrid(
             state = gridState,
@@ -452,7 +451,6 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContent(
         MediaCellState(selectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates)
     }
 
-    PauseImageLoadingOnFling(gridState)
     CompositionLocalProvider(LocalMediaCellState provides cellState) {
     LazyVerticalGrid(
         state = gridState,

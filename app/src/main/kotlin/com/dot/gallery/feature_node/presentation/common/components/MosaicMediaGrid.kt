@@ -369,7 +369,6 @@ fun <T : Media> MosaicMediaGrid(
         val cellState = remember(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates) {
             MediaCellState(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates)
         }
-        PauseImageLoadingOnFling(gridState)
         CompositionLocalProvider(LocalMediaCellState provides cellState) {
         LazyVerticalGrid(
             state = gridState,

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -35,9 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
@@ -53,7 +50,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bumptech.glide.Glide
 import com.dot.gallery.cloud.core.SyncState
 import com.dot.gallery.core.LocalMediaDistributor
 import com.dot.gallery.core.LocalMediaSelector
@@ -94,40 +90,6 @@ data class MediaCellState(
 
 /** Null by default: callers that don't provide it (search, picker) fall back to per-cell collection. */
 val LocalMediaCellState = compositionLocalOf<MediaCellState?> { null }
-
-/**
- * True while the user is actively dragging the fast-scroll scrollbar thumb. Provided by
- * [com.dot.gallery.feature_node.presentation.common.components.TimelineScroller]; defaults to a
- * constant `false` for callers without a scrollbar.
- */
-val LocalScrollbarDragging = compositionLocalOf<State<Boolean>> {
-    object : State<Boolean> {
-        override val value: Boolean = false
-    }
-}
-
-/**
- * Pauses Glide image requests while the user is fast-scrolling via the *scrollbar thumb* and
- * resumes them the instant the drag ends. This avoids the decode/bitmap-upload flood that drops
- * frames when jumping across a large library with the scrollbar. Normal scrolling and flings are
- * NOT paused, so content always loads under the user's thumb; only scrollbar-driven jumps defer loads.
- */
-@Composable
-internal fun PauseImageLoadingOnFling(gridState: LazyGridState) {
-    val context = LocalContext.current
-    // Resolve the RequestManager once and reuse it: Glide caches a single manager per Activity,
-    // which is the same instance GlideImage cells use, so pausing it actually defers their loads.
-    val glide = remember(context) { Glide.with(context) }
-    val isScrollbarDragging by LocalScrollbarDragging.current
-    LaunchedEffect(glide, isScrollbarDragging) {
-        if (isScrollbarDragging) glide.pauseRequests() else glide.resumeRequests()
-    }
-    DisposableEffect(glide) {
-        onDispose {
-            if (glide.isPaused) glide.resumeRequests()
-        }
-    }
-}
 
 @Composable
 fun <T : Media> MediaImage(

@@ -15,11 +15,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -223,10 +221,7 @@ fun <T : Media> TimelineScroller(
 ) {
     if (!settings.enabled) content()
     else Box {
-        val scrollbarDragging = remember { mutableStateOf(false) }
-        CompositionLocalProvider(LocalScrollbarDragging provides scrollbarDragging) {
-            content()
-        }
+        content()
         val feedbackManager = rememberFeedbackManager()
         InternalLazyVerticalGridScrollbar(
             state = state,
@@ -235,7 +230,6 @@ fun <T : Media> TimelineScroller(
             snapIndices = segments.snapIndices,
             snapScrollOffset = snapScrollOffset,
             onSnap = { feedbackManager.vibrate() },
-            onDraggingChanged = { scrollbarDragging.value = it },
             indicatorContent = { index, isSelected ->
                 // Immich-style label: month name, with the year appended for past years.
                 // Resolved via a precomputed binary-searchable segment table, so there is no
