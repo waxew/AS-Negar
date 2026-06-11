@@ -10,6 +10,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -43,6 +45,7 @@ private const val DETAIL_PRIVATE_FOLDER = "private_folder"
 @Composable
 fun SettingsSecurityScreen() {
     var detailKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -157,6 +160,7 @@ fun SettingsSecurityScreen() {
                 advancedProtection = advancedProtection,
                 privateFolderUri = privateFolderUri,
                 onDetailClick = { detailKey = it },
+                listState = listState,
             )
         }
     }
@@ -170,6 +174,7 @@ private fun SecurityListScreen(
     advancedProtection: Boolean,
     privateFolderUri: String,
     onDetailClick: (String) -> Unit,
+    listState: LazyListState,
 ) {
     @Composable
     fun settings(): SnapshotStateList<SettingsEntity> {
@@ -247,5 +252,6 @@ private fun SecurityListScreen(
     BaseSettingsScreen(
         title = stringResource(R.string.settings_security),
         settingsList = settings(),
+        listState = listState,
     )
 }

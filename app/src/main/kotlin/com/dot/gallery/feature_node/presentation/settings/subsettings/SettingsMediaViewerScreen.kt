@@ -89,6 +89,8 @@ import com.dot.gallery.core.Settings.Misc.rememberFullBrightnessView
 import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.Settings.Misc.rememberShowMediaViewDateHeader
 import com.dot.gallery.core.Settings.Misc.rememberVideoAutoplay
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
@@ -116,6 +118,7 @@ private const val DETAIL_AUTO_PLAY = "auto_play"
 @Composable
 fun SettingsMediaViewerScreen() {
     var detailKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -240,6 +243,7 @@ fun SettingsMediaViewerScreen() {
                 autoPlayVideo = autoPlayVideo,
                 onAutoPlayChange = { autoPlayVideo = it },
                 onDetailClick = { detailKey = it },
+                listState = listState,
             )
         }
     }
@@ -262,6 +266,7 @@ private fun MediaViewerListScreen(
     autoPlayVideo: Boolean,
     onAutoPlayChange: (Boolean) -> Unit,
     onDetailClick: (String) -> Unit,
+    listState: LazyListState,
 ) {
     @Composable
     fun settings(): SnapshotStateList<SettingsEntity> {
@@ -376,6 +381,7 @@ private fun MediaViewerListScreen(
     BaseSettingsScreen(
         title = stringResource(R.string.settings_media_viewer),
         settingsList = settings(),
+        listState = listState,
     )
 }
 

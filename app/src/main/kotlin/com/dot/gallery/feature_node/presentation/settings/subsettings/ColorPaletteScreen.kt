@@ -99,6 +99,7 @@ private const val DETAIL_SHARED = "shared"
 @Composable
 fun ColorPaletteScreen() {
     var detailKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val contentScrollState = rememberScrollState()
     var themeColorSeed by Settings.Misc.rememberThemeColorSeed()
     var forceTheme by Settings.Misc.rememberForceTheme()
     var darkModeValue by Settings.Misc.rememberIsDarkMode()
@@ -433,7 +434,7 @@ fun ColorPaletteScreen() {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(contentScrollState),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -474,7 +475,7 @@ fun ColorPaletteScreen() {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(contentScrollState),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(16.dp))

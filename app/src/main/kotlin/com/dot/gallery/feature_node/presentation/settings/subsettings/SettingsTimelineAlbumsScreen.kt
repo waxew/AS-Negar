@@ -29,7 +29,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -157,6 +159,7 @@ fun SettingsTimelineAlbumsScreen() {
     var detailKey by rememberSaveable { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val eventHandler = LocalEventHandler.current
+    val listState = rememberLazyListState()
 
     var groupByMonth by Settings.Misc.rememberTimelineGroupByMonth()
     var groupByYear by Settings.Misc.rememberTimelineGroupByYear()
@@ -441,6 +444,7 @@ fun SettingsTimelineAlbumsScreen() {
                 onDetailClick = { detailKey = it },
                 onDateFormatClick = { eventHandler.navigate(Screen.DateFormatScreen()) },
                 onStoryCardsClick = { eventHandler.navigate(Screen.StoryCardsSettingsScreen()) },
+                listState = listState,
             )
         }
     }
@@ -467,6 +471,7 @@ private fun TimelineAlbumsListScreen(
     onDetailClick: (String) -> Unit,
     onDateFormatClick: () -> Unit,
     onStoryCardsClick: () -> Unit = {},
+    listState: LazyListState,
 ) {
     @Composable
     fun settings(): SnapshotStateList<SettingsEntity> {
@@ -651,6 +656,7 @@ private fun TimelineAlbumsListScreen(
     BaseSettingsScreen(
         title = stringResource(R.string.settings_timeline_albums),
         settingsList = settings(),
+        listState = listState,
     )
 }
 
