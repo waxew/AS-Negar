@@ -181,7 +181,7 @@ fun String?.formatMinSec(): String {
     return ""
 }
 
-private val FILENAME_DATE_REGEX = Regex("""(\d{4})(\d{2})(\d{2})[_\-](\d{2})(\d{2})(\d{2})""")
+private val FILENAME_DATE_REGEX = Regex("""(?<!\d)(\d{4})(\d{2})(\d{2})[_\-](\d{2})(\d{2})(\d{2})(?!\d)""")
 
 /**
  * Attempts to parse a timestamp (epoch millis) from common camera filename patterns
@@ -199,6 +199,9 @@ fun String.parseTimestampFromFilename(): Long? {
         val cal = Calendar.getInstance()
         cal.set(y, m - 1, d, hour.toInt(), minute.toInt(), second.toInt())
         cal.set(Calendar.MILLISECOND, 0)
+        // A photo cannot be taken in the future. Filename parsing is heuristic and may
+        // latch onto numeric IDs (e.g. Facebook exports), so discard future-dated results.
+        if (cal.timeInMillis > System.currentTimeMillis()) return null
         cal.timeInMillis
     } catch (_: Exception) {
         null
