@@ -103,7 +103,13 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
      * That shows the grid at the bottom after content is loaded
      */
     var hasScrolledToTop by rememberSaveable { mutableStateOf(false) }
+    // Only counter the "grid renders at the bottom" glitch on the initial cold
+    // load (loading -> loaded). If the grid is (re)created with data already
+    // present - e.g. when returning from the media viewer - keep the restored
+    // scroll position instead of jumping back to the top.
+    val loadedOnEntry = remember { !mediaState.value.isLoading }
     LaunchedEffect(gridState, mediaState.value) {
+        if (loadedOnEntry) return@LaunchedEffect
         snapshotFlow { mediaState.value.isLoading }
             .collectLatest { isLoading ->
                 if (!isLoading  && !hasScrolledToTop) {
