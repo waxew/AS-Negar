@@ -54,7 +54,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -82,7 +81,6 @@ import com.dot.gallery.core.Position
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberDateHeaderFormat
-import com.dot.gallery.core.Settings.Misc.rememberAudioFocus
 import com.dot.gallery.core.Settings.Misc.rememberAutoHideOnVideoPlay
 import com.dot.gallery.core.Settings.Misc.rememberDefaultImageEditor
 import com.dot.gallery.core.Settings.Misc.rememberFullBrightnessView
@@ -101,17 +99,13 @@ import com.dot.gallery.feature_node.presentation.settings.components.rememberPre
 import com.dot.gallery.feature_node.presentation.settings.components.rememberSwitchPreference
 import com.dot.gallery.feature_node.presentation.util.getDate
 import com.dot.gallery.feature_node.presentation.util.getEditImageCapableApps
-import com.dot.gallery.feature_node.presentation.util.restartApplication
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import androidx.core.graphics.drawable.toBitmap
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private const val DETAIL_BRIGHTNESS = "brightness"
 private const val DETAIL_DATE_HEADER = "date_header"
 private const val DETAIL_FAV_BUTTON = "fav_button"
 private const val DETAIL_EDITOR = "editor"
-private const val DETAIL_AUDIO_FOCUS = "audio_focus"
 private const val DETAIL_AUTO_HIDE_VIDEO = "auto_hide_video"
 private const val DETAIL_AUTO_PLAY = "auto_play"
 
@@ -120,13 +114,11 @@ fun SettingsMediaViewerScreen() {
     var detailKey by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     var fullBrightnessView by rememberFullBrightnessView()
     var showMediaDateHeader by rememberShowMediaViewDateHeader()
     var showFavoriteButton by rememberShowFavoriteButton()
     var defaultEditor by rememberDefaultImageEditor()
-    var audioFocus by rememberAudioFocus()
     var autoHideOnVideoPlay by rememberAutoHideOnVideoPlay()
     var autoPlayVideo by rememberVideoAutoplay()
 
@@ -187,21 +179,6 @@ fun SettingsMediaViewerScreen() {
                 onOptionSelected = { defaultEditor = it },
             )
         }
-        DETAIL_AUDIO_FOCUS -> {
-            BackHandler { detailKey = null }
-            SwitchPreferenceDetailScreen(
-                title = stringResource(R.string.take_audio_focus_title),
-                isChecked = audioFocus,
-                onCheckedChange = {
-                    scope.launch {
-                        audioFocus = it
-                        delay(50)
-                        context.restartApplication()
-                    }
-                },
-                description = stringResource(R.string.audio_focus_description),
-            )
-        }
         DETAIL_AUTO_HIDE_VIDEO -> {
             BackHandler { detailKey = null }
             SwitchPreferenceDetailScreen(
@@ -230,14 +207,6 @@ fun SettingsMediaViewerScreen() {
                 onFavButtonChange = { showFavoriteButton = it },
                 defaultEditor = defaultEditor,
                 editApps = editApps,
-                audioFocus = audioFocus,
-                onAudioFocusChange = {
-                    scope.launch {
-                        audioFocus = it
-                        delay(50)
-                        context.restartApplication()
-                    }
-                },
                 autoHideOnVideoPlay = autoHideOnVideoPlay,
                 onAutoHideChange = { autoHideOnVideoPlay = it },
                 autoPlayVideo = autoPlayVideo,
@@ -259,8 +228,6 @@ private fun MediaViewerListScreen(
     onFavButtonChange: (Boolean) -> Unit,
     defaultEditor: String,
     editApps: List<android.content.pm.ResolveInfo>,
-    audioFocus: Boolean,
-    onAudioFocusChange: (Boolean) -> Unit,
     autoHideOnVideoPlay: Boolean,
     onAutoHideChange: (Boolean) -> Unit,
     autoPlayVideo: Boolean,
@@ -327,16 +294,6 @@ private fun MediaViewerListScreen(
             SettingsEntity.Header(title = context.getString(R.string.video_playback))
         }
 
-        val audioFocusPref = rememberSwitchPreference(
-            audioFocus,
-            title = stringResource(R.string.take_audio_focus_title),
-            summary = stringResource(R.string.take_audio_focus_summary),
-            isChecked = audioFocus,
-            onCheck = onAudioFocusChange,
-            onClick = { onDetailClick(DETAIL_AUDIO_FOCUS) },
-            screenPosition = Position.Top
-        )
-
         val autoHideOnVideoPlayPref = rememberSwitchPreference(
             autoHideOnVideoPlay,
             title = stringResource(R.string.auto_hide_on_video_play),
@@ -344,7 +301,7 @@ private fun MediaViewerListScreen(
             isChecked = autoHideOnVideoPlay,
             onCheck = onAutoHideChange,
             onClick = { onDetailClick(DETAIL_AUTO_HIDE_VIDEO) },
-            screenPosition = Position.Middle
+            screenPosition = Position.Top
         )
 
         val autoPlayVideoPref = rememberSwitchPreference(
@@ -359,7 +316,7 @@ private fun MediaViewerListScreen(
 
         return remember(
             fullBrightnessViewPref, showMediaDateHeaderPref, showFavoriteButtonPref,
-            defaultEditorPref, audioFocusPref, autoHideOnVideoPlayPref, autoPlayVideoPref
+            defaultEditorPref, autoHideOnVideoPlayPref, autoPlayVideoPref
         ) {
             mutableStateListOf<SettingsEntity>().apply {
                 add(viewingHeader)
@@ -371,7 +328,6 @@ private fun MediaViewerListScreen(
                 add(defaultEditorPref)
 
                 add(videoPlaybackHeader)
-                add(audioFocusPref)
                 add(autoHideOnVideoPlayPref)
                 add(autoPlayVideoPref)
             }

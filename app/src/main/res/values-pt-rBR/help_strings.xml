@@ -329,14 +329,6 @@
     <string name="help_tip_viewer_auto_play_p1_desc">When enabled, videos begin playing immediately when you swipe to them or tap to open them. Disable this if you prefer to manually press play, for example when browsing in public or on a limited data connection. Videos will still show a thumbnail preview when auto-play is off.</string>
     <string name="help_tip_viewer_auto_play_p1_s1">Go to Settings &gt; Media viewer</string>
     <string name="help_tip_viewer_auto_play_p1_s2">Toggle \'Auto-play videos\'</string>
-    <string name="help_tip_viewer_audio_focus_title">Audio focus</string>
-    <string name="help_tip_viewer_audio_focus_subtitle">Control audio behavior during video playback</string>
-    <string name="help_tip_viewer_audio_focus_p1_title">Audio focus</string>
-    <string name="help_tip_viewer_audio_focus_p1_desc">When enabled, Gallery automatically pauses any background audio (music, podcasts, audiobooks) when a video starts playing, and resumes it when the video stops. Disable this if you want your music to keep playing while browsing videos silently.</string>
-    <string name="help_tip_viewer_audio_focus_p1_s1">Go to Settings &gt; Media viewer</string>
-    <string name="help_tip_viewer_audio_focus_p1_s2">Toggle \'Take audio focus\'</string>
-    <string name="help_tip_viewer_audio_focus_p1_s3">Enabled: pauses background audio during video</string>
-    <string name="help_tip_viewer_audio_focus_p1_s4">Disabled: background audio keeps playing</string>
     <string name="help_tip_viewer_auto_hide_video_title">Auto-hide UI on video play</string>
     <string name="help_tip_viewer_auto_hide_video_subtitle">Hide controls when a video starts playing</string>
     <string name="help_tip_viewer_auto_hide_video_p1_title">Auto-hide UI</string>

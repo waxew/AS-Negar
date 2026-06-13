@@ -71,7 +71,6 @@ import com.dot.gallery.R
 import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
-import com.dot.gallery.core.Settings.Misc.rememberAudioFocus
 import com.dot.gallery.core.Settings.Misc.rememberVideoAutoplay
 import com.dot.gallery.core.presentation.components.util.swipe
 import com.dot.gallery.feature_node.domain.model.Media
@@ -142,12 +141,6 @@ fun <T : Media> VideoPlayer(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
-    }
-
-    // Audio focus preferences
-    val audioFocus by rememberAudioFocus()
-    LaunchedEffect(audioFocus) {
-        vm.applyAudioFocusPreference(audioFocus)
     }
 
     // Keep screen awake while playing

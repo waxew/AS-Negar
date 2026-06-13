@@ -308,8 +308,6 @@
     <string name="location">Розташування</string>
     <string name="support_the_project">Підтримати проєкт</string>
     <string name="click_to_copy">Натисніть, щоб скопіювати</string>
-    <string name="take_audio_focus_title">Отримання фокусу звуку</string>
-    <string name="take_audio_focus_summary">Якщо увімкнути цей параметр, під час відтворення медіафайлів фокус буде зосереджено на звуці. Будь-який медіафайл, що відтворюється у фоновому режимі, буде призупинено під час відтворення відео. (Потрібно перезапустити застосунок)</string>
     <string name="full_brightness_view_title">Повна яскравість під час перегляду</string>
     <string name="full_brightness_view_summary">Збільшення яскравості екрана до максимуму під час перегляду зображень і відео</string>
     <string name="auto_hide_on_video_play">Приховати інтерфейс під час відтворення відео</string>
@@ -546,7 +544,6 @@
     <string name="full_brightness_view_description">Automatically sets screen brightness to maximum when viewing a photo or video in full screen. Brightness returns to your normal level when you leave the viewer.</string>
     <string name="show_date_header_description">Displays the date and time of the current photo at the top of the media viewer screen.</string>
     <string name="show_favorite_button_description">Shows a heart button in the media viewer toolbar, allowing you to quickly add or remove the current photo from your favorites.</string>
-    <string name="audio_focus_description">When enabled, the app requests audio focus during video playback. This pauses other audio apps (music, podcasts) while your video plays.\n\nChanging this setting will restart the app.</string>
     <string name="auto_hide_on_video_play_description">Автоматично приховує верхню та нижню смуги, коли відео починає відтворюватися, надаючи вам повноекранний режим. Торкніться екрана, щоб повернути елементи керування.</string>
     <string name="auto_play_video_description">Videos start playing automatically when you swipe to them in the media viewer. Disable this to require a manual tap to play.</string>
     <string name="fancy_blur_description">Applies a blur effect to the background behind photos in the media viewer. Requires Android 12 or higher.</string>

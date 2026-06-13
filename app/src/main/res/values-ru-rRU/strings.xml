@@ -308,8 +308,6 @@
     <string name="location">Путь</string>
     <string name="support_the_project">Поддержать проект</string>
     <string name="click_to_copy">Нажмите, чтобы скопировать</string>
-    <string name="take_audio_focus_title">Забирать аудио фокус</string>
-    <string name="take_audio_focus_summary">Когда включено, аудио фокус будет переключен при проигрывании медиа. Медиа проигрываемое в фоне остановится пока видео воспроизводится. (Требуется перезапуск приложения)</string>
     <string name="full_brightness_view_title">Полная яркость при просмотре</string>
     <string name="full_brightness_view_summary">Увеличивать яркость экрана до максимума при просмотре изображений и видео</string>
     <string name="auto_hide_on_video_play">Скрывать интерфейс при воспроизведении видео</string>
@@ -546,7 +544,6 @@
     <string name="full_brightness_view_description">Automatically sets screen brightness to maximum when viewing a photo or video in full screen. Brightness returns to your normal level when you leave the viewer.</string>
     <string name="show_date_header_description">Displays the date and time of the current photo at the top of the media viewer screen.</string>
     <string name="show_favorite_button_description">Shows a heart button in the media viewer toolbar, allowing you to quickly add or remove the current photo from your favorites.</string>
-    <string name="audio_focus_description">When enabled, the app requests audio focus during video playback. This pauses other audio apps (music, podcasts) while your video plays.\n\nChanging this setting will restart the app.</string>
     <string name="auto_hide_on_video_play_description">Automatically hides the top and bottom bars when a video starts playing, giving you a full-screen experience. Tap the screen to bring the controls back.</string>
     <string name="auto_play_video_description">Videos start playing automatically when you swipe to them in the media viewer. Disable this to require a manual tap to play.</string>
     <string name="fancy_blur_description">Applies a blur effect to the background behind photos in the media viewer. Requires Android 12 or higher.</string>

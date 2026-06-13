@@ -7,7 +7,6 @@ import androidx.annotation.OptIn
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -292,17 +291,6 @@ class VideoPlayerViewModel @AssistedInject constructor(
         player.playWhenReady = targetPlay
         if (targetPlay) player.play() else player.pause()
         _state.update { it.copy(isPlaying = targetPlay) }
-    }
-
-    fun applyAudioFocusPreference(wantsFocus: Boolean) {
-        val usage = if (wantsFocus) C.USAGE_MEDIA else C.USAGE_NOTIFICATION
-        val contentType =
-            if (wantsFocus) C.AUDIO_CONTENT_TYPE_MOVIE else C.AUDIO_CONTENT_TYPE_SONIFICATION
-        val attrs = AudioAttributes.Builder()
-            .setUsage(usage)
-            .setContentType(contentType)
-            .build()
-        player.setAudioAttributes(attrs, /* handleAudioFocus = */ wantsFocus)
     }
 
     fun retryDecryption() {
