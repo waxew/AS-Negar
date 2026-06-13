@@ -234,6 +234,9 @@ fun TimelineScreen(
                             onClick = {
                                 lastSeenVersion = BuildConfig.VERSION_NAME
                                 eventHandler.navigate(Screen.WhatsNewScreen())
+                            },
+                            onDismiss = {
+                                lastSeenVersion = BuildConfig.VERSION_NAME
                             }
                         )
                     }
