@@ -280,7 +280,9 @@ suspend fun <T : Media> Context.copyMediaToClipboard(media: T) {
         val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newUri(contentResolver, media.label, uri)
         clipboardManager.setPrimaryClip(clip)
-        Toast.makeText(this@copyMediaToClipboard, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+        if (!SdkCompat.showsClipboardConfirmation) {
+            Toast.makeText(this@copyMediaToClipboard, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+        }
     }
 }
 
@@ -302,11 +304,13 @@ suspend fun <T : Media> Context.copyEncryptedMediaToClipboard(
                 putString("android.content.extra.IS_SENSITIVE", "false")
             }
             clipboardManager.setPrimaryClip(clip)
-            Toast.makeText(
-                this@copyEncryptedMediaToClipboard,
-                getString(R.string.copied_to_clipboard),
-                Toast.LENGTH_SHORT
-            ).show()
+            if (!SdkCompat.showsClipboardConfirmation) {
+                Toast.makeText(
+                    this@copyEncryptedMediaToClipboard,
+                    getString(R.string.copied_to_clipboard),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     } catch (e: Exception) {
         e.printStackTrace()

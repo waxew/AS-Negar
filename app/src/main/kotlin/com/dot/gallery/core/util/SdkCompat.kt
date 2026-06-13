@@ -43,6 +43,14 @@ object SdkCompat {
         get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     /**
+     * Whether the OS itself shows a visual confirmation when content is copied to the clipboard.
+     * Available on Android 13 (API 33) and above, so the app should not show its own
+     * "Copied to clipboard" toast to avoid duplicate notifications.
+     */
+    val showsClipboardConfirmation: Boolean
+        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+    /**
      * Whether the device runs Android 10 (API 29) where scoped storage is opt-in
      * and IS_TRASHED/IS_FAVORITE columns don't exist.
      */
