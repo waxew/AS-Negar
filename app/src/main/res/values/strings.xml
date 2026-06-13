@@ -111,6 +111,9 @@
     <string name="allow_gif_animation_summary">Play GIF animations in the timeline and album grid. Disable to reduce lag in folders with many GIFs</string>
     <string name="amoled_mode_title">Use Amoled Mode</string>
     <string name="amoled_mode_summary">Higher contrast, best suited for Amoled Screens</string>
+    <string name="use_system_font_title">Use system font</string>
+    <string name="use_system_font_summary">Use your device\'s default font instead of the built-in one</string>
+    <string name="use_system_font_description">When enabled, the app uses your device\'s system font instead of the built-in Google Sans font. This can improve readability if you use a custom system font.</string>
     <string name="color_palette_preview_description">Icons, text, and more match colors in your wallpaper</string>
     <string name="color_palette_wallpaper_colors">Wallpaper colors</string>
     <string name="color_palette_other_colors">Other colors</string>

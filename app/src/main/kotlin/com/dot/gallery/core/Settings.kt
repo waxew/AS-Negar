@@ -498,6 +498,12 @@ object Settings {
         fun rememberGroupCloudLocal() =
             rememberPreference(key = GROUP_CLOUD_LOCAL, defaultValue = true)
 
+        private val USE_SYSTEM_FONT = booleanPreferencesKey("use_system_font")
+
+        @Composable
+        fun rememberUseSystemFont() =
+            rememberPreference(key = USE_SYSTEM_FONT, defaultValue = false)
+
         private val ALLOW_BLUR = booleanPreferencesKey("allow_blur")
 
         @Composable

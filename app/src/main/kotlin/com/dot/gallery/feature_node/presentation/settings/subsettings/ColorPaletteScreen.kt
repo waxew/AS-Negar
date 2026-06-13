@@ -94,6 +94,7 @@ private const val DETAIL_AMOLED = "amoled"
 private const val DETAIL_BLUR = "blur"
 private const val DETAIL_AUTO_CONTRAST = "auto_contrast"
 private const val DETAIL_SHARED = "shared"
+private const val DETAIL_SYSTEM_FONT = "system_font"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +109,7 @@ fun ColorPaletteScreen() {
     var allowBlur by Settings.Misc.rememberAllowBlur()
     var autoContrast by Settings.Misc.rememberAutoContrast()
     var sharedElements by Settings.Misc.rememberSharedElements()
+    var useSystemFont by Settings.Misc.rememberUseSystemFont()
     val isDark = isDarkTheme()
 
     when (detailKey) {
@@ -173,6 +175,16 @@ fun ColorPaletteScreen() {
                 isChecked = sharedElements,
                 onCheckedChange = { sharedElements = it },
                 description = stringResource(R.string.shared_elements_description),
+            )
+            return
+        }
+        DETAIL_SYSTEM_FONT -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.use_system_font_title),
+                isChecked = useSystemFont,
+                onCheckedChange = { useSystemFont = it },
+                description = stringResource(R.string.use_system_font_description),
             )
             return
         }
@@ -305,6 +317,19 @@ fun ColorPaletteScreen() {
             onCheck = { sharedElements = it },
             onClick = { detailKey = DETAIL_SHARED },
             screenPosition = Position.Bottom
+        )
+
+        val fontHeader = remember {
+            SettingsEntity.Header(title = "Font")
+        }
+        val useSystemFontPref = rememberSwitchPreference(
+            useSystemFont,
+            title = stringResource(R.string.use_system_font_title),
+            summary = stringResource(R.string.use_system_font_summary),
+            isChecked = useSystemFont,
+            onCheck = { useSystemFont = it },
+            onClick = { detailKey = DETAIL_SYSTEM_FONT },
+            screenPosition = Position.Alone
         )
 
         val swatchesContent: @Composable () -> Unit = {
@@ -467,6 +492,10 @@ fun ColorPaletteScreen() {
                     SettingsItem(item = autoContrastPref)
                     SettingsItem(item = sharedElementsPref)
 
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SettingsItem(item = fontHeader)
+                    SettingsItem(item = useSystemFontPref)
+
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
@@ -516,6 +545,10 @@ fun ColorPaletteScreen() {
                 SettingsItem(item = allowBlurPref)
                 SettingsItem(item = autoContrastPref)
                 SettingsItem(item = sharedElementsPref)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                SettingsItem(item = fontHeader)
+                SettingsItem(item = useSystemFontPref)
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
