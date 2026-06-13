@@ -750,8 +750,10 @@ fun <T : Media> MediaViewScreen(
                                     LaunchedEffect(isPlaying.value, hideUiOnPlay) {
                                         if (isPlaying.value && showUI && hideUiOnPlay && !uiInteracted) {
                                             delay(2.seconds)
-                                            showUI = false
-                                            windowInsetsController.toggleSystemBars(false)
+                                            if (sheetState.currentDetent == imageOnlyDetent) {
+                                                showUI = false
+                                                windowInsetsController.toggleSystemBars(false)
+                                            }
                                         }
                                     }
                                     // Mute local player while casting to avoid double audio
