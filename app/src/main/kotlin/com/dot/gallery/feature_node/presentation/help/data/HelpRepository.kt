@@ -890,6 +890,20 @@ object HelpRepository {
 
     private val ALL_RELEASES: List<ReleaseNotes> = listOf(
         ReleaseNotes(
+            versionName = "5.0.1",
+            versionCode = 50101,
+            releaseDate = "2026-06-14",
+            highlights = listOf(
+                ReleaseHighlight(tipId = "animated_formats", title = R.string.help_release_501_formats_title, description = R.string.help_release_501_formats_desc, icon = HelpIcon.ofVector(Icons.Outlined.PhotoLibrary)),
+                ReleaseHighlight(tipId = "animated_formats", title = R.string.help_release_501_heif_title, description = R.string.help_release_501_heif_desc, icon = HelpIcon.ofVector(Icons.Outlined.Speed)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_501_system_font_title, description = R.string.help_release_501_system_font_desc, icon = HelpIcon.ofVector(Icons.Outlined.Settings)),
+                ReleaseHighlight(tipId = "animated_formats", title = R.string.help_release_501_jxl_zoom_title, description = R.string.help_release_501_jxl_zoom_desc, icon = HelpIcon.ofVector(Icons.Outlined.ZoomIn)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_501_video_fixes_title, description = R.string.help_release_501_video_fixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.VideoSettings)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_501_scroll_fixes_title, description = R.string.help_release_501_scroll_fixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.Collections)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_501_bugfixes_title, description = R.string.help_release_501_bugfixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.BugReport))
+            )
+        ),
+        ReleaseNotes(
             versionName = "5.0.0",
             versionCode = 50004,
             releaseDate = "2026-06-11",
