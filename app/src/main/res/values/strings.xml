@@ -708,6 +708,7 @@
     <string name="editor_rotate_90">Rotate 90 degrees</string>
     <string name="editor_aspect_ratio">Aspect ratio</string>
     <string name="editor_apply_crop">Apply crop</string>
+    <string name="editor_crop">Crop</string>
     <string name="editor_cancel_markup">Cancel markup</string>
     <string name="editor_apply_markup">Apply markup</string>
     <string name="editor_undo">Undo</string>

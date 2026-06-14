@@ -565,21 +565,28 @@ fun EditScreen2(
                                 modifier = Modifier.size(32.dp).padding(6.dp)
                             )
                         }
-                        IconButton(
+                        Button(
                             onClick = {
                                 cropState = cropState.copy(isCropping = true)
                             },
-                            colors = IconButtonDefaults.iconButtonColors(
+                            colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             ),
                             shape = CircleShape,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Crop,
-                                contentDescription = stringResource(R.string.editor_apply_crop),
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(32.dp).padding(6.dp)
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.editor_crop),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
