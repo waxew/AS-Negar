@@ -32,6 +32,7 @@ import com.dot.gallery.core.Settings
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.image.CloudImageSource
 import com.dot.gallery.core.decoder.EncryptedRegionDecoder
+import com.dot.gallery.core.decoder.JxlRegionDecoder
 import com.dot.gallery.core.presentation.components.util.LocalBatteryStatus
 import com.dot.gallery.core.presentation.components.util.ProvideBatteryStatus
 import com.dot.gallery.core.presentation.components.util.swipe
@@ -122,6 +123,7 @@ fun <T : Media> ZoomablePagerImage(
     val isEncrypted = remember(media) {
         media.isEncrypted
     }
+    val isJxl = remember(media) { media.isJxl }
     val isAnimated = remember(media) {
         media.isApng || media.isJxl || (media.isAvif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
     }
@@ -186,6 +188,16 @@ fun <T : Media> ZoomablePagerImage(
             val remoteId = uri.pathSegments?.firstOrNull() ?: return@LaunchedEffect
             val cloudSource = CloudImageSource(providerType, remoteId)
             zoomState.setSubsamplingImage(SubsamplingImage(imageSource = cloudSource))
+        }
+    } else if (isJxl) {
+        // Android's BitmapRegionDecoder can't decode JXL, so enable subsampling backed by a
+        // JxlCoder region decoder for high-resolution zoom. Animated JXL is rejected by the
+        // decoder and falls back to the animated base painter.
+        LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
+            zoomState.setSubsamplingImage(media.asSubsamplingImage(context))
+        }
+        LaunchedEffect(zoomState.subsampling, media) {
+            zoomState.subsampling.setRegionDecoders(listOf(JxlRegionDecoder.Factory()))
         }
     } else if (!isAnimated) {
         LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
