@@ -326,6 +326,10 @@ dependencies {
     // Coders
     implementation(libs.jxl.coder.coil)
     implementation(libs.avif.coder.coil)
+    // Vendored AAR resolved via the flatDir repo declared in settings.gradle.kts; @aar is required
+    // so flatDir looks for jp2-android-1.0.3.aar instead of a non-existent .jar.
+    implementation("${libs.jp2.android.get().module}:${libs.jp2.android.get().version}@aar")
+    implementation(libs.androidsvg)
 
     // Sketch
     implementation(libs.sketch.compose)

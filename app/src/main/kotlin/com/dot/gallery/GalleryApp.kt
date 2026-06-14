@@ -29,6 +29,9 @@ import com.dot.gallery.core.decoder.supportSandboxedHeifDecoder
 import com.dot.gallery.core.decoder.supportSandboxedJxlDecoder
 import com.dot.gallery.core.decoder.supportVaultDecoder
 import com.dot.gallery.core.decoder.supportVideoFrame2
+import com.dot.gallery.core.decoder.supportPsdDecoder
+import com.dot.gallery.core.decoder.supportJp2Decoder
+import com.dot.gallery.core.decoder.supportTiffDecoder
 import com.dot.gallery.core.workers.MetadataCollectionWorker
 import com.dot.gallery.core.workers.TempVaultCleanupWorker
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
@@ -78,6 +81,9 @@ class GalleryApp : Application(), SingletonSketch.Factory, Configuration.Provide
             supportAnimatedJxlDecoder()
             supportHeifDecoder()
             supportJxlDecoder()
+            supportPsdDecoder()
+            supportJp2Decoder()
+            supportTiffDecoder()
             supportVaultDecoder()
             supportCloudMedia()
         }

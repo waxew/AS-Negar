@@ -32,6 +32,7 @@ import com.dot.gallery.core.Settings
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.image.CloudImageSource
 import com.dot.gallery.core.decoder.EncryptedRegionDecoder
+import com.dot.gallery.core.decoder.FullImageRegionDecoder
 import com.dot.gallery.core.decoder.JxlRegionDecoder
 import com.dot.gallery.core.presentation.components.util.LocalBatteryStatus
 import com.dot.gallery.core.presentation.components.util.ProvideBatteryStatus
@@ -44,7 +45,11 @@ import com.dot.gallery.feature_node.domain.util.isApng
 import com.dot.gallery.feature_node.domain.util.isAvif
 import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isEncrypted
+import com.dot.gallery.feature_node.domain.util.isJp2
 import com.dot.gallery.feature_node.domain.util.isJxl
+import com.dot.gallery.feature_node.domain.util.isPsd
+import com.dot.gallery.feature_node.domain.util.isSvg
+import com.dot.gallery.feature_node.domain.util.isTiff
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.rememberFeedbackManager
 import com.github.panpf.sketch.AsyncImage
@@ -127,6 +132,17 @@ fun <T : Media> ZoomablePagerImage(
     val isAnimated = remember(media) {
         media.isApng || media.isJxl || (media.isAvif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
     }
+    // Region decoder for formats Android's BitmapRegionDecoder can't subsample (PSD/JP2/TIFF/SVG).
+    // Without this they only show the screen-resolution base painter and look blurry when zoomed.
+    val customRegionFactory = remember(media) {
+        when {
+            media.isPsd -> FullImageRegionDecoder.forPsd()
+            media.isJp2 -> FullImageRegionDecoder.forJp2()
+            media.isTiff -> FullImageRegionDecoder.forTiff()
+            media.isSvg -> FullImageRegionDecoder.forSvg()
+            else -> null
+        }
+    }
 
     // Fast low-res preview painter, shown until full image loads
     val previewPainter = rememberAsyncImagePainter(
@@ -198,6 +214,15 @@ fun <T : Media> ZoomablePagerImage(
         }
         LaunchedEffect(zoomState.subsampling, media) {
             zoomState.subsampling.setRegionDecoders(listOf(JxlRegionDecoder.Factory()))
+        }
+    } else if (customRegionFactory != null) {
+        // PSD/JP2/TIFF/SVG: no native BitmapRegionDecoder support, so subsample via a
+        // full-decode-then-crop (PSD/JP2/TIFF) or high-res render (SVG) region decoder.
+        LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
+            zoomState.setSubsamplingImage(media.asSubsamplingImage(context))
+        }
+        LaunchedEffect(zoomState.subsampling, media) {
+            zoomState.subsampling.setRegionDecoders(listOf(customRegionFactory))
         }
     } else if (!isAnimated) {
         LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {

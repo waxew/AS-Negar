@@ -137,6 +137,23 @@ val Media.isAvif: Boolean
 val Media.isJxl: Boolean
     get() = mimeType == "image/jxl" || label.endsWith(".jxl", ignoreCase = true)
 
+val Media.isPsd: Boolean
+    get() = mimeType == "image/vnd.adobe.photoshop" || mimeType == "image/x-photoshop" ||
+            label.endsWith(".psd", ignoreCase = true) || label.endsWith(".psb", ignoreCase = true)
+
+val Media.isJp2: Boolean
+    get() = mimeType == "image/jp2" || mimeType == "image/jpeg2000" || mimeType == "image/jpx" ||
+            label.endsWith(".jp2", ignoreCase = true) || label.endsWith(".j2k", ignoreCase = true) ||
+            label.endsWith(".jpf", ignoreCase = true) || label.endsWith(".jpx", ignoreCase = true) ||
+            label.endsWith(".j2c", ignoreCase = true) || label.endsWith(".jpc", ignoreCase = true)
+
+val Media.isTiff: Boolean
+    get() = mimeType == "image/tiff" || mimeType == "image/tif" ||
+            label.endsWith(".tif", ignoreCase = true) || label.endsWith(".tiff", ignoreCase = true)
+
+val Media.isSvg: Boolean
+    get() = mimeType == "image/svg+xml" || label.endsWith(".svg", ignoreCase = true)
+
 val Media.isTrashed: Boolean get() = trashed == 1
 
 val Media.isFavorite: Boolean get() = favorite == 1

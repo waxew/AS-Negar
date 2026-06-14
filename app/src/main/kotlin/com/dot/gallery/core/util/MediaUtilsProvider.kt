@@ -27,6 +27,14 @@ import com.dot.gallery.core.presentation.components.MediaImageRenderer
 import com.dot.gallery.feature_node.domain.util.EventHandler
 
 /**
+ * Software-decoded image formats with no hardware decoder. They are expensive to decode, so the
+ * timeline renderer avoids the extra 0.4x thumbnail pass for them (which would decode twice).
+ */
+private val HEAVY_CODEC_EXTENSIONS = listOf(
+    ".heic", ".heif", ".avif", ".avis", ".jxl", ".tiff", ".tif", ".psd", ".jp2", ".j2k"
+)
+
+/**
  * Default [MediaImageRenderer] that uses GlideImage with full caching,
  * thumbnail generation, GIF animation, and cache-invalidation signatures.
  *
@@ -51,6 +59,9 @@ val GlideMediaImageRenderer = object : MediaImageRenderer {
             signatureStr.contains(".avif", ignoreCase = true) ||
             signatureStr.contains(".apng", ignoreCase = true)
         )
+        // Heavy software codecs (no hardware decode) are expensive to decode. The default 0.4x
+        // thumbnail pass would decode them twice; skip it so they load closer to PNG speed.
+        val isHeavyCodec = HEAVY_CODEC_EXTENSIONS.any { signatureStr.contains(it, ignoreCase = true) }
         GlideImage(
             modifier = modifier,
             model = model,
@@ -60,7 +71,9 @@ val GlideMediaImageRenderer = object : MediaImageRenderer {
             failure = placeholder(0x33444444.toDrawable()),
             requestBuilderTransform = {
                 var request = it.centerCrop().diskCacheStrategy(DiskCacheStrategy.ALL)
-                request = request.thumbnail(request.clone().sizeMultiplier(0.4f))
+                if (!isHeavyCodec) {
+                    request = request.thumbnail(request.clone().sizeMultiplier(0.4f))
+                }
                 if (signature != null) {
                     request = request.signature(ObjectKey(signatureStr))
                 }

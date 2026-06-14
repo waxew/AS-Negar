@@ -31,6 +31,10 @@ import com.dot.gallery.core.decoder.glide.JxlEncryptedSourceDecoder
 import com.dot.gallery.core.decoder.glide.MimeInputStream
 import com.dot.gallery.cloud.image.CloudGlideModelLoader
 import com.dot.gallery.core.decoder.glide.MimeInputStreamModelLoader
+import com.dot.gallery.core.decoder.glide.PsdBitmapDecoder
+import com.dot.gallery.core.decoder.glide.Jp2BitmapDecoder
+import com.dot.gallery.core.decoder.glide.SvgBitmapDecoder
+import com.dot.gallery.core.decoder.glide.TiffMimeInputStreamDecoder
 import com.dot.gallery.core.decoder.glide.StreamingEncryptedVideoFrameDecoder
 import java.io.File
 import java.io.InputStream
@@ -87,6 +91,29 @@ class GlideModule: AppGlideModule() {
             MimeInputStream::class.java,
             Bitmap::class.java,
             HeifMimeInputStreamDecoder(context, pool)
+        )
+        // TIFF via content Uri MIME (image/tiff is reliably reported by MediaStore)
+        registry.prepend(
+            MimeInputStream::class.java,
+            Bitmap::class.java,
+            TiffMimeInputStreamDecoder(pool)
+        )
+        // Formats Android can't decode natively, detected by magic bytes (MIME is unreliable):
+        // PSD, JPEG 2000, and SVG (rasterized). Registered on the InputStream path.
+        registry.prepend(
+            InputStream::class.java,
+            Bitmap::class.java,
+            PsdBitmapDecoder(pool)
+        )
+        registry.prepend(
+            InputStream::class.java,
+            Bitmap::class.java,
+            Jp2BitmapDecoder(pool)
+        )
+        registry.prepend(
+            InputStream::class.java,
+            Bitmap::class.java,
+            SvgBitmapDecoder(pool)
         )
         // Sandboxed MIME decoder: when enabled, intercepts HEIF before HeifMimeInputStreamDecoder
         registry.prepend(
