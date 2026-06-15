@@ -91,7 +91,7 @@
     <string name="photo">Foto</string>
     <string name="video">Video</string>
     <string name="close">Schließen</string>
-    <string name="navigate_up">Navigate up</string>
+    <string name="navigate_up">Navigiere hoch</string>
     <string name="skip">Überspringen</string>
     <string name="secure_mode_title">Privatsphäre-Modus</string>
     <string name="secure_mode_summary">Blendet die App-Vorschau beim Verlassen der App aus</string>
@@ -111,9 +111,9 @@
     <string name="allow_gif_animation_summary">GIF-Animationen in der Zeitleiste und im Album-Raster abspielen. Deaktivieren, um Lag in Ordnern mit vielen GIFs zu verringern</string>
     <string name="amoled_mode_title">Amoled-Modus verwenden</string>
     <string name="amoled_mode_summary">Höherer Kontrast, geeignet für AMOLED-Bildschirme</string>
-    <string name="use_system_font_title">Use system font</string>
-    <string name="use_system_font_summary">Use your device\'s default font instead of the built-in one</string>
-    <string name="use_system_font_description">When enabled, the app uses your device\'s system font instead of the built-in Google Sans font. This can improve readability if you use a custom system font.</string>
+    <string name="use_system_font_title">Nutze die Systemschriftart</string>
+    <string name="use_system_font_summary">Nutze die Standardschriftart des Betriebssystems statt der eingebauten</string>
+    <string name="use_system_font_description">Falls aktiviert, nutzt die App die Standardschriftart des Betriebssystems anstelle der eingebauten Google Sans Schriftart. Dies kann die Lesbarkeit verbessern, falls eine spezielle Standardschriftart benutzt wird.</string>
     <string name="color_palette_preview_description">Symbole, Text und mehr passen sich farblich an dein Hintergrundbild an</string>
     <string name="color_palette_wallpaper_colors">Farben des Hintergrundbildes</string>
     <string name="color_palette_other_colors">Andere Farben</string>
@@ -175,9 +175,9 @@
     <string name="action_revert">Rückgängig machen</string>
     <string name="edit_backups">Backups bearbeiten</string>
     <string name="edit_backups_summary">Manage original image backups from edited photos</string>
-    <string name="edit_backups_storage">Storage Used</string>
-    <string name="edit_backups_storage_summary">%1$s used by %2$d backup(s)</string>
-    <string name="edit_backups_no_backups">No edit backups</string>
+    <string name="edit_backups_storage">Benutzter Speicherplatz</string>
+    <string name="edit_backups_storage_summary">%1$s durch %2$d Backup(-s) benutzt</string>
+    <string name="edit_backups_no_backups">Keine Edit-Backups</string>
     <string name="edit_backups_no_backups_summary">Original images will be backed up when you override an edit</string>
     <string name="edit_backups_auto_cleanup">Auto-cleanup</string>
     <string name="edit_backups_auto_cleanup_summary">Automatically delete backups older than 90 days</string>
