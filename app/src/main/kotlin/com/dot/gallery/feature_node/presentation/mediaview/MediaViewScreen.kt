@@ -461,6 +461,11 @@ fun <T : Media> MediaViewScreen(
     // Override back button/gesture when locked
     BackHandler(enabled = isLocked) { }
 
+    // Guard against a second swipe-down firing while the dismiss/pop transition is still in
+    // flight. The viewer stays composed and gesture-active during the animation, so a second
+    // swipe would trigger another navigateUp and pop past the gallery, exiting the app.
+    var isDismissing by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(mediaState.value) {
         snapshotFlow { pagerState.currentPage }.collectLatest { page ->
@@ -709,7 +714,8 @@ fun <T : Media> MediaViewScreen(
                                 uiEnabled = showUI,
                                 playWhenReady = canPlay,
                                 onSwipeDown = {
-                                    if (!isLocked) {
+                                    if (!isLocked && !isDismissing) {
+                                        isDismissing = true
                                         windowInsetsController.toggleSystemBars(show = true)
                                         runCatching {
                                             (activity as ComponentActivity).onBackPressedDispatcher.onBackPressed()
@@ -803,8 +809,11 @@ fun <T : Media> MediaViewScreen(
                                                     }
                                                 )
                                                 .swipe(onOffset = { offset = it }) {
-                                                    windowInsetsController.toggleSystemBars(show = true)
-                                                    eventHandler.navigateUp()
+                                                    if (!isDismissing) {
+                                                        isDismissing = true
+                                                        windowInsetsController.toggleSystemBars(show = true)
+                                                        eventHandler.navigateUp()
+                                                    }
                                                 }
                                         )
 
@@ -837,8 +846,11 @@ fun <T : Media> MediaViewScreen(
                                                     }
                                                 )
                                                 .swipe(onOffset = { offset = it }) {
-                                                    windowInsetsController.toggleSystemBars(show = true)
-                                                    eventHandler.navigateUp()
+                                                    if (!isDismissing) {
+                                                        isDismissing = true
+                                                        windowInsetsController.toggleSystemBars(show = true)
+                                                        eventHandler.navigateUp()
+                                                    }
                                                 }
                                         )
                                     }
