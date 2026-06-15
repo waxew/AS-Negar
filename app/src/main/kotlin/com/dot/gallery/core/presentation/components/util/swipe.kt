@@ -16,6 +16,12 @@ import androidx.compose.ui.unit.IntOffset
 import com.dot.gallery.feature_node.presentation.util.rememberFeedbackManager
 import kotlin.math.roundToInt
 
+// Maximum distance (px) the content can be dragged down for the elastic pull effect.
+private const val MAX_DRAG = 400f
+// Distance (px) past which releasing dismisses the media. Lower than [MAX_DRAG] so a
+// normal swipe-down dismisses instead of requiring the finger to reach the hard cap.
+private const val DISMISS_THRESHOLD = 200f
+
 @Composable
 fun Modifier.swipe(
     enabled: Boolean = true,
@@ -42,8 +48,8 @@ fun Modifier.swipe(
                     onVerticalDrag = { change, dragAmount ->
                         if (dragAmount > 0f || delta > 0f) {
                             delta += dragAmount
-                            delta = delta.coerceIn(0f, 400f)
-                            if (!isVibrating && delta == 400f) {
+                            delta = delta.coerceIn(0f, MAX_DRAG)
+                            if (!isVibrating && delta >= DISMISS_THRESHOLD) {
                                 feedbackManager.vibrate()
                                 isVibrating = true
                             }
@@ -53,7 +59,7 @@ fun Modifier.swipe(
                     onDragEnd = {
                         isVibrating = false
                         isDragging = false
-                        if (delta == 400f) {
+                        if (delta >= DISMISS_THRESHOLD) {
                             onSwipeDown()
                         }
                         delta = 0f
