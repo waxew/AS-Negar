@@ -890,6 +890,17 @@ object HelpRepository {
 
     private val ALL_RELEASES: List<ReleaseNotes> = listOf(
         ReleaseNotes(
+            versionName = "5.0.2",
+            versionCode = 50201,
+            releaseDate = "2026-06-16",
+            highlights = listOf(
+                ReleaseHighlight(tipId = "edit_markup", title = R.string.help_release_502_editor_title, description = R.string.help_release_502_editor_desc, icon = HelpIcon.ofVector(Icons.Outlined.Edit)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_502_viewer_title, description = R.string.help_release_502_viewer_desc, icon = HelpIcon.ofVector(Icons.Outlined.Collections)),
+                ReleaseHighlight(tipId = "cloud_backup", title = R.string.help_release_502_backup_title, description = R.string.help_release_502_backup_desc, icon = HelpIcon.ofVector(Icons.Outlined.CloudUpload)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_502_bugfixes_title, description = R.string.help_release_502_bugfixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.BugReport))
+            )
+        ),
+        ReleaseNotes(
             versionName = "5.0.1",
             versionCode = 50101,
             releaseDate = "2026-06-14",

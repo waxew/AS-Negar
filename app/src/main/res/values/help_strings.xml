@@ -1288,4 +1288,14 @@
     <string name="help_release_501_scroll_fixes_desc">Timeline and settings scroll positions are preserved, and viewer exit transitions no longer break</string>
     <string name="help_release_501_bugfixes_title">Bug fixes</string>
     <string name="help_release_501_bugfixes_desc">Improved editor markup gestures and crop box interactions, fixed launch crash on null MediaStore columns, black screen after deleting in the standalone viewer, panorama compass and gyro on rotation, album cover mismatch, date-field text, scrubber near zero, widget self-healing, and updated Simplified Chinese translations</string>
+
+    <!-- RELEASE NOTES: 5.0.2 -->
+    <string name="help_release_502_editor_title">Editor fixes</string>
+    <string name="help_release_502_editor_desc">Markup text stays within the canvas, the crop box resizes from its handles without auto-zooming, and the adjustment scrubber keeps the value you set</string>
+    <string name="help_release_502_viewer_title">Smoother media viewer</string>
+    <string name="help_release_502_viewer_desc">Swipe-to-dismiss triggers naturally, a second swipe no longer closes the app, the rotate button works after multiple turns, and the top bar and quick actions respond correctly while the info sheet is open</string>
+    <string name="help_release_502_backup_title">Reliable manual backup</string>
+    <string name="help_release_502_backup_desc">Start backup and Upload now work even when Auto-sync is turned off</string>
+    <string name="help_release_502_bugfixes_title">Bug fixes</string>
+    <string name="help_release_502_bugfixes_desc">Fixed grouped video overlapping the controls and stretching when switching members, and View all metadata for photos opened from other apps</string>
 </resources>

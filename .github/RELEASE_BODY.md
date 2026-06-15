@@ -1,38 +1,20 @@
-## What's new in 5.0.1
+## What's new in 5.0.2
 
-ReFra 5.0.1 is a polish release that follows up 5.0 with a wave of bug fixes across the viewer, timeline, and panorama playback. It also broadens image format support — PSD, JPEG 2000, TIFF, and SVG now open directly, HEIC/AVIF decode on hardware, and there's a new system-font display option plus high-quality JPEG XL zoom.
-
-### New Features
-
-- **More image formats** — Added full decoding for PSD (8BPS), JPEG 2000, TIFF, and SVG across both the timeline grid (Glide) and the media viewer (Sketch), with magic-byte sniffing since MIME types are unreliable for some of these. Each format also gets a generic region decoder so pinch-to-zoom stays crisp in the viewer.
-- **Hardware-accelerated HEIC/AVIF** — HEIC and AVIF now decode hardware-first via `ImageDecoder` (HEVC/AV1 codec) with a HeifCoder software fallback, and AVIF center-crop color artifacts are fixed by forcing RGBA_8888 in the Glide HEIF decoders.
-- **Use system font** — A new display option switches the app over to your device's system font instead of the bundled typeface (#931).
-- **High-quality JXL zoom** — JPEG XL images now zoom sharply in the viewer through a dedicated JxlCoder region decoder.
-
-### Improvements
-
-- **Media-volume video playback** — Video now plays only through the media volume stream. 'Request audio focus' option is removed.
-- **Dismissible What's New card** — The What's New card on the timeline can now be dismissed without opening it (#935).
-- Removed the pause-image-loading-while-flinging behaviour for smoother, more consistent scrolling.
-- Updated Simplified Chinese translations (Vault renamed to 保险箱, Private Folder strings translated).
+ReFra 5.0.2 is a focused polish release that follows up 5.0.1 with fixes across the media viewer, photo editor, and cloud backup. Swipe and gesture handling in the viewer is more reliable, the editor's markup and crop tools behave correctly, and manual cloud backups now run regardless of the Auto-sync setting.
 
 ### Bug Fixes
 
-- Improved editor markup text gestures (top-right handle now rotates, text stays within canvas bounds, correct two-finger centroid when zoomed) and crop box interactions (move small boxes, two-finger pinch resize, auto zoom-to-fit, clearer Crop action button) (#936)
-- Fixed timeline scroll position not being preserved when returning from the media viewer
-- Fixed settings categories losing their scroll position when navigating to a detail page
-- Fixed album cover not matching the first item shown inside the album
-- Fixed broken viewer exit animations by restricting the shared-element transition to the current page
-- Fixed a black screen in the standalone viewer after deleting the current photo
-- Fixed a crash on launch when MediaStore returned null string columns
-- Fixed video zoom on forced rotation and made pinch-to-zoom feel natural
-- Fixed the back gesture being ignored on videos when controls were hidden (#918)
-- Fixed the video info section closing when auto-hide fired (#930)
-- Fixed the panorama compass not updating on portrait/landscape rotation
-- Fixed panorama gyro axes not being remapped for display rotation
-- Fixed text disappearing and the cursor jumping in date format fields
-- Fixed the scrubber value resetting to its default near zero (#934)
-- Fixed home screen widgets by self-healing when the cached bitmap is missing
-- Fixed Facebook export photos showing future dates in the timeline
-- Fixed the search bar placeholder overflowing to a second line
-- Fixed the erroneous "Copied to clipboard" toast on Android 13+ (#928)
+- **Editor markup & crop** — Markup text now stays clamped within the canvas after drag, resize, and two-finger transforms, the crop box can be pinch-resized from its handles/edges, and resizing no longer auto-zooms the image to fit the selection (#936)
+- **Editor scrubber** — Adjustments (e.g. Borders) now commit the value you scrub to instead of retaining the previously applied value when switching tools (#934)
+- **Swipe-to-dismiss** — The viewer now dismisses once a swipe-down passes a natural threshold instead of requiring the full drag distance, with the haptic moved to that release point (#944)
+- **Double swipe-down** — A second swipe-down during the dismiss transition no longer pops past the gallery and closes the app (#942)
+- **Rotate button** — Rotation is normalised mod 360 so the rotate pill hides correctly and the rotate action works after multiple full turns (#950)
+- **Top app bar over info sheet** — The viewer's back/info buttons now win hit-testing over the info sheet so they always respond (#943)
+- **Quick action bar** — The faded-out action bar is no longer hit-testable while the info panel is expanded, so taps fall through to the sheet instead of triggering hidden buttons (#945)
+- **Grouped video** — Fixed the member carousel overlapping the video controls and the video stretching when switching members in a similar-video group (#941)
+- **Manual cloud backup** — 'Start backup' / 'Upload now' now run even when the Auto-sync toggle is off, so new photos upload to Immich on demand (#951)
+- **View all metadata** — The metadata view now opens for photos launched from an external VIEW intent by URL-encoding the route (#946)
+
+### Internal
+
+- Switched JPEG 2000 decoding to a Maven-hosted JP2ForAndroid fork.
