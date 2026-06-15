@@ -725,10 +725,13 @@ fun <T : Media> MediaViewScreen(
                                 currentVault = currentVault,
                                 rotationDisabled = isLocked,
                                 onImageRotated = { newRotation ->
+                                    // Reduce the accumulated rotation to the 0..359 range so that
+                                    // every full turn (360, 720, ...) is treated as "no rotation".
+                                    val normalizedRotation = ((newRotation % 360) + 360) % 360
                                     showRotationHelper.value =
-                                        media?.isImage == true && newRotation != 0 && newRotation != 360
+                                        media?.isImage == true && normalizedRotation != 0
                                     newRotationValue.intValue =
-                                        (if (showRotationHelper.value) newRotation else 0)
+                                        (if (showRotationHelper.value) normalizedRotation else 0)
                                 },
                                 onItemClick = {
                                     if (sheetState.currentDetent == imageOnlyDetent) {
