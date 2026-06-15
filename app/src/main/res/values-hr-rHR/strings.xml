@@ -111,9 +111,9 @@
     <string name="allow_gif_animation_summary">Reproduciraj GIF animacije na vremenskoj crti i u mreži albuma. Isključi kako bi se smanjilo usporavanje u mapama s mnogo GIF-ova</string>
     <string name="amoled_mode_title">Koristi AMOLED način rada</string>
     <string name="amoled_mode_summary">Veći kontrast, najbolje za AMOLED ekrane</string>
-    <string name="use_system_font_title">Use system font</string>
-    <string name="use_system_font_summary">Use your device\'s default font instead of the built-in one</string>
-    <string name="use_system_font_description">When enabled, the app uses your device\'s system font instead of the built-in Google Sans font. This can improve readability if you use a custom system font.</string>
+    <string name="use_system_font_title">Koristi sistemski font</string>
+    <string name="use_system_font_summary">Koristi zadani font svog uređaja umjesto ugrađenog</string>
+    <string name="use_system_font_description">Kada je omogućeno, aplikacija koristi sistemski font vašeg uređaja umjesto ugrađenog fonta Google Sans. Ovo može poboljšati čitljivost ako koristite prilagođeni sistemski font.</string>
     <string name="color_palette_preview_description">Ikone, tekst i ostalo usklađuju se s bojama vaše pozadine</string>
     <string name="color_palette_wallpaper_colors">Boje pozadine</string>
     <string name="color_palette_other_colors">Ostale boje</string>
@@ -695,7 +695,7 @@
     <string name="editor_rotate_90">Zakreni za 90 stupnjeva</string>
     <string name="editor_aspect_ratio">Omjer slike</string>
     <string name="editor_apply_crop">Primijeni obrezivanje</string>
-    <string name="editor_crop">Crop</string>
+    <string name="editor_crop">Izreži</string>
     <string name="editor_cancel_markup">Odustani od označavanja</string>
     <string name="editor_apply_markup">Primijeni označavanje</string>
     <string name="editor_undo">Poništi</string>
