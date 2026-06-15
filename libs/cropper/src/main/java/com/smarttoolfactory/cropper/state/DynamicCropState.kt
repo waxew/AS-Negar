@@ -125,7 +125,10 @@ class DynamicCropState internal constructor(
             return
         }
 
-        gestureInvoked = changes.size > 1 && (touchRegion == TouchRegion.Inside)
+        // Allow a two-finger pinch to resize the crop box whether the gesture starts inside the
+        // overlay or on a handle/edge. Previously only an inside start counted, so putting two
+        // fingers on the resize handles/edges did nothing (couldn't grab two resizers at once).
+        gestureInvoked = changes.size > 1 && touchRegion != TouchRegion.None
 
         // If overlay is touched and pointer size is one update
         // or pointer size is bigger than one but touched any handles update
@@ -166,27 +169,25 @@ class DynamicCropState internal constructor(
     override suspend fun onUp(change: PointerInputChange) = coroutineScope {
         if (touchRegion != TouchRegion.None) {
 
-            if (handlesTouched(touchRegion)) {
-                // A handle was used to resize the crop box: expand the overlay back to fill the
-                // frame and zoom the image to fit, so the user sees the selected region enlarged.
-                animateResizeToFitOverlay()
-            } else {
-                val isInContainerBounds = isRectInContainerBounds(overlayRect)
-                if (!isInContainerBounds) {
+            // Resizing the crop box with a handle no longer zooms the image to fit the selection
+            // (the old one-way zoom-in felt klunky and could not be zoomed back out). For both
+            // handle-resize and move we simply clamp the overlay back into the container bounds and
+            // keep the image covering it, so the crop box behaves like a plain selection rectangle.
+            val isInContainerBounds = isRectInContainerBounds(overlayRect)
+            if (!isInContainerBounds) {
 
-                    // Calculate new overlay since it's out of Container bounds
-                    rectTemp = calculateOverlayRectInBounds(rectBounds, overlayRect)
+                // Calculate new overlay since it's out of Container bounds
+                rectTemp = calculateOverlayRectInBounds(rectBounds, overlayRect)
 
-                    // Animate overlay to new bounds inside container
-                    animateOverlayRectTo(rectTemp)
-                }
-
-                // Update and animate pan, zoom and image draw area after overlay position is updated
-                animateTransformationToOverlayBounds(overlayRect, true)
-
-                // Update image draw area after animating pan, zoom or rotation is completed
-                drawAreaRect = updateImageDrawRectFromTransformation()
+                // Animate overlay to new bounds inside container
+                animateOverlayRectTo(rectTemp)
             }
+
+            // Update and animate pan, zoom and image draw area after overlay position is updated
+            animateTransformationToOverlayBounds(overlayRect, true)
+
+            // Update image draw area after animating pan, zoom or rotation is completed
+            drawAreaRect = updateImageDrawRectFromTransformation()
 
             touchRegion = TouchRegion.None
         }

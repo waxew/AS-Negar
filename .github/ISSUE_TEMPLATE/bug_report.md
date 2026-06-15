@@ -27,7 +27,7 @@ If applicable, add screenshots to help explain your problem.
 **Smartphone (please complete the following information):**
  - Device: [e.g. Google Pixel 6]
  - OS: [e.g. Android 14]
- - Version [e.g. 1.1.0]
+ - Version: [e.g. 1.1.0]
 
 **Additional context**
 Add any other context about the problem here.

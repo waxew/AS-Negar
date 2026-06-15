@@ -191,9 +191,16 @@ fun MarkupPainter(
                                 val zoom = event.calculateZoom()
                                 val ann = latestTextAnnotations[latestSelectedTextIndex]
                                 val updated = latestTextAnnotations.toMutableList()
-                                updated[latestSelectedTextIndex] = ann.copy(
-                                    rotation = ann.rotation + rotation,
-                                    fontSize = (ann.fontSize * zoom).coerceIn(0.02f, 0.2f)
+                                val sz = Size(
+                                    canvasLayoutSize.width.toFloat(),
+                                    canvasLayoutSize.height.toFloat()
+                                )
+                                updated[latestSelectedTextIndex] = clampAnnotationCenter(
+                                    ann.copy(
+                                        rotation = ann.rotation + rotation,
+                                        fontSize = (ann.fontSize * zoom).coerceIn(0.02f, 0.2f)
+                                    ),
+                                    sz
                                 )
                                 latestOnTextAnnotationsChange(updated)
                             } else {
@@ -311,8 +318,15 @@ fun MarkupPainter(
                         val dy = change.y / canvasLayoutSize.height.coerceAtLeast(1)
                         val updated = latestTextAnnotations.toMutableList()
                         val ann = updated[latestSelectedTextIndex]
-                        updated[latestSelectedTextIndex] = ann.copy(
-                            fontSize = (ann.fontSize + dy).coerceIn(0.02f, 0.2f)
+                        val sz = Size(
+                            canvasLayoutSize.width.toFloat(),
+                            canvasLayoutSize.height.toFloat()
+                        )
+                        updated[latestSelectedTextIndex] = clampAnnotationCenter(
+                            ann.copy(
+                                fontSize = (ann.fontSize + dy).coerceIn(0.02f, 0.2f)
+                            ),
+                            sz
                         )
                         latestOnTextAnnotationsChange(updated)
                         pointerInputChange.consume()
@@ -335,8 +349,9 @@ fun MarkupPainter(
                         val (minTop, maxTop) = if (normH <= 1f) 0f to (1f - normH) else (1f - normH) to 0f
                         val newX = (ann.position.x + dx).coerceIn(minX, maxX)
                         val newTop = (ann.position.y - ann.fontSize + dy).coerceIn(minTop, maxTop)
-                        updated[latestSelectedTextIndex] = ann.copy(
-                            position = Offset(newX, newTop + ann.fontSize)
+                        updated[latestSelectedTextIndex] = clampAnnotationCenter(
+                            ann.copy(position = Offset(newX, newTop + ann.fontSize)),
+                            sz
                         )
                         latestOnTextAnnotationsChange(updated)
                         pointerInputChange.consume()
@@ -790,6 +805,27 @@ private fun measureTextBounds(annotation: TextAnnotation, canvasSize: Size): Rec
         top = y - textSize, // baseline offset
         right = x + maxWidth,
         bottom = y - textSize + totalHeight
+    )
+}
+
+/**
+ * Keep a text annotation grabbable by clamping its bounding-box center within the canvas.
+ * Without this, rotating or growing a text box (or dragging a very wide/tall one) can move the
+ * whole box off-canvas, leaving nothing on screen to tap and making it unselectable.
+ */
+private fun clampAnnotationCenter(annotation: TextAnnotation, canvasSize: Size): TextAnnotation {
+    if (canvasSize.width <= 0f || canvasSize.height <= 0f) return annotation
+    val bounds = measureTextBounds(annotation, canvasSize)
+    val cxNorm = bounds.center.x / canvasSize.width
+    val cyNorm = bounds.center.y / canvasSize.height
+    val clampedCx = cxNorm.coerceIn(0f, 1f)
+    val clampedCy = cyNorm.coerceIn(0f, 1f)
+    if (clampedCx == cxNorm && clampedCy == cyNorm) return annotation
+    return annotation.copy(
+        position = Offset(
+            annotation.position.x + (clampedCx - cxNorm),
+            annotation.position.y + (clampedCy - cyNorm)
+        )
     )
 }
 
