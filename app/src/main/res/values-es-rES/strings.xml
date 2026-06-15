@@ -53,8 +53,8 @@
     <string name="nav_timeline">Cronología</string>
     <string name="location_cd">Ubicación de archivos</string>
     <string name="location_map_cd">Mapa de ubicaciones</string>
-    <string name="show_in_app">Show in app</string>
-    <string name="open_externally">Open externally</string>
+    <string name="show_in_app">Mostrar en la aplicación</string>
+    <string name="open_externally">Abrir externamente</string>
     <string name="no_map_app">Ninguna aplicación disponible para mostrar la ubicación</string>
     <string name="app_dev">por %s</string>
     <string name="app_dev_name">IacobIonut01</string>
@@ -111,9 +111,9 @@
     <string name="allow_gif_animation_summary">Reproducir animaciones GIF en la línea de tiempo y en la cuadrícula de álbumes. Desactivar para reducir el retardo en carpetas con muchos GIF</string>
     <string name="amoled_mode_title">Utilizar el modo Amoled</string>
     <string name="amoled_mode_summary">Mayor contraste, más adecuado para pantallas Amoled</string>
-    <string name="use_system_font_title">Use system font</string>
-    <string name="use_system_font_summary">Use your device\'s default font instead of the built-in one</string>
-    <string name="use_system_font_description">When enabled, the app uses your device\'s system font instead of the built-in Google Sans font. This can improve readability if you use a custom system font.</string>
+    <string name="use_system_font_title">Utilizar fuente del sistema</string>
+    <string name="use_system_font_summary">Utilizar la fuente predeterminada de tu dispositivo en lugar de la integrada</string>
+    <string name="use_system_font_description">Cuando esté activado, la aplicación utilizará la fuente predeterminada de tu sistema en lugar de la integrada de Google Sans. Esto puede mejorar la legibilidad si utilizas una fuente personalizada del sistema.</string>
     <string name="color_palette_preview_description">Los iconos, el texto y otros elementos coinciden con los colores del fondo de pantalla</string>
     <string name="color_palette_wallpaper_colors">Colores del fondo de pantalla</string>
     <string name="color_palette_other_colors">Otros colores</string>
@@ -499,9 +499,9 @@
     <string name="vault_change_security_summary">Usar un PIN, patrón o contraseña en lugar de la seguridad del dispositivo</string>
     <string name="vault_remove_custom_security">Eliminar contraseña personalizada</string>
     <string name="vault_remove_custom_security_summary">Volver a la seguridad del dispositivo (bloqueo biométrico o de pantalla)</string>
-    <string name="vault_confirm_restore_title">Restore media?</string>
-    <string name="vault_confirm_restore_summary">Selected media will be decrypted and restored to your gallery.\nIt will be removed from the vault.</string>
-    <string name="vault_confirm_delete_items_title">Delete from vault?</string>
+    <string name="vault_confirm_restore_title">¿Restaurar medios?</string>
+    <string name="vault_confirm_restore_summary">Los medios seleccionados serán desencriptados y restaurados en tu galería.\nSerána eliminados de la bóveda.</string>
+    <string name="vault_confirm_delete_items_title">¿Eliminar de la bóveda?</string>
     <string name="vault_confirm_delete_items_summary">Selected items will be permanently deleted from the vault.\nThis action cannot be undone.</string>
     <string name="vault_originals_question">What should happen to the originals?</string>
     <string name="vault_change_custom_password">Change custom password</string>
