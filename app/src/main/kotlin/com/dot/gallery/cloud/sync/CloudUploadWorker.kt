@@ -53,10 +53,16 @@ class CloudUploadWorker @AssistedInject constructor(
                 return Result.success()
             }
 
+            // Manual ("Upload now" / "Start backup") runs are user-initiated and must work even
+            // when periodic auto-sync (syncEnabled) is off. syncEnabled only governs the background
+            // scheduler, so only require it for the periodic worker, not for a manual trigger.
+            val isManual = inputData.getBoolean(KEY_MANUAL, false)
             val configs = configDao.getAll().first()
-            val activeConfig = configs.firstOrNull { it.isActive && it.syncEnabled }
+            val activeConfig = configs.firstOrNull {
+                it.isActive && (isManual || it.syncEnabled)
+            }
             if (activeConfig == null) {
-                printDebug("CloudUploadWorker: No active sync-enabled server config")
+                printDebug("CloudUploadWorker: No active server config (manual=$isManual)")
                 return Result.success()
             }
 
@@ -211,6 +217,7 @@ class CloudUploadWorker @AssistedInject constructor(
         const val KEY_FAILED_ITEMS = "failed_items"
         const val KEY_COMPLETED_FILES = "completed_files"
         const val KEY_FAILED_FILES = "failed_files"
+        const val KEY_MANUAL = "manual"
         private const val MAX_TRACKED_FILES = 50
 
         fun schedule(
@@ -244,6 +251,7 @@ class CloudUploadWorker @AssistedInject constructor(
                 .build()
             val request = OneTimeWorkRequestBuilder<CloudUploadWorker>()
                 .setConstraints(constraints)
+                .setInputData(workDataOf(KEY_MANUAL to true))
                 .build()
             workManager.enqueueUniqueWork(
                 WORK_NAME_ONCE,
