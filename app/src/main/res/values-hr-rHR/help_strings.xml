@@ -1222,18 +1222,18 @@
     <string name="help_release_500_bugfixes_title">Ispravci pogrešaka i poboljšanja</string>
     <string name="help_release_500_bugfixes_desc">Ispravljeno zrcaljenje panorama, pozadinski zvuk pri gubitku fokusa, sličice u biraču albuma, curenje deskriptora datoteka, problemi sa sefom, rušenja zbog dupliciranih ključeva i odredišta kopiranja/premještanja na SD karticu</string>
     <!-- RELEASE NOTES: 5.0.1 -->
-    <string name="help_release_501_formats_title">More image formats</string>
-    <string name="help_release_501_formats_desc">View PSD, JPEG 2000, TIFF, and SVG files in the timeline and viewer, each with crisp pinch-to-zoom</string>
-    <string name="help_release_501_heif_title">Faster HEIC &amp; AVIF</string>
-    <string name="help_release_501_heif_desc">Hardware-accelerated HEIC/AVIF decoding with fixed AVIF color artifacts</string>
-    <string name="help_release_501_system_font_title">Use system font</string>
-    <string name="help_release_501_system_font_desc">New display option to switch the app over to your device\'s system font instead of the bundled typeface</string>
-    <string name="help_release_501_jxl_zoom_title">High-quality JXL zoom</string>
-    <string name="help_release_501_jxl_zoom_desc">JPEG XL images now zoom sharply in the viewer through a dedicated region decoder</string>
-    <string name="help_release_501_video_fixes_title">Smoother video playback</string>
-    <string name="help_release_501_video_fixes_desc">Video follows the media volume stream, zoom and pinch behave naturally on rotation, and the info section stays open when auto-hide fires</string>
-    <string name="help_release_501_scroll_fixes_title">Stable scrolling &amp; navigation</string>
-    <string name="help_release_501_scroll_fixes_desc">Timeline and settings scroll positions are preserved, and viewer exit transitions no longer break</string>
-    <string name="help_release_501_bugfixes_title">Bug fixes</string>
-    <string name="help_release_501_bugfixes_desc">Improved editor markup gestures and crop box interactions, fixed launch crash on null MediaStore columns, black screen after deleting in the standalone viewer, panorama compass and gyro on rotation, album cover mismatch, date-field text, scrubber near zero, widget self-healing, and updated Simplified Chinese translations</string>
+    <string name="help_release_501_formats_title">Više formata slika</string>
+    <string name="help_release_501_formats_desc">Pregledavaj PSD, JPEG 2000, TIFF i SVG datoteke na vremenskoj traci i u pregledniku, uz oštro zumiranje prstima</string>
+    <string name="help_release_501_heif_title">Brži HEIC &amp; AVIF</string>
+    <string name="help_release_501_heif_desc">Hardverski ubrzano dekodiranje HEIC/AVIF formata s ispravljenim artefaktima boja u AVIF datotekama</string>
+    <string name="help_release_501_system_font_title">Koristi sistemski font</string>
+    <string name="help_release_501_system_font_desc">Nova opcija prikaza za prebacivanje aplikacije na sistemski font vašeg uređaja umjesto priloženog fonta</string>
+    <string name="help_release_501_jxl_zoom_title">Visokokvalitetno zumiranje JXL datoteka</string>
+    <string name="help_release_501_jxl_zoom_desc">JPEG XL slike se sada oštro zumiraju u pregledniku putem namjenskog dekodera regija</string>
+    <string name="help_release_501_video_fixes_title">Glađa reprodukcija videozapisa</string>
+    <string name="help_release_501_video_fixes_desc">Videozapis prati glasnoću medija, zumiranje i stiskanje prstima ponašaju se prirodno pri rotaciji, a odjeljak s informacijama ostaje otvoren kada se aktivira automatsko skrivanje</string>
+    <string name="help_release_501_scroll_fixes_title">Stabilno pomicanje &amp; navigacija</string>
+    <string name="help_release_501_scroll_fixes_desc">Položaj pomicanja na vremenskoj traci i u postavkama ostaje spremljen, a prijelazi pri izlasku iz preglednika više se ne prekidaju</string>
+    <string name="help_release_501_bugfixes_title">Ispravci pogrešaka</string>
+    <string name="help_release_501_bugfixes_desc">Poboljšane geste za označavanje u uređivaču i interakcije s okvirom za izrezivanje; ispravljeno rušenje pri pokretanju zbog null vrijednosti u MediaStore stupcima, crni zaslon nakon brisanja u samostalnom pregledniku, panorama kompas i žiroskop pri rotaciji, nepodudaranje naslovnica albuma, tekst u polju datuma, klizač pri nuli, samopopravljanje widgeta i ažurirani prijevodi za pojednostavljeni kineski</string>
 </resources>
