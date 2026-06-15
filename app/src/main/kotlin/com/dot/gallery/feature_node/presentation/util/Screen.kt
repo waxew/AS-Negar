@@ -174,7 +174,7 @@ sealed class Screen(val route: String) {
         fun uriAndType() = "$route?mediaUri={mediaUri}&isVideo={isVideo}"
 
         fun uriAndType(mediaUri: String, isVideo: Boolean) =
-            "$route?mediaUri=$mediaUri&isVideo=$isVideo"
+            "$route?mediaUri=${android.net.Uri.encode(mediaUri)}&isVideo=$isVideo"
     }
 
     data object HelpScreen : Screen("help_screen")
