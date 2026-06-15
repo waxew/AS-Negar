@@ -1092,7 +1092,10 @@ fun <T : Media> MediaViewScreen(
                     .padding(horizontal = 16.dp)
                     .padding(
                         bottom = bottomPadding + extraPaddingWithNavButtons +
-                                bottomBarHeightDefault + 32.dp
+                                bottomBarHeightDefault + 32.dp +
+                                // Lift the member carousel above the video transport controls
+                                // (slider + time) so they don't overlap for grouped videos.
+                                (if (isCurrentVideo) 96.dp else 0.dp)
                     )
             ) {
                 val currentPagerItemId = pagerItems.getOrNull(currentPage)?.id ?: -1L

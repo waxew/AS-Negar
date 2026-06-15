@@ -34,6 +34,7 @@ import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -184,8 +185,12 @@ fun <T : Media> VideoPlayer(
     }
 
     val density = LocalDensity.current
-    var surfaceViewRef by remember { mutableStateOf<View?>(null) }
-    var videoSize by remember { mutableStateOf(IntSize.Zero) }
+    // Key these to media.id: when switching between grouped members on the same page the
+    // VideoPlayer node is reused (only `media` changes), so a stale surface/size would leave
+    // the new video attached to the previous surface and stretched. Resetting per media forces
+    // a fresh surface bound to the new player.
+    var surfaceViewRef by remember(media.id) { mutableStateOf<View?>(null) }
+    var videoSize by remember(media.id) { mutableStateOf(IntSize.Zero) }
     val allowBlur by rememberAllowBlur()
     val hazeState = LocalHazeState.current
     val videoCapture by rememberSurfaceCapture(
@@ -332,27 +337,30 @@ fun <T : Media> VideoPlayer(
                     )
                 }
             }
-            AndroidView(
-                factory = { ctx ->
-                    SurfaceView(ctx).also { sv ->
-                        surfaceViewRef = sv
-                    }
-                },
-                update = { sv ->
-                    if (!currentPlayer.isReleased) {
-                        currentPlayer.setVideoSurfaceView(sv)
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .resizeWithContentScale(
-                        contentScale = ContentScale.Fit,
-                        sourceSizeDp = presentationState.videoSizeDp
-                    )
-                    .onGloballyPositioned { coordinates ->
-                        videoSize = coordinates.size
-                    }
-            )
+            // Recreate the surface per media so a switched group member binds to its own player.
+            key(media.id) {
+                AndroidView(
+                    factory = { ctx ->
+                        SurfaceView(ctx).also { sv ->
+                            surfaceViewRef = sv
+                        }
+                    },
+                    update = { sv ->
+                        if (!currentPlayer.isReleased) {
+                            currentPlayer.setVideoSurfaceView(sv)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .resizeWithContentScale(
+                            contentScale = ContentScale.Fit,
+                            sourceSizeDp = presentationState.videoSizeDp
+                        )
+                        .onGloballyPositioned { coordinates ->
+                            videoSize = coordinates.size
+                        }
+                )
+            }
 
             // Subtitle rendering overlay
             var subtitleViewRef by remember { mutableStateOf<SubtitleView?>(null) }
