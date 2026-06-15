@@ -13,6 +13,7 @@ fuzzywuzzyKotlin = "1.0.1"
 graphicsShapes = "1.1.0"
 haze = "1.7.2"
 hazeMaterials = "1.7.2"
+jp2forandroid = "1.0.4"
 jxlCoder = "2.6.1"
 jp2Android = "1.0.3"
 androidsvg = "1.4"
@@ -121,6 +122,7 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 # Room
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "hazeMaterials" }
+jp2forandroid = { module = "com.github.Tgo1014:JP2ForAndroid", version.ref = "jp2forandroid" }
 jxl-coder-coil = { module = "io.github.awxkee:jxl-coder-coil", version.ref = "jxlCoder" }
 jp2-android = { module = "com.gemalto.jp2:jp2-android", version.ref = "jp2Android" }
 androidsvg = { module = "com.caverock:androidsvg-aar", version.ref = "androidsvg" }
