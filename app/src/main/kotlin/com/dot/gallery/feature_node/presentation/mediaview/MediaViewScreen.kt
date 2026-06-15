@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoState
@@ -934,6 +935,11 @@ fun <T : Media> MediaViewScreen(
             }
 
             val allowShowingDate by rememberShowMediaViewDateHeader()
+            // Keep the top app bar above the BottomSheet so its back/info buttons stay tappable
+            // when the info panel is expanded (the sheet is drawn after the app bar and would
+            // otherwise intercept taps in the overlapping top region). Empty app bar areas have no
+            // pointer input, so taps/drags there still fall through to the sheet.
+            Box(modifier = Modifier.zIndex(1f)) {
             MediaViewAppBar(
                 showUI = showUI,
                 showInfo = showInfo,
@@ -1003,6 +1009,7 @@ fun <T : Media> MediaViewScreen(
                     }
                 } else null
             )
+            }
 
             // Auto-cast current media when device connects
             LaunchedEffect(fcastState.connectedDevice?.host) {
