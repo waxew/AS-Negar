@@ -1242,7 +1242,11 @@ fun <T : Media> MediaViewScreen(
                                 MediaViewQuickBottomBar(
                                     currentMedia = currentMedia,
                                     showDeleteButton = !isReadOnly,
-                                    enabled = showUI,
+                                    // Only interactive while the action bar is actually visible
+                                    // (collapsed sheet). When the info panel is expanded the bar is
+                                    // faded out (alpha = 0) but would otherwise still be tappable,
+                                    // letting taps near the drag handle trigger hidden buttons.
+                                    enabled = showUI && sheetState.currentDetent == imageOnlyDetent,
                                     deleteMedia = deleteMedia,
                                     restoreMedia = restoreMedia,
                                     currentVault = currentVault,
