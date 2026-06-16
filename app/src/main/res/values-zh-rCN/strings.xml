@@ -532,14 +532,14 @@
     <string name="ai_category_summary">控制您想使用的智能功能</string>
     <!-- Settings Overhaul: New Section Names & Summaries -->
     <string name="settings_appearance">外观</string>
-    <string name="settings_appearance_summary">主题，颜色，深色模式，视觉效果</string>
+    <string name="settings_appearance_summary">主题、颜色、深色模式、视觉效果</string>
     <string name="settings_timeline_albums">时间线 &amp; 相册</string>
     <string name="settings_timeline_albums_summary">布局、图片合并、日期格式、相册行为</string>
     <string name="settings_display_header">显示设置</string>
     <string name="settings_media_viewer">媒体查看器</string>
     <string name="settings_media_viewer_summary">媒体观看体验、编辑器、视频播放</string>
     <string name="settings_navigation">导航</string>
-    <string name="settings_navigation_summary">首屏，导航栏，界面行为</string>
+    <string name="settings_navigation_summary">首屏、导航栏、界面行为</string>
     <!-- Settings Overhaul: Extended Descriptions -->
     <string name="monthly_timeline_description">将您的所有照片和视频按月而非按具体日期进行分组。这样在浏览大型图库时能提供更简洁的概览，但您将无法查看按日分类的内容。\n\n更改此设置后，应用将重新启动。</string>
     <string name="group_similar_media_description">自动将相关照片合并 — 包括 RAW+JPG 成对文件、编辑后的副本以及连拍照片序列。启用此功能后，网格中仅显示主照片；合并项目将在媒体查看器中显示。</string>
