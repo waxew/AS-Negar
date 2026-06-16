@@ -1028,13 +1028,13 @@
     <string name="story_cards_settings_title">Cartes Histoire</string>
     <string name="story_cards_settings_summary">Configurer les cartes d\'histoire au-dessus de la chronologie</string>
     <string name="story_cards_enabled">Afficher les Cartes Histoire</string>
-    <string name="story_cards_enabled_summary">Display story cards above the timeline</string>
-    <string name="story_cards_order_title">Card types &amp; order</string>
+    <string name="story_cards_enabled_summary">Afficher les Cartes Histoire au-dessus de la chronologie</string>
+    <string name="story_cards_order_title">Types de cartes &amp; ordre</string>
     <string name="story_viewer_settings_title">Story viewer</string>
     <string name="story_viewer_auto_advance">Auto-advance</string>
     <string name="story_viewer_auto_advance_summary">Passer automatiquement à la photo suivante</string>
     <string name="story_viewer_duration">Durée par photo</string>
-    <string name="story_viewer_duration_summary">Currently %1$s seconds per photo</string>
+    <string name="story_viewer_duration_summary">Actuellement %1$s secondes par photo</string>
     <string name="navigate_back">Navigate back</string>
     <!-- Cloud Accounts Settings -->
     <string name="settings_cloud_accounts">Cloud Accounts</string>
