@@ -640,20 +640,20 @@
     <string name="other">Andere</string>
     <string name="settings_trash_confirmation_title">Bestätigung für Papierkorb erforderlich</string>
     <string name="settings_trash_confirmation_summary">Aktiviere diese Option, um eine zusätzliche Bestätigung vor dem Verschieben Ihrer Medien in den Papierkorb zu verlangen</string>
-    <string name="categories_settings">Categories Settings</string>
-    <string name="categories_settings_subtitle">Manage scanning, categories and classification</string>
-    <string name="locations_count">%1$d locations</string>
-    <string name="no_locations_found">No locations found</string>
-    <string name="locations">Locations</string>
-    <string name="no_categories_found">No categories found</string>
+    <string name="categories_settings">Kategorien-Einstellungen</string>
+    <string name="categories_settings_subtitle">Scannen, Kategorien und Klassifizierung verwalten</string>
+    <string name="locations_count">%1$d Standorte</string>
+    <string name="no_locations_found">Keine Standorte gefunden</string>
+    <string name="locations">Standorte</string>
+    <string name="no_categories_found">Keine Kategorien gefunden</string>
     <!-- Dynamic search carousels -->
-    <string name="media_types">Media Types</string>
-    <string name="camera_models">Camera Models</string>
-    <string name="special_modes">Special Modes</string>
-    <string name="night_mode">Night Mode</string>
-    <string name="panoramas">Panoramas</string>
-    <string name="photospheres">Photospheres</string>
-    <string name="long_exposures">Long Exposures</string>
+    <string name="media_types">Medienarten</string>
+    <string name="camera_models">Kameramodelle</string>
+    <string name="special_modes">Spezielle Modi</string>
+    <string name="night_mode">Nachtmodus</string>
+    <string name="panoramas">Panoramen</string>
+    <string name="photospheres">Fotosphären</string>
+    <string name="long_exposures">Lange Belichtungszeit</string>
     <string name="motion_photos">Motion Photos</string>
     <string name="motion_photo_pill">Motion</string>
     <string name="motion_photo_export_video">Save as video</string>
@@ -714,24 +714,24 @@
     <string name="tool_black_point">Black point</string>
     <string name="tool_white_point">White point</string>
     <string name="tool_highlights">Highlights</string>
-    <string name="tool_shadows">Shadows</string>
+    <string name="tool_shadows">Schatten</string>
     <string name="tool_vignette">Vignette</string>
     <!-- Colour tools -->
-    <string name="tool_saturation">Saturation</string>
-    <string name="tool_warmth">Warmth</string>
-    <string name="tool_tint">Tint</string>
-    <string name="tool_skin_tone">Skin tone</string>
-    <string name="tool_blue_tone">Blue tone</string>
-    <string name="tool_hue">Hue</string>
-    <string name="tool_black_white">B&amp;W</string>
+    <string name="tool_saturation">Sättigung</string>
+    <string name="tool_warmth">Wärme</string>
+    <string name="tool_tint">Farbton</string>
+    <string name="tool_skin_tone">Hautton</string>
+    <string name="tool_blue_tone">Blauer Farbton</string>
+    <string name="tool_hue">Farbton</string>
+    <string name="tool_black_white">S&amp;W</string>
     <!-- Effect tools -->
-    <string name="effect_posterize">Posterize</string>
-    <string name="effect_edges">Edges</string>
-    <string name="effect_borders">Borders</string>
+    <string name="effect_posterize">Poster</string>
+    <string name="effect_edges">Kanten</string>
+    <string name="effect_borders">Ränder</string>
     <!-- Actions tools -->
     <!-- Filter styles -->
-    <string name="filter_style_vivid">Vivid</string>
-    <string name="filter_style_luminous">Luminous</string>
+    <string name="filter_style_vivid">Lebendig</string>
+    <string name="filter_style_luminous">Leuchtend</string>
     <string name="filter_style_radiant">Radiant</string>
     <string name="filter_style_ember">Ember</string>
     <string name="filter_style_airy">Airy</string>
