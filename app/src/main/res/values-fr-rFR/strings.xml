@@ -111,8 +111,8 @@
     <string name="allow_gif_animation_summary">Joue les animations GIF dans la chronologie et la grille d\'album. Désactiver pour réduire les ralentissements dans les dossiers contenant de nombreux GIF</string>
     <string name="amoled_mode_title">Utiliser le mode Amoled</string>
     <string name="amoled_mode_summary">Contraste plus élevé, mieux adapté aux écrans Amoled</string>
-    <string name="use_system_font_title">Use system font</string>
-    <string name="use_system_font_summary">Use your device\'s default font instead of the built-in one</string>
+    <string name="use_system_font_title">Utiliser la police du système</string>
+    <string name="use_system_font_summary">Utiliser la police par défaut de votre appareil au lieu de la police intégrée</string>
     <string name="use_system_font_description">When enabled, the app uses your device\'s system font instead of the built-in Google Sans font. This can improve readability if you use a custom system font.</string>
     <string name="color_palette_preview_description">Icônes, texte et plus seront assortis aux couleurs de votre fond d\'écran</string>
     <string name="color_palette_wallpaper_colors">Couleurs du fond d\'écran</string>
@@ -450,8 +450,8 @@
     <string name="vault_item_deleted">L\'élément a été supprimé du coffre-fort</string>
     <string name="vault_add_to_vault_title">Ajouter au coffre-fort</string>
     <string name="vault_delete_originals">Supprimer les originaux après le cryptage</string>
-    <string name="vault_encrypt_and_keep">Encrypt &amp; Keep</string>
-    <string name="vault_encrypt_and_delete">Encrypt &amp; Delete</string>
+    <string name="vault_encrypt_and_keep">Chiffrer &amp; Conserver</string>
+    <string name="vault_encrypt_and_delete">Chiffrer &amp; Supprimer</string>
     <string name="vault_remember_choice">Se souvenir de mon choix</string>
     <string name="vault_encrypt_behavior">Comportement du chiffrement du coffre-fort</string>
     <string name="vault_encrypt_behavior_summary">Choisissez ce qu\'il advient des originaux lors de l\'ajout de médias à un coffre-fort</string>
@@ -459,10 +459,10 @@
     <string name="vault_encrypt_delete">Toujours supprimer les originaux</string>
     <string name="vault_encrypt_keep">Toujours conserver les originaux</string>
     <string name="vault_custom_password">Utiliser un mot de passe personnalisé</string>
-    <string name="vault_custom_password_summary">Set a separate password for this vault instead of using device security</string>
+    <string name="vault_custom_password_summary">Définissez un mot de passe différent pour ce coffre-fort au lieu d\'utiliser la sécurité de l\'appareil</string>
     <string name="vault_remove_custom_password">Supprimer le mot de passe personnalisé</string>
-    <string name="vault_remove_custom_password_summary">This will remove the custom password and revert to device security for unlocking this vault</string>
-    <string name="vault_actions">Vault actions</string>
+    <string name="vault_remove_custom_password_summary">Cela supprime le mot de passe personnalisé et rétabli le système de sécurité de l\'appareil pour déverrouiller ce coffre-fort</string>
+    <string name="vault_actions">Actions du coffre-fort</string>
     <string name="more_options">Plus d\'options</string>
     <string name="vault_enter_password">Entrez le mot de passe du coffre-fort</string>
     <string name="vault_confirm_password">Confirmer le mot de passe</string>
@@ -471,7 +471,7 @@
     <string name="vault_wrong_password_attempts">Mot de passe incorrect (%1$d tentatives restantes)</string>
     <string name="vault_locked_out">Trop de tentatives. Veuillez réessayer dans %1$d secondes</string>
     <string name="vault_password_set">Mot de passe du coffre-fort défini avec succès</string>
-    <string name="vault_password_removed">Vault password removed, using device security</string>
+    <string name="vault_password_removed">Mot de passe du coffre-fort supprimé, à l\'aide de la sécurité de l\'appareil</string>
     <string name="vault_unlock">Déverrouiller le coffre-fort</string>
     <string name="vault_type_pin">PIN</string>
     <string name="vault_type_pattern">Pattern</string>
@@ -490,7 +490,7 @@
     <string name="vault_encrypt_failed">Failed to encrypt %1$d item(s)</string>
     <string name="vault_hide_in_progress">Hiding media…</string>
     <string name="vault_setup_password_prompt">Souhaitez-vous définir un mot de passe personnalisé pour ce coffre-fort ?</string>
-    <string name="vault_skip_password">Use device security</string>
+    <string name="vault_skip_password">Utiliser les paramètres de sécurité de l\'appareil</string>
     <string name="vault_set_password">Set custom password</string>
     <string name="vault_deletion_title_named">Delete \"%1$s\"?</string>
     <string name="vault_deletion_summary_named">Vault \"%1$s\" and all its content will be deleted permanently.\nThis action cannot be undone.</string>
