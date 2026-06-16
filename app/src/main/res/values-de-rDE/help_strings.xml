@@ -18,8 +18,8 @@
     <string name="help_tip_basics_view_media_p1_desc">Tap any thumbnail in the timeline or an album to open it in the full-screen viewer. The photo smoothly animates from the grid into full view (if shared element transitions are enabled in Appearance settings). Videos begin playing automatically by default.</string>
     <string name="help_tip_basics_view_media_p2_title">Zwischen Medien navigieren</string>
     <string name="help_tip_basics_view_media_p2_desc">Swipe left or right to move between photos and videos without going back to the grid. Swipe down to close the viewer and return to where you were. The viewer remembers your position, so you won\'t lose your place.</string>
-    <string name="help_tip_basics_view_media_p3_title">Zoom and pan</string>
-    <string name="help_tip_basics_view_media_p3_desc">Pinch with two fingers to zoom into any photo for a closer look. While zoomed in, drag to pan around the image. Double-tap to quickly toggle between zoomed-in and original size. Tip: if you accidentally swipe to another photo while zoomed in, try the Lock Image feature (long press the date header) to prevent swipes while you explore details.</string>
+    <string name="help_tip_basics_view_media_p3_title">Zoomen und Verschieben</string>
+    <string name="help_tip_basics_view_media_p3_desc">Mit zwei Fingern anzoomen, um auf ein Bild zu zoomen. Ziehen Sie das Bild, wenn Sie es vergrößert haben, um den Bildausschnitt zu verschieben. Doppeltippen, um schnell zwischen vergrößerter und originaler Größe zu wechseln. Tipp: Wenn Sie versehentlich auf ein anderes Foto wischen während Sie zoomen, probieren Sie die Funktion Bild sperren (langer Druck auf das Datum), um Wischen zu verhindern, während Sie Details ansehen.</string>
     <string name="help_tip_basics_select_media_title">Select and manage media</string>
     <string name="help_tip_basics_select_media_subtitle">Long press to start selecting, then tap to add more</string>
     <string name="help_tip_basics_select_media_p1_title">Select photos and videos</string>
