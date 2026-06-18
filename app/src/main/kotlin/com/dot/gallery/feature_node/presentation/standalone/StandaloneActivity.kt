@@ -5,6 +5,7 @@
 
 package com.dot.gallery.feature_node.presentation.standalone
 
+import android.app.KeyguardManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
@@ -45,7 +46,7 @@ import androidx.appcompat.app.AppCompatActivity
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class StandaloneActivity : AppCompatActivity() {
+open class StandaloneActivity : AppCompatActivity() {
 
     private val eventHandler: EventHandler = DefaultEventHandler()
 
@@ -64,7 +65,16 @@ class StandaloneActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
         val action = intent.action.toString()
-        val isSecure = action.lowercase().contains("secure")
+        // A review can be "secure" in two ways:
+        //  - an explicit ACTION_REVIEW_SECURE action, or
+        //  - a plain ACTION_REVIEW launched while the device is locked. Google
+        //    Camera's secure session uses the latter: it sends
+        //    com.android.camera.action.REVIEW (no "secure" in the action) from
+        //    over the keyguard, so action-name matching alone misses it and the
+        //    keyguard would prompt for unlock before showing the photo.
+        val keyguardManager = getSystemService(KeyguardManager::class.java)
+        val isSecure = action.lowercase().contains("secure") ||
+                keyguardManager?.isKeyguardLocked == true
         val clipData = intent.clipData
         val uriList = mutableSetOf<Uri>()
         intent.data?.let(uriList::add)
@@ -73,7 +83,11 @@ class StandaloneActivity : AppCompatActivity() {
                 uriList.add(clipData.getItemAt(i).uri)
             }
         }
+        // Occlude (and wake over) the lock screen when the review is secure.
+        // This is only enabled when launched while locked, so a normal review
+        // that is later locked mid-viewing never bypasses the keyguard.
         setShowWhenLocked(isSecure)
+        setTurnScreenOn(isSecure)
         setContent {
             GalleryTheme {
                 val allowBlur by rememberAllowBlur()
@@ -84,6 +98,7 @@ class StandaloneActivity : AppCompatActivity() {
                     hiltViewModel<StandaloneViewModel, StandaloneViewModel.Factory> { factory ->
                         factory.create(
                             reviewMode = action.contains("REVIEW", true),
+                            isSecure = isSecure,
                             dataList = uriList.toList()
                         )
                     }

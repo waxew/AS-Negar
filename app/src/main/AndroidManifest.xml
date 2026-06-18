@@ -134,7 +134,6 @@
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="com.android.camera.action.REVIEW" />
                 <action android:name="android.provider.action.REVIEW" />
-                <action android:name="android.provider.action.REVIEW_SECURE" />
 
                 <data android:scheme="content"/>
                 <data android:scheme="file"/>
@@ -148,7 +147,6 @@
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="com.android.camera.action.REVIEW" />
                 <action android:name="android.provider.action.REVIEW" />
-                <action android:name="android.provider.action.REVIEW_SECURE" />
 
                 <data android:scheme="content"/>
                 <data android:scheme="http"/>
@@ -185,6 +183,35 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Dedicated entry point for secure reviews (ACTION_REVIEW_SECURE).
+            android:showWhenLocked / android:turnScreenOn are declared here so the
+            review reliably opens on top of a secure keyguard on the first frame
+            instead of prompting the user to unlock first. Kept separate from the
+            main viewer so normal VIEW/REVIEW launches never bypass the lock screen.
+        -->
+        <activity
+            android:name=".feature_node.presentation.standalone.SecureStandaloneActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:configChanges="orientation|keyboard|keyboardHidden|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:theme="@style/Theme.Gallery">
+            <intent-filter android:label="@string/app_name">
+                <action android:name="android.provider.action.REVIEW_SECURE" />
+
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="image/*"/>
+                <data android:mimeType="video/*"/>
+
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
