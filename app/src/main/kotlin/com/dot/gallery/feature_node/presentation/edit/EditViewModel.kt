@@ -505,18 +505,15 @@ class EditViewModel @Inject constructor(
             val filters = _appliedAdjustments.value
             clearRedoStack()
 
-            // Update applied-adjustments list (dedup same-kind for VariableFilter / ImageFilter)
-            if (adjustment is VariableFilter) {
-                val adjList = filters.toMutableList()
-                adjList.removeAll { it.name.equals(adjustment.name, ignoreCase = true) }
-                _appliedAdjustments.value = adjList + adjustment
-            } else if (adjustment is ImageFilter) {
-                val adjList = filters.toMutableList()
-                adjList.removeAll { it is ImageFilter }
-                _appliedAdjustments.value = adjList + adjustment
-            } else {
-                _appliedAdjustments.value = filters + adjustment
+            // Update applied-adjustments list (dedup same-kind for VariableFilter / ImageFilter).
+            // adjustmentsWithout is the list with any previous entry of this kind removed; it is
+            // also what we fall back to when the new adjustment turns out to be a no-op (#957/#961).
+            val adjustmentsWithout: List<Adjustment> = when (adjustment) {
+                is VariableFilter -> filters.filterNot { it.name.equals(adjustment.name, ignoreCase = true) }
+                is ImageFilter -> filters.filterNot { it is ImageFilter }
+                else -> filters
             }
+            _appliedAdjustments.value = adjustmentsWithout + adjustment
 
             // Always create a new bitmap (original behaviour)
             _currentBitmap.value?.let {
@@ -531,11 +528,34 @@ class EditViewModel @Inject constructor(
 
                 val baseBitmap =
                     if (adjustment is VariableFilter || adjustment is ImageFilter)
-                        _targetBitmap.value ?: it
+                        _targetBitmap.value ?: _originalBitmap.value ?: it
                     else
                         bitmaps.lastOrNull()?.first ?: it
 
                 val newBitmap = adjustment.apply(baseBitmap)
+                // No-op guard: drop adjustments that produce no visible change so the tool icon
+                // stops showing as "modified" (#957) and identical actions don't stack on the
+                // undo/revert history (#961). A variable filter scrubbed back to its default
+                // value is treated as a no-op directly: pixel comparison alone is unreliable
+                // because some filters aren't perfectly pixel-identical at their default and,
+                // when this is the only filter, the base falls back to the already-filtered
+                // bitmap. Falling back to adjustmentsWithout removes the filter entirely.
+                val isDefaultVariableFilter = adjustment is VariableFilter &&
+                        kotlin.math.abs(adjustment.value - adjustment.defaultValue) < 1e-4f
+                if (isDefaultVariableFilter || newBitmap.sameAs(baseBitmap)) {
+                    _appliedAdjustments.value = adjustmentsWithout
+                    withContext(Dispatchers.Main) {
+                        _currentBitmap.value = baseBitmap
+                        _previewMatrix.value = null
+                        if (adjustment is Rotate) _previewRotation.value = 0f
+                        if (adjustment is Rotate90CW) _previewRotation90.value = 0f
+                        if (adjustment is Flip) _previewFlipH.value = false
+                        clearGpuPreviewEffects()
+                    }
+                    updateUndoRedoState()
+                    _isProcessing.value = false
+                    return@launch
+                }
                 _currentBitmap.value = newBitmap
                 if (adjustment !is ImageFilter) {
                     _targetBitmap.value = newBitmap

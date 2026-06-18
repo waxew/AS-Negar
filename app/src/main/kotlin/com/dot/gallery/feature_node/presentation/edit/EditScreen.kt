@@ -245,6 +245,28 @@ fun EditScreen2(
 
     val onRequestTextInput: () -> Unit = { showTextOverlay = true }
 
+    // Apply (or cancel) markup on a back press while still in drawing mode, so the
+    // MarkupPainter is still composed to consume the request. A raw back gesture
+    // otherwise disposes the painter first, leaving requestMarkupApply with nothing
+    // to handle it and the blur/loading overlay stuck forever (#955).
+    BackHandler(enabled = isMarkupDrawing) {
+        if (paths.isNotEmpty() || textAnnotations.isNotEmpty()) {
+            requestMarkupApply = true
+        } else {
+            clearDrawing()
+            navController.popBackStack()
+        }
+    }
+
+    // Safety net: if an apply was requested but we're no longer in drawing mode
+    // (the painter is already gone and can't handle it), clear the flag so the
+    // loading/blur overlay can never hang indefinitely (#955).
+    LaunchedEffect(requestMarkupApply, isMarkupDrawing) {
+        if (requestMarkupApply && !isMarkupDrawing) {
+            requestMarkupApply = false
+        }
+    }
+
     Box {
         Column(
             modifier = Modifier

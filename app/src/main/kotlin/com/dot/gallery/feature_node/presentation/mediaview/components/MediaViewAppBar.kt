@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -74,6 +75,9 @@ fun MediaViewAppBar(
     currentDate: AnnotatedString,
     paddingValues: PaddingValues,
     showRotationHelper: State<Boolean>,
+    // 1f = fully visible, 0f = fully hidden. Driven by info-sheet expansion progress so the
+    // extras (rotate, lock, motion pill) fade out gradually and are gone at full expand (#963).
+    topExtrasAlpha: () -> Float = { 1f },
     isMotionPhoto: Boolean = false,
     isMotionPlaying: Boolean = false,
     onToggleMotionPhoto: () -> Unit = {},
@@ -232,7 +236,8 @@ fun MediaViewAppBar(
             AnimatedVisibility(
                 visible = isLocked,
                 enter = enterAnimation,
-                exit = exitAnimation
+                exit = exitAnimation,
+                modifier = Modifier.graphicsLayer { alpha = topExtrasAlpha() }
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Lock,
@@ -243,7 +248,8 @@ fun MediaViewAppBar(
             AnimatedVisibility(
                 visible = isMotionPhoto && !isLocked,
                 enter = enterAnimation,
-                exit = exitAnimation
+                exit = exitAnimation,
+                modifier = Modifier.graphicsLayer { alpha = topExtrasAlpha() }
             ) {
                 Row(
                     modifier = Modifier
@@ -274,7 +280,8 @@ fun MediaViewAppBar(
             AnimatedVisibility(
                 visible = showRotationHelper.value && !isLocked,
                 enter = enterAnimation,
-                exit = exitAnimation
+                exit = exitAnimation,
+                modifier = Modifier.graphicsLayer { alpha = topExtrasAlpha() }
             ) {
                 Row(
                     modifier = Modifier

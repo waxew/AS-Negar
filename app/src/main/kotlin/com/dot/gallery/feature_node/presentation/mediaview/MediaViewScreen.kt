@@ -405,9 +405,17 @@ fun <T : Media> MediaViewScreen(
     var isBottomDark by remember { mutableStateOf(false) }
     val autoContrast by rememberAutoContrast()
     val motionPhotoState = motionPhotoStateFactory(currentMedia)
-    // Key rotation helpers by media id, not whole media object (prevents Serializable fallback of Media inside internal Pair)
-    val newRotationValue = rememberSaveable(currentMedia?.id ?: -1L) { mutableIntStateOf(0) }
-    val showRotationHelper = rememberSaveable(currentMedia?.id ?: -1L) { mutableStateOf(false) }
+    // Key rotation helpers by the *settled* pager media id, not currentMedia?.id.
+    // During a cancelled swipe the pager's currentPage briefly flips to the neighbour
+    // page and back; keying off it would reset this rememberSaveable state and make the
+    // pending rotate button vanish (#962). settledPage only advances once a scroll fully
+    // settles on a new page, so a cancelled swipe keeps the rotation state intact.
+    // (Keying by media id also avoids a Serializable fallback of the whole Media object.)
+    val settledRotationKey by rememberedDerivedState(pagerItems) {
+        pagerItems.getOrNull(pagerState.settledPage)?.id ?: currentMedia?.id ?: -1L
+    }
+    val newRotationValue = rememberSaveable(settledRotationKey) { mutableIntStateOf(0) }
+    val showRotationHelper = rememberSaveable(settledRotationKey) { mutableStateOf(false) }
 
     BackHandler(!showUI) {
         windowInsetsController.toggleSystemBars(show = true)
@@ -962,7 +970,20 @@ fun <T : Media> MediaViewScreen(
                 currentDate = currentDate,
                 paddingValues = paddingValues,
                 currentMedia = currentMedia,
-                showRotationHelper = showRotationHelper,
+                // Hide the pending-rotation chip while the info panel is expanded so it
+                // doesn't float on top of / overlap the metadata sheet (#963).
+                showRotationHelper = rememberedDerivedState(
+                    showRotationHelper.value,
+                    sheetState.currentDetent
+                ) {
+                    showRotationHelper.value && sheetState.currentDetent == imageOnlyDetent
+                },
+                // Fade the top-bar extras out as the info sheet is dragged up, fully hidden at
+                // full expand. Read inside a lambda so it re-evaluates per frame without
+                // recomposing the whole app bar (#963).
+                topExtrasAlpha = {
+                    1f - sheetState.progress(imageOnlyDetent, expandedDetent).coerceIn(0f, 1f)
+                },
                 isImageDark = isTopDark,
                 autoContrast = autoContrast,
                 isMotionPhoto = motionPhotoState.isDetected,
