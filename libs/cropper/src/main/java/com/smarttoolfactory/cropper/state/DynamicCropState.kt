@@ -169,21 +169,30 @@ class DynamicCropState internal constructor(
     override suspend fun onUp(change: PointerInputChange) = coroutineScope {
         if (touchRegion != TouchRegion.None) {
 
-            // Resizing the crop box with a handle no longer zooms the image to fit the selection
-            // (the old one-way zoom-in felt klunky and could not be zoomed back out). For both
-            // handle-resize and move we simply clamp the overlay back into the container bounds and
-            // keep the image covering it, so the crop box behaves like a plain selection rectangle.
-            val isInContainerBounds = isRectInContainerBounds(overlayRect)
-            if (!isInContainerBounds) {
+            // Resizing/moving the crop box with a handle no longer zooms the image to fit the
+            // selection (the old one-way zoom-in felt klunky and could not be zoomed back out).
+            // Constrain the crop box to the *visible image* (intersection of the container and
+            // the image draw area), not just the container. Previously a box dragged past the
+            // image edge - common when the image is letterboxed and the draw area is smaller than
+            // the container - made animateTransformationToOverlayBounds() zoom the image in to
+            // cover the oversized box. Clamping the overlay to the image first means no zoom-in is
+            // ever required, so the crop box behaves like a plain selection rectangle (#956).
+            val imageBounds = Rect(
+                left = maxOf(rectBounds.left, drawAreaRect.left),
+                top = maxOf(rectBounds.top, drawAreaRect.top),
+                right = minOf(rectBounds.right, drawAreaRect.right),
+                bottom = minOf(rectBounds.bottom, drawAreaRect.bottom)
+            )
+            val clampedOverlay = calculateOverlayRectInBounds(imageBounds, overlayRect)
+            if (clampedOverlay != overlayRect) {
 
-                // Calculate new overlay since it's out of Container bounds
-                rectTemp = calculateOverlayRectInBounds(rectBounds, overlayRect)
-
-                // Animate overlay to new bounds inside container
+                // Animate overlay to new bounds inside the visible image
+                rectTemp = clampedOverlay
                 animateOverlayRectTo(rectTemp)
             }
 
-            // Update and animate pan, zoom and image draw area after overlay position is updated
+            // Pan the image so it keeps covering the (now in-bounds) overlay. Because the overlay
+            // already fits within the image draw area, this no longer zooms in.
             animateTransformationToOverlayBounds(overlayRect, true)
 
             // Update image draw area after animating pan, zoom or rotation is completed
