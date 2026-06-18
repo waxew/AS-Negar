@@ -104,10 +104,12 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
      */
     var hasScrolledToTop by rememberSaveable { mutableStateOf(false) }
     // Only counter the "grid renders at the bottom" glitch on the initial cold
-    // load (loading -> loaded). If the grid is (re)created with data already
-    // present - e.g. when returning from the media viewer - keep the restored
-    // scroll position instead of jumping back to the top.
-    val loadedOnEntry = remember { !mediaState.value.isLoading }
+    // load (empty -> first data). If the grid is (re)created with data already
+    // present - e.g. when returning from the media viewer, even if a refresh
+    // briefly flips isLoading back to true - keep the restored scroll position
+    // instead of jumping back to the top (#960/#965). Keying off media presence
+    // (not isLoading) makes this robust to transient loading on viewer return.
+    val loadedOnEntry = remember { mediaState.value.media.isNotEmpty() }
     LaunchedEffect(gridState, mediaState.value) {
         if (loadedOnEntry) return@LaunchedEffect
         snapshotFlow { mediaState.value.isLoading }
