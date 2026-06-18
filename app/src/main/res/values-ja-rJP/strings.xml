@@ -1013,14 +1013,14 @@
     <string name="group_method_description">各セクションでどのようにメディアをグループ化するかを選択します。毎日1つのヘッダーが表示され、月ごとに月ごとにグループ化され、年ごとに年ごとにグループ化されます。</string>
     <string name="group_method_normal">日別</string>
     <string name="media_grouping_restart_note">Changes apply instantly across the app</string>
-    <string name="group_method_monthly">Monthly</string>
-    <string name="group_method_yearly">Yearly</string>
-    <string name="group_method_timeline">Timeline</string>
-    <string name="group_method_albums">Albums</string>
-    <string name="group_method_favorites">Favorites</string>
-    <string name="group_method_vault">Vault</string>
-    <string name="group_method_cloud_archive">Cloud archive</string>
-    <string name="group_method_location">Map &amp; location</string>
+    <string name="group_method_monthly">月別</string>
+    <string name="group_method_yearly">年別</string>
+    <string name="group_method_timeline">タイムライン</string>
+    <string name="group_method_albums">アルバム</string>
+    <string name="group_method_favorites">お気に入り</string>
+    <string name="group_method_vault">保管庫</string>
+    <string name="group_method_cloud_archive">クラウドアーカイブ</string>
+    <string name="group_method_location">マップ &amp; ロケーション</string>
     <string name="customize_date_formats">Customize date formats</string>
     <!-- Story Cards -->
     <string name="story_cards_settings_title">ストーリーカード</string>
