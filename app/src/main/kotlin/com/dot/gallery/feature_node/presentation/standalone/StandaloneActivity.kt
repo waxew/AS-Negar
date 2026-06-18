@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -33,8 +34,11 @@ import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.util.SetupMediaProviders
 import com.dot.gallery.feature_node.domain.model.UIEvent
 import com.dot.gallery.feature_node.domain.util.EventHandler
+import com.dot.gallery.feature_node.presentation.exif.MetadataViewScreen
+import com.dot.gallery.feature_node.presentation.exif.MetadataViewViewModel
 import com.dot.gallery.feature_node.presentation.mediaview.MediaViewScreenRoute
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.util.Screen
 import com.dot.gallery.feature_node.presentation.util.toggleOrientation
 import com.dot.gallery.ui.theme.GalleryTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -108,13 +112,32 @@ open class StandaloneActivity : AppCompatActivity() {
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
+                    // Standalone has no NavHost, so the "view all metadata" button's navigate()
+                    // call was dropped and nothing happened (#959/#946). We intercept that route
+                    // here and show the metadata screen inside the AnimatedContent below; when set
+                    // (mediaUri to isVideo) the metadata screen is shown instead of the image.
+                    var metadataArgs by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
                     LaunchedEffect(Unit) {
                         eventHandler.navigateUpAction = { finish() }
                     }
                     LaunchedEffect(eventHandler) {
-                        eventHandler.updaterFlow.collect {
-                            if (it == UIEvent.NavigationUpEvent) {
-                                finish()
+                        eventHandler.updaterFlow.collect { event ->
+                            when (event) {
+                                is UIEvent.NavigationUpEvent -> {
+                                    // Back out of the metadata screen to the image first; only
+                                    // finish the activity when the image itself is showing.
+                                    if (metadataArgs != null) metadataArgs = null else finish()
+                                }
+                                is UIEvent.NavigationRouteEvent -> {
+                                    val route = event.route
+                                    if (route.startsWith(Screen.MetadataViewScreen.route)) {
+                                        val parsed = Uri.parse(route)
+                                        metadataArgs =
+                                            (parsed.getQueryParameter("mediaUri") ?: "") to
+                                                    (parsed.getQueryParameter("isVideo")?.toBoolean() ?: false)
+                                    }
+                                }
+                                else -> Unit
                             }
                         }
                     }
@@ -131,13 +154,12 @@ open class StandaloneActivity : AppCompatActivity() {
                             val metadataState =
                                 viewModel.metadataState.collectAsStateWithLifecycle()
                             val mediaId by viewModel.mediaId.collectAsStateWithLifecycle()
-                            val staticState by remember { mutableStateOf(true) }
                             SharedTransitionLayout {
                                 AnimatedContent(
-                                    targetState = staticState,
+                                    targetState = metadataArgs,
                                     label = "standalone"
-                                ) { staticState ->
-                                    if (staticState) {
+                                ) { args ->
+                                    if (args == null) {
                                         MediaViewScreenRoute(
                                             toggleRotate = ::toggleOrientation,
                                             paddingValues = paddingValues,
@@ -150,12 +172,21 @@ open class StandaloneActivity : AppCompatActivity() {
                                             sharedTransitionScope = this@SharedTransitionLayout,
                                             animatedContentScope = this
                                         )
+                                    } else {
+                                        val (uri, isVideo) = args
+                                        val metadataViewViewModel = hiltViewModel<MetadataViewViewModel>()
+                                        val metadataViewState by metadataViewViewModel.state.collectAsStateWithLifecycle()
+                                        LaunchedEffect(uri, isVideo) {
+                                            metadataViewViewModel.loadMetadata(uri, isVideo)
+                                        }
+                                        MetadataViewScreen(state = metadataViewState)
                                     }
                                 }
                             }
                         }
                         BackHandler {
-                            finish()
+                            // Return to the image from the metadata screen; otherwise close.
+                            if (metadataArgs != null) metadataArgs = null else finish()
                         }
                     }
                 }
