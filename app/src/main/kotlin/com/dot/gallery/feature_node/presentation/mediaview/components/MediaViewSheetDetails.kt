@@ -531,7 +531,10 @@ fun <T : Media> MediaViewSheetDetails(
                                     onClick = it.onClick
                                 )
                             }
-                            if (!currentMedia.isEncrypted) {
+                            // Only offer "view all metadata" when there is metadata to show.
+                            // metadata is null when nothing could be parsed for this item, so
+                            // hiding the row avoids opening an empty metadata screen.
+                            if (!currentMedia.isEncrypted && metadata != null) {
                                 MediaInfoRow(
                                     modifier = Modifier
                                         .fillMaxWidth()
