@@ -133,17 +133,24 @@ class MediaDistributorImpl @Inject constructor(
 
     override suspend fun invalidate() {
         isRefreshing.value = true
-        withContext(Dispatchers.IO) {
-            context.contentResolver.notifyChange(
-                MediaStore.Files.getContentUri("external"), null
-            )
-            // Refresh cloud data if providers are connected
-            if (cloudRepository.hasConfiguredProviders) {
-                refreshCloudData()
+        try {
+            withContext(Dispatchers.IO) {
+                context.contentResolver.notifyChange(
+                    MediaStore.Files.getContentUri("external"), null
+                )
+                // Refresh cloud data if providers are connected
+                if (cloudRepository.hasConfiguredProviders) {
+                    refreshCloudData()
+                }
             }
+            delay(1500)
+        } finally {
+            // Always clear the refreshing flag, even if the caller's (composition-scoped)
+            // coroutine is cancelled mid-refresh by navigating away during the delay.
+            // isRefreshing lives in this app-scoped singleton, so a skipped reset would
+            // leave the pull-to-refresh spinner stuck forever, including on return (#958).
+            isRefreshing.value = false
         }
-        delay(1500)
-        isRefreshing.value = false
     }
 
     /**
