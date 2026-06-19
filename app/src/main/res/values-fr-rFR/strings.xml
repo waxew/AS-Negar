@@ -643,17 +643,17 @@
     <string name="categories_settings">Categories Settings</string>
     <string name="categories_settings_subtitle">Manage scanning, categories and classification</string>
     <string name="locations_count">%1$d locations</string>
-    <string name="no_locations_found">No locations found</string>
-    <string name="locations">Locations</string>
-    <string name="no_categories_found">No categories found</string>
+    <string name="no_locations_found">Aucun emplacement trouvé</string>
+    <string name="locations">Emplacements</string>
+    <string name="no_categories_found">Aucune catégorie trouvée</string>
     <!-- Dynamic search carousels -->
     <string name="media_types">Types de média</string>
     <string name="camera_models">Modéle de la caméra</string>
-    <string name="special_modes">Special Modes</string>
+    <string name="special_modes">Modes spéciaux</string>
     <string name="night_mode">Mode Nuit</string>
     <string name="panoramas">Panoramas</string>
-    <string name="photospheres">Photospheres</string>
-    <string name="long_exposures">Long Exposures</string>
+    <string name="photospheres">Photosphères</string>
+    <string name="long_exposures">Exposition prolongée</string>
     <string name="motion_photos">Motion Photos</string>
     <string name="motion_photo_pill">Motion</string>
     <string name="motion_photo_export_video">Enregistrer en tant que vidéo</string>
