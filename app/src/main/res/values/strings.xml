@@ -494,6 +494,7 @@
     <string name="verify_identity">Verify your identity</string>
     <string name="vault_encrypt_failed">Failed to encrypt %1$d item(s)</string>
     <string name="vault_hide_in_progress">Hiding media…</string>
+    <string name="vault_hide_no_local_items">Cloud items can\'t be added to a vault</string>
     <string name="vault_setup_password_prompt">Would you like to set a custom password for this vault?</string>
     <string name="vault_skip_password">Use device security</string>
     <string name="vault_set_password">Set password</string>

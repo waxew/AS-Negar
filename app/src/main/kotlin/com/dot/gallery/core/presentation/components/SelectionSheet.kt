@@ -7,6 +7,7 @@ package com.dot.gallery.core.presentation.components
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.LocalActivity
@@ -163,6 +164,28 @@ fun <T : Media> BoxScope.SelectionSheet(
     val metadataState = LocalMediaDistributor.current.metadataFlow.collectAsStateWithLifecycle(
         initialValue = MediaMetadataState()
     )
+    // The fullest, unfiltered media source. The display list passed in
+    // (allMedia/selectedMedia) can transiently lose items (e.g. cloud media
+    // re-emitting), which would orphan an active selection and silently no-op
+    // the hide. Resolving from the raw selector ids against this broader source
+    // keeps local selections intact regardless of what the screen currently shows.
+    val timelineMediaState = LocalMediaDistributor.current.timelineMediaFlow.collectAsStateWithLifecycle(
+        initialValue = MediaState<Media.UriMedia>()
+    )
+    // Resolve the currently selected ids to hideable (non-cloud) URIs, using the
+    // fullest available media so a changed display list can't drop the target.
+    // Cloud items are skipped because their remote URIs can't be vault-encrypted.
+    val resolveSelectedHideUris: () -> List<Uri> = resolve@{
+        val ids = selector.selectedMedia.value
+        if (ids.isEmpty()) return@resolve emptyList()
+        val byId = HashMap<Long, Media>(ids.size)
+        selectedMedia.forEach { if (it.id in ids) byId.putIfAbsent(it.id, it) }
+        allMedia.media.forEach { if (it.id in ids) byId.putIfAbsent(it.id, it) }
+        timelineMediaState.value.media.forEach { if (it.id in ids) byId.putIfAbsent(it.id, it) }
+        ids.mapNotNull { byId[it] }
+            .filterNot { it.isCloud }
+            .map { it.getUri() }
+    }
     val result = rememberActivityResult(
         onResultOk = {
             selector.clearSelection()
@@ -571,26 +594,24 @@ fun <T : Media> BoxScope.SelectionSheet(
                     }
                     else -> {
                         // Regular hide: encrypt into selected vault
-                        when (vaultEncryptBehavior) {
-                            Settings.Vault.ENCRYPT_DELETE -> {
-                                Toast.makeText(context, context.getString(R.string.vault_hide_in_progress), Toast.LENGTH_SHORT).show()
-                                vaultViewModel.encryptAndRequestDeletion(
-                                    targetVault,
-                                    selectedMedia.map { it.getUri() }
-                                )
+                        if (vaultEncryptBehavior == Settings.Vault.ENCRYPT_DELETE ||
+                            vaultEncryptBehavior == Settings.Vault.ENCRYPT_KEEP
+                        ) {
+                            val urisToHide = resolveSelectedHideUris()
+                            if (urisToHide.isEmpty()) {
+                                Toast.makeText(context, context.getString(R.string.vault_hide_no_local_items), Toast.LENGTH_SHORT).show()
+                                return@launch
                             }
-                            Settings.Vault.ENCRYPT_KEEP -> {
-                                Toast.makeText(context, context.getString(R.string.vault_hide_in_progress), Toast.LENGTH_SHORT).show()
-                                vaultViewModel.addMediaKeepOriginals(
-                                    targetVault,
-                                    selectedMedia.map { it.getUri() }
-                                )
+                            Toast.makeText(context, context.getString(R.string.vault_hide_in_progress), Toast.LENGTH_SHORT).show()
+                            if (vaultEncryptBehavior == Settings.Vault.ENCRYPT_DELETE) {
+                                vaultViewModel.encryptAndRequestDeletion(targetVault, urisToHide)
+                            } else {
+                                vaultViewModel.addMediaKeepOriginals(targetVault, urisToHide)
                             }
-                            else -> {
-                                hideTargetVault = targetVault
-                                addToVaultSheetState.show()
-                                return@launch // Don't clear selection yet
-                            }
+                        } else {
+                            hideTargetVault = targetVault
+                            addToVaultSheetState.show()
+                            return@launch // Don't clear selection yet
                         }
                     }
                 }
@@ -603,17 +624,27 @@ fun <T : Media> BoxScope.SelectionSheet(
         state = addToVaultSheetState,
         onEncryptAndDelete = {
             val vault = hideTargetVault ?: return@AddToVaultSheet
+            val urisToHide = resolveSelectedHideUris()
+            if (urisToHide.isEmpty()) {
+                Toast.makeText(context, context.getString(R.string.vault_hide_no_local_items), Toast.LENGTH_SHORT).show()
+                return@AddToVaultSheet
+            }
             Toast.makeText(context, context.getString(R.string.vault_hide_in_progress), Toast.LENGTH_SHORT).show()
             scope.launch {
-                vaultViewModel.encryptAndRequestDeletion(vault, selectedMedia.map { it.getUri() })
+                vaultViewModel.encryptAndRequestDeletion(vault, urisToHide)
                 selector.clearSelection()
             }
         },
         onEncryptAndKeep = {
             val vault = hideTargetVault ?: return@AddToVaultSheet
+            val urisToHide = resolveSelectedHideUris()
+            if (urisToHide.isEmpty()) {
+                Toast.makeText(context, context.getString(R.string.vault_hide_no_local_items), Toast.LENGTH_SHORT).show()
+                return@AddToVaultSheet
+            }
             Toast.makeText(context, context.getString(R.string.vault_hide_in_progress), Toast.LENGTH_SHORT).show()
             scope.launch {
-                vaultViewModel.addMediaKeepOriginals(vault, selectedMedia.map { it.getUri() })
+                vaultViewModel.addMediaKeepOriginals(vault, urisToHide)
                 selector.clearSelection()
             }
         },
