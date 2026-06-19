@@ -96,6 +96,7 @@ import com.dot.gallery.feature_node.presentation.util.GlideInvalidation
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
 import com.dot.gallery.feature_node.presentation.util.categorySharedElement
+import com.dot.gallery.feature_node.presentation.util.rememberBottomBarInset
 import com.dot.gallery.ui.core.icons.Encrypted
 import com.dot.gallery.ui.theme.BlackScrim
 import com.dot.gallery.ui.theme.WhiterBlackScrim
@@ -221,6 +222,7 @@ fun LibraryScreen(
             LaunchedEffect(gridState.isScrollInProgress) {
                 isScrolling.value = gridState.isScrollInProgress
             }
+            val bottomBarInset = rememberBottomBarInset(paddingValues)
             LazyVerticalGrid(
                 state = gridState,
                 modifier = Modifier
@@ -229,7 +231,7 @@ fun LibraryScreen(
                 columns = gridCells,
                 contentPadding = PaddingValues(
                     top = it.calculateTopPadding(),
-                    bottom = paddingValues.calculateBottomPadding() + 128.dp
+                    bottom = bottomBarInset + 128.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

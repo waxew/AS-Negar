@@ -77,6 +77,7 @@ import com.dot.gallery.feature_node.presentation.timeline.components.TimelineNav
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.mediaSharedElement
 import com.dot.gallery.feature_node.presentation.util.rememberActivityResult
+import com.dot.gallery.feature_node.presentation.util.rememberBottomBarInset
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.Dispatchers
@@ -164,6 +165,7 @@ fun AlbumsScreen(
                         LaunchedEffect(gridState.isScrollInProgress) {
                             isScrolling.value = gridState.isScrollInProgress
                         }
+                        val bottomBarInset = rememberBottomBarInset(innerPaddingValues)
                         LazyVerticalGrid(
                             state = gridState,
                             modifier = Modifier
@@ -172,7 +174,7 @@ fun AlbumsScreen(
                             columns = gridCells,
                             contentPadding = PaddingValues(
                                 top = innerPaddingValues.calculateTopPadding(),
-                                bottom = innerPaddingValues.calculateBottomPadding() + 16.dp + 64.dp
+                                bottom = bottomBarInset + 16.dp + 64.dp
                             ),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -408,6 +410,7 @@ fun AlbumsScreen(
                     LaunchedEffect(listState.isScrollInProgress) {
                         isScrolling.value = listState.isScrollInProgress
                     }
+                    val bottomBarInset = rememberBottomBarInset(innerPaddingValues)
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -416,7 +419,7 @@ fun AlbumsScreen(
                             .fillMaxSize(),
                         contentPadding = PaddingValues(
                             top = innerPaddingValues.calculateTopPadding(),
-                            bottom = innerPaddingValues.calculateBottomPadding() + 16.dp + 64.dp
+                            bottom = bottomBarInset + 16.dp + 64.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {

@@ -143,6 +143,37 @@ fun rememberGestureNavigationEnabled(): Boolean {
     }
 }
 
+/**
+ * Returns true when the system navigation bar sits on the sides instead of the
+ * bottom (e.g. 3-button navigation in landscape). In that case there is no
+ * bottom inset, but there is a horizontal one.
+ */
+@Composable
+fun rememberNavigationBarOnSides(): Boolean {
+    val navBarsPadding = WindowInsets.navigationBars.asPaddingValues()
+    val layoutDirection = LocalLayoutDirection.current
+    return remember(navBarsPadding, layoutDirection) {
+        navBarsPadding.calculateBottomPadding() == 0.dp &&
+                (navBarsPadding.calculateStartPadding(layoutDirection) > 0.dp ||
+                        navBarsPadding.calculateEndPadding(layoutDirection) > 0.dp)
+    }
+}
+
+/**
+ * Bottom inset to reserve for the floating bottom navigation pill (and the
+ * content behind it). When the navigation bar is on the sides there is no
+ * bottom system inset, so a fixed 16.dp gap is used instead of [PaddingValues]
+ * bottom padding.
+ */
+@Composable
+fun rememberBottomBarInset(paddingValues: PaddingValues): Dp {
+    val onSides = rememberNavigationBarOnSides()
+    val bottomInset = paddingValues.calculateBottomPadding()
+    return remember(onSides, bottomInset) {
+        if (onSides) 16.dp else bottomInset
+    }
+}
+
 fun Context.goBack(fallback: (() -> Unit)? = null) {
     if (this is ComponentActivity) {
         onBackPressedDispatcher.onBackPressed()

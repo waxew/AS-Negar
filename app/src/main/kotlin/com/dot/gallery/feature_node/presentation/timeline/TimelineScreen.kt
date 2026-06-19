@@ -114,6 +114,7 @@ import com.dot.gallery.feature_node.presentation.timeline.components.TimelineNav
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
 import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
+import com.dot.gallery.feature_node.presentation.util.rememberBottomBarInset
 import com.dot.gallery.feature_node.presentation.util.roundSpToPx
 import com.dot.gallery.feature_node.presentation.util.selectedMedia
 import dev.chrisbanes.haze.hazeSource
@@ -326,6 +327,7 @@ fun TimelineScreen(
                 isRefreshing = isRefreshing,
                 onRefresh = { refreshScope.launch { distributor.invalidate() } },
             ) {
+                val bottomBarInset = rememberBottomBarInset(paddingValues)
                 if (isMosaicLayout) {
                 var lastMosaicCellIndex by rememberMosaicGridSize()
                 val mosaicPinchState = rememberMosaicPinchZoomState(
@@ -350,10 +352,10 @@ fun TimelineScreen(
                 val headers by rememberedDerivedState(filteredMediaState.value) {
                     filteredMediaState.value.headers
                 }
-                val mosaicPaddingValues = remember(paddingValues, it) {
+                val mosaicPaddingValues = remember(bottomBarInset, it) {
                     PaddingValues(
                         top = it.calculateTopPadding(),
-                        bottom = paddingValues.calculateBottomPadding() + 128.dp
+                        bottom = bottomBarInset + 128.dp
                     )
                 }
                 val stickyHeaderItem by rememberStickyHeaderItem(
@@ -484,10 +486,10 @@ fun TimelineScreen(
                     MediaGridView(
                         mediaState = filteredMediaState,
                         metadataState = metadataState,
-                        paddingValues = remember(paddingValues, it) {
+                        paddingValues = remember(bottomBarInset, it) {
                             PaddingValues(
                                 top = it.calculateTopPadding(),
-                                bottom = paddingValues.calculateBottomPadding() + 128.dp
+                                bottom = bottomBarInset + 128.dp
                             )
                         },
                         searchBarPaddingTop = remember(paddingValues) {
