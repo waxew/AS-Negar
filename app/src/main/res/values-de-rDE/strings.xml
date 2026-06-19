@@ -572,15 +572,15 @@
     <string name="trash_confirmation_description">Zeigt vor dem Verschieben von Elementen in den Papierkorb einen Bestätigungsdialog an, um versehentliche Löschvorgänge zu verhindern.</string>
     <string name="follow_system_theme_description">Wenn aktiviert, folgt die App automatisch den hellen/dunklen Modus Ihres Geräts. Deaktivieren um den hellen oder dunklen Modus unten manuell zu wählen.</string>
     <string name="dark_mode_description">Die App wird unabhängig von Ihrer Systemeinstellung in den Dunkelmodus versetzt. Diese Option ist nur verfügbar, wenn „Systemdesign übernehmen“ deaktiviert ist.</string>
-    <string name="amoled_mode_description">Uses a pure black background instead of dark grey, providing higher contrast and saving battery on AMOLED screens.</string>
-    <string name="timeline_layout_description">Choose how photos are arranged in the timeline grid. The uniform grid shows equal-sized thumbnails, while the mosaic layout varies sizes for a more dynamic look.</string>
-    <string name="favorite_icon_description">Choose where the favorite heart icon appears on thumbnails in the grid, or hide it entirely.</string>
-    <string name="default_editor_description">Choose which app opens when you tap the edit button. You can use the built-in editor or any compatible external photo editor installed on your device.</string>
-    <string name="launch_screen_description">Choose which screen appears when you open the app. You can pick a specific screen or let the app remember the last one you used.</string>
-    <string name="app_name_description">Change the name and icon displayed on your home screen launcher. The app will restart to apply the change.</string>
+    <string name="amoled_mode_description">Verwendet einen rein schwarzen Hintergrund anstelle von Dunkelgrau, was für einen höheren Kontrast sorgt und bei AMOLED-Bildschirmen Akku schont.</string>
+    <string name="timeline_layout_description">Wählen Sie aus, wie die Fotos in ihrer Timeline angeordnet sind. Das einheitliche Raster zeigt gleich große Thumbnails, während das Mosaik-Layout die Größen variiert, um ein dynamischeres Aussehen zu erreichen.</string>
+    <string name="favorite_icon_description">Wählen Sie aus, wo das Herz-Symbol „Favorit“ auf den Thumbnails im Raster angezeigt werden soll, oder blenden Sie es ganz aus.</string>
+    <string name="default_editor_description">Wählen Sie aus, welche App geöffnet werden soll, wenn Sie auf die Schaltfläche „Bearbeiten“ tippen. Sie können den integrierten Editor oder eine beliebige kompatible externe Bildbearbeitungsapp verwenden, die auf Ihrem Gerät installiert ist.</string>
+    <string name="launch_screen_description">Wählen Sie, welcher Bildschirm angezeigt wird, wenn Sie die App öffnen. Sie können einen bestimmten Bildschirm auswählen oder die App sich den zuletzt verwendeten merken lassen.</string>
+    <string name="app_name_description">Ändern Sie den Namen und das Symbol der App auf ihrem Startbildschirm. Die App wird neu gestartet, um die Änderung zu übernehmen.</string>
     <!-- Settings Overhaul: Metadata worker feedback -->
-    <string name="metadata_collecting">Collecting metadata…</string>
-    <string name="metadata_collecting_progress">Collecting metadata… %1$d%%</string>
+    <string name="metadata_collecting">Sammle Metadaten…</string>
+    <string name="metadata_collecting_progress">Sammle Metadaten… %1$d%%</string>
     <string name="metadata_idle">Tippen, um Medien-Metadaten aus Ihrer Bibliothek zu aktualisieren</string>
     <string name="video_playback">Video-Wiedergabe</string>
     <string name="interface_settings">Schnittstelle</string>
@@ -654,25 +654,25 @@
     <string name="panoramas">Panoramen</string>
     <string name="photospheres">Fotosphären</string>
     <string name="long_exposures">Lange Belichtungszeit</string>
-    <string name="motion_photos">Motion Photos</string>
-    <string name="motion_photo_pill">Motion</string>
-    <string name="motion_photo_export_video">Save as video</string>
-    <string name="motion_photo_exporting">Saving video…</string>
-    <string name="motion_photo_export_success">Video saved to gallery</string>
-    <string name="motion_photo_export_failed">Couldn\'t save video</string>
-    <string name="media_groupings">Media Groupings</string>
-    <string name="group_type_bursts">Bursts</string>
+    <string name="motion_photos">Bewegungs-Fotos</string>
+    <string name="motion_photo_pill">Bewegt</string>
+    <string name="motion_photo_export_video">Als Video speichern</string>
+    <string name="motion_photo_exporting">Video wird gespeichert…</string>
+    <string name="motion_photo_export_success">Video in Galerie gespeichert</string>
+    <string name="motion_photo_export_failed">Video konnte nicht gespeichert werden</string>
+    <string name="media_groupings">Medien-Gruppen</string>
+    <string name="group_type_bursts">Serienbilder</string>
     <string name="group_type_raw_jpg">RAW + JPG</string>
-    <string name="group_type_edits">Edits</string>
-    <string name="sort_most_accurate">Most accurate</string>
-    <string name="sort_by_date">Date</string>
+    <string name="group_type_edits">Bearbeitete</string>
+    <string name="sort_most_accurate">Genaueste</string>
+    <string name="sort_by_date">Datum</string>
     <plurals name="item_count">
         <item quantity="one">%s Datei</item>
         <item quantity="other">%s Elemente</item>
     </plurals>
     <plurals name="album_count">
-        <item quantity="one">%d album</item>
-        <item quantity="other">%d albums</item>
+        <item quantity="one">%d Album</item>
+        <item quantity="other">%d Alben</item>
     </plurals>
     <!-- Widgets -->
     <string name="widget_single_label">Single Photo</string>
