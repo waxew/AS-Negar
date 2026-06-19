@@ -815,9 +815,9 @@
     <!-- Help & Tips Screen -->
     <string name="help_title">Hilfe &amp; Tipps</string>
     <string name="help_summary">Tutorials, Tipps und neue Features</string>
-    <string name="help_whats_new">Neue Features</string>
-    <string name="help_whats_new_subtitle">Discover the latest Gallery features</string>
-    <string name="help_whats_new_in_version">What\'s new in v%s</string>
+    <string name="help_whats_new">Was ist neu</string>
+    <string name="help_whats_new_subtitle">Entdecke alle neuen Funktionen und Bugfixes</string>
+    <string name="help_whats_new_in_version">Was ist neu in v%s</string>
     <string name="help_explore_whats_new">Explore what\'s new</string>
     <string name="help_get_started">Get started</string>
     <string name="help_make_most">Make the most of Gallery</string>
