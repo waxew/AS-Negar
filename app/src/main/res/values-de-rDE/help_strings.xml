@@ -9,13 +9,13 @@
     <string name="help_tip_basics_timeline_p2_desc">Blättern Sie durch Ihre Zeitleiste, um Medien zu durchsuchen. Verwenden Sie die Scrollleiste am rechten Rand um schnell zu einem Monat zu springen. Sie können auch ziehen, um das Raster zu vergrößern – setzen Sie zwei Finger nebeneinander und ziehen Sie auseinander, um größere Vorschaubilder zu sehen oder zusammen, um mehr Fotos auf dem Bildschirm anzupassen.</string>
     <string name="help_tip_basics_timeline_p2_s1">Galerie öffnen, um die Zeitleiste zu sehen</string>
     <string name="help_tip_basics_timeline_p2_s2">Scrollen Sie nach oben oder unten zum Durchsuchen</string>
-    <string name="help_tip_basics_timeline_p2_s3">Use the right-edge scrollbar to jump to a month</string>
+    <string name="help_tip_basics_timeline_p2_s3">Verwende die Scroll-Leiste am rechten Rand, um zu einem Monat zu springen</string>
     <string name="help_tip_basics_timeline_p2_s4">Mit zwei Fingern zoomen, um die Größe der Miniaturansicht zu ändern</string>
-    <string name="help_tip_basics_timeline_p2_s5">Tap any photo to view it full-screen</string>
-    <string name="help_tip_basics_view_media_title">View photos and videos</string>
+    <string name="help_tip_basics_timeline_p2_s5">Tippe auf ein beliebiges Foto, um es im Vollbildmodus anzuzeigen</string>
+    <string name="help_tip_basics_view_media_title">Fotos und Videos ansehen</string>
     <string name="help_tip_basics_view_media_subtitle">Zum Öffnen tippen, wischen um zu navigieren, zum zoomen mit zwei Fingern ziehen</string>
-    <string name="help_tip_basics_view_media_p1_title">Open a photo or video</string>
-    <string name="help_tip_basics_view_media_p1_desc">Tap any thumbnail in the timeline or an album to open it in the full-screen viewer. The photo smoothly animates from the grid into full view (if shared element transitions are enabled in Appearance settings). Videos begin playing automatically by default.</string>
+    <string name="help_tip_basics_view_media_p1_title">Ein Foto oder Video öffnen</string>
+    <string name="help_tip_basics_view_media_p1_desc">Tippen Sie auf ein beliebiges Thumbnail in deiner Timeline oder in einem Album, um sie im Vollbildmodus zu öffnen. Das Foto wird fließend aus der Rasteransicht in die Vollbildansicht eingeblendet (sofern in den Darstellungseinstellungen Übergänge für diese Elemente aktiviert sind). Videos werden standardmäßig automatisch abgespielt.</string>
     <string name="help_tip_basics_view_media_p2_title">Zwischen Medien navigieren</string>
     <string name="help_tip_basics_view_media_p2_desc">Swipe left or right to move between photos and videos without going back to the grid. Swipe down to close the viewer and return to where you were. The viewer remembers your position, so you won\'t lose your place.</string>
     <string name="help_tip_basics_view_media_p3_title">Zoomen und Verschieben</string>
@@ -118,7 +118,7 @@
     <string name="help_tip_personalize_grid_p1_title">Pinch to zoom the grid</string>
     <string name="help_tip_personalize_grid_p1_desc">Place two fingers on the grid and pinch in or out to change the thumbnail size. Pinching out (spreading fingers) makes photos larger with fewer columns — great for seeing detail. Pinching in (squeezing fingers) makes photos smaller with more columns — ideal for scanning through lots of photos quickly.</string>
     <string name="help_tip_personalize_grid_p2_title">Find your perfect size</string>
-    <string name="help_tip_personalize_grid_p2_desc">The grid ranges from 2 columns (large thumbnails) to 10 columns (tiny thumbnails for maximum overview). Gallery remembers your preference separately for the timeline and album views. Tip: try 3-4 columns for a good balance between seeing photo details and fitting many on screen.</string>
+    <string name="help_tip_personalize_grid_p2_desc">Das Raster reicht von 2 Spalten (große Vorschaubilder) bis 10 Spalten (sehr kleine Vorschaubilder für maximale Übersicht). Die Galerie speichert deine Einstellung getrennt für die Zeitachsen- und Albumansicht. Tipp: Probiere 3–4 Spalten aus – das bietet einen guten Kompromiss zwischen sichtbaren Fotodetails und einer großen Anzahl von Fotos auf dem Bildschirm.</string>
     <string name="help_tip_personalize_amoled_title">Enable AMOLED dark mode</string>
     <string name="help_tip_personalize_amoled_subtitle">Pure black backgrounds for OLED screens</string>
     <string name="help_tip_personalize_amoled_p1_title">AMOLED mode</string>
@@ -762,7 +762,7 @@
     <string name="help_tip_gesture_pinch_grid_p1_title">Pinch zoom</string>
     <string name="help_tip_gesture_pinch_grid_p1_desc">Place two fingers on the photo grid and pinch in or out to change the column count. Pinching out (spreading fingers) reduces columns for larger thumbnails — great for seeing details. Pinching in (squeezing fingers) adds columns for smaller thumbnails — ideal for scanning lots of photos. The transition is smooth and animated.</string>
     <string name="help_tip_gesture_pinch_grid_p2_title">Range</string>
-    <string name="help_tip_gesture_pinch_grid_p2_desc">Grid ranges from 2 columns (very large thumbnails) to 10 columns (tiny thumbnails for maximum overview). Gallery remembers your preference separately for the timeline and album views, so you can use different sizes in each. Tip: 3-4 columns is a good default for most people.</string>
+    <string name="help_tip_gesture_pinch_grid_p2_desc">Das Raster reicht von 2 Spalten (sehr große Vorschaubilder) bis 10 Spalten (sehr kleine Vorschaubilder für maximale Übersicht). Die Galerie speichert deine Einstellung getrennt für die Zeitachsen- und Albumansicht, sodass du in jeder Ansicht unterschiedliche Größen verwenden kannst. Tipp: 3–4 Spalten sind für die meisten Nutzer eine gute Standardeinstellung.</string>
     <string name="help_tip_gesture_swipe_viewer_title">Swipe to navigate</string>
     <string name="help_tip_gesture_swipe_viewer_subtitle">Swipe between photos in the viewer</string>
     <string name="help_tip_gesture_swipe_viewer_p1_title">Swipe navigation</string>
