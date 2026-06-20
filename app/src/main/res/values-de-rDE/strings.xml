@@ -696,8 +696,8 @@
     <string name="editor_crop">Zuschneiden</string>
     <string name="editor_cancel_markup">Markieren abbrechen</string>
     <string name="editor_apply_markup">Markierungen anwenden</string>
-    <string name="editor_undo">Undo</string>
-    <string name="editor_redo">Redo</string>
+    <string name="editor_undo">Zurück</string>
+    <string name="editor_redo">Vor</string>
     <string name="editor_more_options">Weitere Optionen</string>
     <string name="editor_grid">Raster</string>
     <string name="editor_add_text">Neuer Text</string>
@@ -705,8 +705,8 @@
     <string name="editor_highlighter">Textmarker</string>
     <string name="editor_text">Text</string>
     <string name="editor_add_or_select_text">Fügen Sie einen Text hinzu oder wählen Sie einen aus, um die Farbe zu ändern</string>
-    <string name="editor_type_something">Type something</string>
-    <string name="editor_remove">Remove</string>
+    <string name="editor_type_something">Hier eingeben…</string>
+    <string name="editor_remove">Entfernen</string>
     <!-- Lighting tools -->
     <string name="tool_brightness">Brightness</string>
     <string name="tool_tone">Tone</string>
