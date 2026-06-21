@@ -141,7 +141,7 @@ import com.dot.gallery.feature_node.presentation.util.getMediaAppBarDate
 import com.dot.gallery.feature_node.presentation.util.mediaSharedElement
 import com.dot.gallery.feature_node.presentation.util.printWarning
 import com.dot.gallery.feature_node.presentation.util.rememberGestureNavigationEnabled
-import com.dot.gallery.feature_node.presentation.util.rememberNavigationBarHeight
+import com.dot.gallery.feature_node.presentation.util.rememberNavigationBarOnSides
 import com.dot.gallery.feature_node.presentation.util.rememberWindowInsetsController
 import com.dot.gallery.feature_node.presentation.util.setHdrMode
 import com.dot.gallery.feature_node.presentation.util.toggleSystemBars
@@ -434,37 +434,46 @@ fun <T : Media> MediaViewScreen(
         }
     }
 
+    val onSides = rememberNavigationBarOnSides()
     val isGestureEnabled = rememberGestureNavigationEnabled()
     // Extra padding for navigation bar with 3/2-buttons
-    val extraPaddingWithNavButtons by remember(isGestureEnabled) {
+    val extraPaddingWithNavButtons by remember(onSides, isGestureEnabled) {
         mutableStateOf(
             if (!isGestureEnabled) {
                 32.dp
             } else 0.dp
         )
     }
-    val navigationBarHeight = rememberNavigationBarHeight()
-    val bottomBarHeightDefault by remember {
+    val bottomBarHeightDefault by remember(onSides) {
         mutableStateOf(BOTTOM_BAR_HEIGHT)
     }
 
-    val bottomPadding = remember(paddingValues) {
-        paddingValues.calculateBottomPadding()
-    }
+    // Read live: paddingValues is a stable, lazily-evaluated object, so caching its
+    // calculateBottomPadding() in a remember keyed on the object would never update
+    // on rotation. Reading it directly subscribes to the inset state (#929).
+    val bottomPadding = paddingValues.calculateBottomPadding()
 
-    val imageOnlyDetent =
-        remember(bottomBarHeightDefault, extraPaddingWithNavButtons, bottomPadding) {
-            ImageOnly { bottomBarHeightDefault + extraPaddingWithNavButtons + bottomPadding + 16.dp }
-        }
+    val imageOnlyHeight = bottomBarHeightDefault + extraPaddingWithNavButtons + bottomPadding + 16.dp
+    val imageOnlyDetent = remember(imageOnlyHeight) { ImageOnly { imageOnlyHeight } }
 
     val expandedDetent = remember { FullyExpanded }
 
-    val sheetState = rememberBottomSheetState(
-        initialDetent = imageOnlyDetent,
-        detents = listOf(imageOnlyDetent, expandedDetent),
-        positionalThreshold = { it },
-        velocityThreshold = { 1000.dp }
-    )
+    // Recreate the sheet state when the imageOnly detent height settles. The library's
+    // rememberBottomSheetState captures detents once and updateAnchors does NOT move an
+    // idle sheet when only the current detent's height changes — so after a rotation the
+    // sheet stayed anchored at the portrait height. Rotation emits two frames (an
+    // intermediate one with stale insets still at the old height, then the correct one),
+    // and portrait + the intermediate frame share the same height, so keying on
+    // imageOnlyHeight recreates the state exactly once, on the final correct value —
+    // taking the same code path as opening fresh in landscape (which always worked). (#929)
+    val sheetState = key(imageOnlyHeight) {
+        rememberBottomSheetState(
+            initialDetent = imageOnlyDetent,
+            detents = listOf(imageOnlyDetent, expandedDetent),
+            positionalThreshold = { it },
+            velocityThreshold = { 1000.dp }
+        )
+    }
 
     val userScrollEnabled by rememberedDerivedState { sheetState.currentDetent != FullyExpanded }
     var isLocked by rememberSaveable { mutableStateOf(false) }

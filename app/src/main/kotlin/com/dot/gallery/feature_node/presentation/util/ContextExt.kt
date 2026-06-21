@@ -31,13 +31,15 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -79,17 +81,32 @@ data class FixedInsets(
     val navigationBarsPadding: PaddingValues = PaddingValues(),
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProvideInsets(content: @Composable () -> Unit) {
-    val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     val layoutDirection = LocalLayoutDirection.current
-    val fixedInsets = remember {
+    // Use the *IgnoringVisibility insets so the values stay correct while the
+    // system bars are hidden (immersive media view) — the reason these were
+    // "fixed" in the first place — while still recomputing on configuration
+    // changes such as screen rotation (#929). The previous keyless remember
+    // captured the initial-orientation insets and never updated on rotation.
+    val statusBarsPadding = WindowInsets.statusBarsIgnoringVisibility.asPaddingValues()
+    val navigationBarsPadding = WindowInsets.navigationBarsIgnoringVisibility.asPaddingValues()
+    // IMPORTANT: key the remember on the resolved Dp primitives, NOT on the
+    // PaddingValues objects. asPaddingValues() returns a stable instance whose
+    // calculateXPadding() reads the live insets lazily, so as a remember key it
+    // stays equal across a rotation and the block would never recompute (#929).
+    val statusTop = statusBarsPadding.calculateTopPadding()
+    val navBottom = navigationBarsPadding.calculateBottomPadding()
+    val navStart = navigationBarsPadding.calculateStartPadding(layoutDirection)
+    val navEnd = navigationBarsPadding.calculateEndPadding(layoutDirection)
+    val fixedInsets = remember(statusTop, navBottom, navStart, navEnd) {
         FixedInsets(
-            statusBarHeight = systemBarsPadding.calculateTopPadding(),
+            statusBarHeight = statusTop,
             navigationBarsPadding = PaddingValues(
-                bottom = systemBarsPadding.calculateBottomPadding(),
-                start = systemBarsPadding.calculateStartPadding(layoutDirection),
-                end = systemBarsPadding.calculateEndPadding(layoutDirection),
+                bottom = navBottom,
+                start = navStart,
+                end = navEnd,
             ),
         )
     }
@@ -152,10 +169,13 @@ fun rememberGestureNavigationEnabled(): Boolean {
 fun rememberNavigationBarOnSides(): Boolean {
     val navBarsPadding = WindowInsets.navigationBars.asPaddingValues()
     val layoutDirection = LocalLayoutDirection.current
-    return remember(navBarsPadding, layoutDirection) {
-        navBarsPadding.calculateBottomPadding() == 0.dp &&
-                (navBarsPadding.calculateStartPadding(layoutDirection) > 0.dp ||
-                        navBarsPadding.calculateEndPadding(layoutDirection) > 0.dp)
+    // Key on the resolved Dp primitives (see ProvideInsets) so this recomputes on
+    // rotation instead of caching the initial-orientation result (#929).
+    val bottom = navBarsPadding.calculateBottomPadding()
+    val start = navBarsPadding.calculateStartPadding(layoutDirection)
+    val end = navBarsPadding.calculateEndPadding(layoutDirection)
+    return remember(bottom, start, end) {
+        bottom == 0.dp && (start > 0.dp || end > 0.dp)
     }
 }
 
