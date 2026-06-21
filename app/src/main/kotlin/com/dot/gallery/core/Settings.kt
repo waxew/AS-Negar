@@ -618,6 +618,18 @@ object Settings {
         fun rememberVideoAutoplay() =
             rememberPreference(key = VIDEO_AUTOPLAY, defaultValue = true)
 
+        private val VIDEO_SURFACE_REBIND = booleanPreferencesKey("video_surface_rebind")
+
+        /**
+         * Workaround for video [android.view.SurfaceView] blacking out when the
+         * system bars are toggled while playing (#967). When enabled, the player
+         * surface is re-bound on every system-bar visibility change. Defaults to on
+         * for Samsung devices, where the issue is observed, and off elsewhere.
+         */
+        @Composable
+        fun rememberVideoSurfaceRebind() =
+            rememberPreference(key = VIDEO_SURFACE_REBIND, defaultValue = SdkCompat.isSamsung)
+
         private val SHARED_ELEMENTS = booleanPreferencesKey("shared_elements")
 
         @Composable

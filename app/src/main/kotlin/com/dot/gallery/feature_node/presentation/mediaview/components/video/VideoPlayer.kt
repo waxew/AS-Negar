@@ -59,6 +59,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -73,6 +75,7 @@ import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberVideoAutoplay
+import com.dot.gallery.core.Settings.Misc.rememberVideoSurfaceRebind
 import com.dot.gallery.core.presentation.components.util.swipe
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.SubtitleTrack
@@ -191,6 +194,15 @@ fun <T : Media> VideoPlayer(
     // a fresh surface bound to the new player.
     var surfaceViewRef by remember(media.id) { mutableStateOf<View?>(null) }
     var videoSize by remember(media.id) { mutableStateOf(IntSize.Zero) }
+    // Workaround for #967: on some devices (notably Samsung) the video SurfaceView
+    // blacks out when the system bars are toggled while playing — the player keeps
+    // decoding but its output surface stops presenting. When enabled we re-bind the
+    // player to the surface on every system-bar visibility change. Read via
+    // rememberUpdatedState so the long-lived inset listener always sees the latest
+    // value and player without re-registering.
+    val rebindOnInsetChange by rememberVideoSurfaceRebind()
+    val rebindEnabledState = rememberUpdatedState(rebindOnInsetChange)
+    val playerForRebind = rememberUpdatedState(currentPlayer)
     val allowBlur by rememberAllowBlur()
     val hazeState = LocalHazeState.current
     val videoCapture by rememberSurfaceCapture(
@@ -343,6 +355,28 @@ fun <T : Media> VideoPlayer(
                     factory = { ctx ->
                         SurfaceView(ctx).also { sv ->
                             surfaceViewRef = sv
+                            // #967 workaround: re-bind the player surface whenever the
+                            // system bars are shown/hidden, so the video keeps presenting
+                            // through immersive transitions on affected devices.
+                            var lastBarsVisible: Boolean? = null
+                            ViewCompat.setOnApplyWindowInsetsListener(sv) { v, insets ->
+                                if (rebindEnabledState.value) {
+                                    val barsVisible =
+                                        insets.isVisible(WindowInsetsCompat.Type.systemBars())
+                                    if (lastBarsVisible != null && lastBarsVisible != barsVisible) {
+                                        v.post {
+                                            val p = playerForRebind.value
+                                            if (!p.isReleased && v is SurfaceView) {
+                                                runCatching { p.setVideoSurfaceView(v) }
+                                            }
+                                            v.invalidate()
+                                            v.requestLayout()
+                                        }
+                                    }
+                                    lastBarsVisible = barsVisible
+                                }
+                                insets
+                            }
                         }
                     },
                     update = { sv ->

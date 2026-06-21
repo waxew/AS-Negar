@@ -87,6 +87,7 @@ import com.dot.gallery.core.Settings.Misc.rememberFullBrightnessView
 import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.Settings.Misc.rememberShowMediaViewDateHeader
 import com.dot.gallery.core.Settings.Misc.rememberVideoAutoplay
+import com.dot.gallery.core.Settings.Misc.rememberVideoSurfaceRebind
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.dot.gallery.core.SettingsEntity
@@ -108,6 +109,7 @@ private const val DETAIL_FAV_BUTTON = "fav_button"
 private const val DETAIL_EDITOR = "editor"
 private const val DETAIL_AUTO_HIDE_VIDEO = "auto_hide_video"
 private const val DETAIL_AUTO_PLAY = "auto_play"
+private const val DETAIL_SURFACE_REBIND = "surface_rebind"
 
 @Composable
 fun SettingsMediaViewerScreen() {
@@ -121,6 +123,7 @@ fun SettingsMediaViewerScreen() {
     var defaultEditor by rememberDefaultImageEditor()
     var autoHideOnVideoPlay by rememberAutoHideOnVideoPlay()
     var autoPlayVideo by rememberVideoAutoplay()
+    var videoSurfaceRebind by rememberVideoSurfaceRebind()
 
     val editApps = remember(context, context::getEditImageCapableApps)
 
@@ -197,6 +200,15 @@ fun SettingsMediaViewerScreen() {
                 description = stringResource(R.string.auto_play_video_description),
             )
         }
+        DETAIL_SURFACE_REBIND -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.video_surface_rebind),
+                isChecked = videoSurfaceRebind,
+                onCheckedChange = { videoSurfaceRebind = it },
+                description = stringResource(R.string.video_surface_rebind_description),
+            )
+        }
         else -> {
             MediaViewerListScreen(
                 fullBrightnessView = fullBrightnessView,
@@ -211,6 +223,8 @@ fun SettingsMediaViewerScreen() {
                 onAutoHideChange = { autoHideOnVideoPlay = it },
                 autoPlayVideo = autoPlayVideo,
                 onAutoPlayChange = { autoPlayVideo = it },
+                videoSurfaceRebind = videoSurfaceRebind,
+                onSurfaceRebindChange = { videoSurfaceRebind = it },
                 onDetailClick = { detailKey = it },
                 listState = listState,
             )
@@ -232,6 +246,8 @@ private fun MediaViewerListScreen(
     onAutoHideChange: (Boolean) -> Unit,
     autoPlayVideo: Boolean,
     onAutoPlayChange: (Boolean) -> Unit,
+    videoSurfaceRebind: Boolean,
+    onSurfaceRebindChange: (Boolean) -> Unit,
     onDetailClick: (String) -> Unit,
     listState: LazyListState,
 ) {
@@ -311,12 +327,22 @@ private fun MediaViewerListScreen(
             isChecked = autoPlayVideo,
             onCheck = onAutoPlayChange,
             onClick = { onDetailClick(DETAIL_AUTO_PLAY) },
+            screenPosition = Position.Middle
+        )
+
+        val videoSurfaceRebindPref = rememberSwitchPreference(
+            videoSurfaceRebind,
+            title = stringResource(R.string.video_surface_rebind),
+            summary = stringResource(R.string.video_surface_rebind_summary),
+            isChecked = videoSurfaceRebind,
+            onCheck = onSurfaceRebindChange,
+            onClick = { onDetailClick(DETAIL_SURFACE_REBIND) },
             screenPosition = Position.Bottom
         )
 
         return remember(
             fullBrightnessViewPref, showMediaDateHeaderPref, showFavoriteButtonPref,
-            defaultEditorPref, autoHideOnVideoPlayPref, autoPlayVideoPref
+            defaultEditorPref, autoHideOnVideoPlayPref, autoPlayVideoPref, videoSurfaceRebindPref
         ) {
             mutableStateListOf<SettingsEntity>().apply {
                 add(viewingHeader)
@@ -330,6 +356,7 @@ private fun MediaViewerListScreen(
                 add(videoPlaybackHeader)
                 add(autoHideOnVideoPlayPref)
                 add(autoPlayVideoPref)
+                add(videoSurfaceRebindPref)
             }
         }
     }

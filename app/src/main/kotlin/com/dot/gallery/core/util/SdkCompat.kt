@@ -66,4 +66,12 @@ object SdkCompat {
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             Environment.isExternalStorageManager()
         else true
+
+    /**
+     * Whether the device is a Samsung device. Some Samsung builds black out a
+     * video [android.view.SurfaceView] when the system bars are toggled (immersive
+     * transitions), so the video-surface rebind workaround is enabled by default here.
+     */
+    val isSamsung: Boolean
+        get() = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
 }
