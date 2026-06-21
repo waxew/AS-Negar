@@ -156,8 +156,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.suspendCoroutine
 import kotlin.time.Duration.Companion.seconds
 
@@ -767,8 +769,21 @@ fun <T : Media> MediaViewScreen(
                                     var uiInteracted by remember { mutableStateOf(false) }
                                     LaunchedEffect(isPlaying.value, hideUiOnPlay) {
                                         if (isPlaying.value && showUI && hideUiOnPlay && !uiInteracted) {
-                                            delay(2.seconds)
-                                            if (sheetState.currentDetent == imageOnlyDetent) {
+                                            // Wait up to 2s, but abort the auto-hide the moment the
+                                            // user starts dragging the info sheet. During an active
+                                            // swipe currentDetent still reads imageOnly, so watch the
+                                            // sheet's drag progress instead: any non-zero progress
+                                            // means a gesture is in flight and hiding the UI now would
+                                            // make it vanish mid-swipe (#964).
+                                            val sheetMoved = withTimeoutOrNull(2.seconds) {
+                                                snapshotFlow {
+                                                    sheetState.progress(imageOnlyDetent, expandedDetent)
+                                                }.first { it > 0f }
+                                            }
+                                            if (sheetMoved == null &&
+                                                sheetState.currentDetent == imageOnlyDetent &&
+                                                sheetState.progress(imageOnlyDetent, expandedDetent) == 0f
+                                            ) {
                                                 showUI = false
                                                 windowInsetsController.toggleSystemBars(false)
                                             }
