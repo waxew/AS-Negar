@@ -103,20 +103,28 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
      * That shows the grid at the bottom after content is loaded
      */
     var hasScrolledToTop by rememberSaveable { mutableStateOf(false) }
-    // Only counter the "grid renders at the bottom" glitch on the initial cold
-    // load (empty -> first data). If the grid is (re)created with data already
-    // present - e.g. when returning from the media viewer, even if a refresh
-    // briefly flips isLoading back to true - keep the restored scroll position
-    // instead of jumping back to the top (#960/#965). Keying off media presence
-    // (not isLoading) makes this robust to transient loading on viewer return.
-    val loadedOnEntry = remember { mediaState.value.media.isNotEmpty() }
+    // The "grid renders at the bottom after initial load" glitch only needs
+    // correcting on a genuine cold load, where the grid starts at the very top
+    // (index 0, offset 0). When returning from the media viewer the grid is
+    // restored to a previous, non-top position - in that case we must NEVER
+    // yank it back to the top, even if a transient empty/loading emission or a
+    // re-sort (e.g. DATE_TAKEN rescan firing the MediaStore observer) happens
+    // right after returning. Gating on the grid's own restored position - captured
+    // once at first composition - is robust to all of those races (#919/#960/#965).
+    val startedAtTop = remember {
+        gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0
+    }
     LaunchedEffect(gridState, mediaState.value) {
-        if (loadedOnEntry) return@LaunchedEffect
+        if (!startedAtTop || hasScrolledToTop) return@LaunchedEffect
         snapshotFlow { mediaState.value.isLoading }
             .collectLatest { isLoading ->
-                if (!isLoading  && !hasScrolledToTop) {
+                if (!isLoading && !hasScrolledToTop) {
                     hasScrolledToTop = true
-                    gridState.scrollToItem(0)
+                    if (gridState.firstVisibleItemIndex != 0 ||
+                        gridState.firstVisibleItemScrollOffset != 0
+                    ) {
+                        gridState.scrollToItem(0)
+                    }
                 }
             }
     }
