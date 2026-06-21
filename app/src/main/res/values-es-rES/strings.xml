@@ -168,7 +168,7 @@
     <string name="error_copying_to_clipboard">Error al copiar al portapapeles</string>
     <string name="ignored_albums">Álbumes ignorados</string>
     <string name="add_to_ignored">Añadir a álbumes ignorados</string>
-    <string name="override">Sobreescribir</string>
+    <string name="override">Overwrite</string>
     <string name="save_copy">Guardar una copia</string>
     <string name="revert_to_original">Revertir al Original</string>
     <string name="revert_to_original_confirmation">Esto descartará todas las ediciones y restaurará la imagen original. Esta acción no se puede deshacer.</string>
@@ -178,7 +178,7 @@
     <string name="edit_backups_storage">Almacenamiento usado</string>
     <string name="edit_backups_storage_summary">%1$s utilizado por %2$d copia(s) de seguridad</string>
     <string name="edit_backups_no_backups">Ninguna copia de edición</string>
-    <string name="edit_backups_no_backups_summary">Se hará una copia de seguridad de las imágenes originales cuando sobreescribas una edición</string>
+    <string name="edit_backups_no_backups_summary">Original images will be backed up when you overwrite an edit</string>
     <string name="edit_backups_auto_cleanup">Limpieza automática</string>
     <string name="edit_backups_auto_cleanup_summary">Eliminar automáticamente las copias de seguridad de más de 90 días</string>
     <string name="edit_backups_delete_all">Borrar todas las copias de seguridad</string>
@@ -419,6 +419,8 @@
     <string name="extended_date">Fecha ampliada</string>
     <string name="auto_play_video">Reproducción automática de vídeo</string>
     <string name="auto_play_video_summary">Reproducir el vídeo automáticamente mientras se visualiza multimedia</string>
+    <string name="video_surface_rebind">Fix black video on hide</string>
+    <string name="video_surface_rebind_summary">Refresh the video surface when hiding or showing the controls</string>
     <string name="shared_elements">Animar elementos multimedia</string>
     <string name="shared_elements_summary">Animación de elementos multimedia clic/retorno mediante transiciones de elementos compartidos</string>
     <string name="type_stylus">Stylus</string>
@@ -489,6 +491,7 @@
     <string name="verify_identity">Verifica tu identidad</string>
     <string name="vault_encrypt_failed">Error al cifrar %1$d elemento(s)</string>
     <string name="vault_hide_in_progress">Ocultar archivos multimedia…</string>
+    <string name="vault_hide_no_local_items">Cloud items can\'t be added to a vault</string>
     <string name="vault_setup_password_prompt">¿Desea establecer una contraseña personalizada para esta caja fuerte?</string>
     <string name="vault_skip_password">Usar seguridad del dispositivo</string>
     <string name="vault_set_password">Establecer contraseña personalizada</string>
@@ -560,6 +563,7 @@
     <string name="show_favorite_button_description">Muestra un botón de corazón en la barra de herramientas del visor multimedia, que te permite añadir o eliminar rápidamente la foto actual de tus favoritos.</string>
     <string name="auto_hide_on_video_play_description">Oculta automáticamente las barras superior e inferior cuando empieza a reproducirse un vídeo, ofreciéndote una experiencia a pantalla completa. Toca la pantalla para recuperar los controles.</string>
     <string name="auto_play_video_description">Los vídeos empiezan a reproducirse automáticamente al deslizar el dedo hacia ellos en el visor multimedia. Desactívalo para que sea necesario tocarlos manualmente para reproducirlos.</string>
+    <string name="video_surface_rebind_description">On some devices the video can turn black when you hide or show the playback controls, even though the audio keeps playing. This re-binds the video surface on each change to keep it visible. Enabled by default on devices where the issue is known to occur.</string>
     <string name="fancy_blur_description">Aplica un efecto de desenfoque al fondo detrás de las fotos en el visor multimedia. Requiere Android 12 o superior.</string>
     <string name="shared_elements_description">Permite transiciones suaves de elementos compartidos entre las miniaturas de la cuadrícula y el visor multimedia a pantalla completa. Esto crea una conexión visual a medida que los elementos se acercan o alejan.</string>
     <string name="old_navbar_description">Cambia a la clásica barra de navegación Material con etiquetas de texto. En pantallas más grandes, se muestra una barra de navegación lateral.</string>
