@@ -168,7 +168,7 @@
     <string name="error_copying_to_clipboard">Failed to copy to clipboard</string>
     <string name="ignored_albums">Ignored Albums</string>
     <string name="add_to_ignored">Add to ignored albums</string>
-    <string name="override">Override</string>
+    <string name="override">Overwrite</string>
     <string name="save_copy">Save Copy</string>
     <string name="revert_to_original">Revert to Original</string>
     <string name="revert_to_original_confirmation">This will discard all edits and restore the original image. This action cannot be undone.</string>
@@ -178,7 +178,7 @@
     <string name="edit_backups_storage">Storage Used</string>
     <string name="edit_backups_storage_summary">%1$s used by %2$d backup(s)</string>
     <string name="edit_backups_no_backups">No edit backups</string>
-    <string name="edit_backups_no_backups_summary">Original images will be backed up when you override an edit</string>
+    <string name="edit_backups_no_backups_summary">Original images will be backed up when you overwrite an edit</string>
     <string name="edit_backups_auto_cleanup">Auto-cleanup</string>
     <string name="edit_backups_auto_cleanup_summary">Automatically delete backups older than 90 days</string>
     <string name="edit_backups_delete_all">Delete All Backups</string>
