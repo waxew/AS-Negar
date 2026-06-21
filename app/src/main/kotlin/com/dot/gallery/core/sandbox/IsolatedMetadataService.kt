@@ -15,10 +15,14 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.ParcelFileDescriptor
+import android.system.Os
+import android.system.OsConstants
 import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.exif.ExifIFD0Directory
 import com.drew.metadata.exif.ExifSubIFDDirectory
 import com.drew.metadata.exif.GpsDirectory
+import com.drew.metadata.mov.media.QuickTimeVideoDirectory
+import com.drew.metadata.mp4.media.Mp4VideoDirectory
 import com.drew.metadata.xmp.XmpDirectory
 import java.io.FileInputStream
 
@@ -223,11 +227,17 @@ class IsolatedMetadataService : Service() {
             ?: return Bundle().apply { putBoolean(KEY_ERROR, true) }
 
         return pfd.use { fd ->
+            val result = Bundle()
+
+            // ── 1) MediaMetadataRetriever (best-effort) ───────────────────
+            // setDataSource throws a RuntimeException on some containers/codecs
+            // (e.g. HEVC .MOV from iPhones). Treat that as non-fatal so the
+            // summary — and the "View all metadata" entry point — still appears;
+            // dimensions are recovered from metadata-extractor below.
             val retriever = MediaMetadataRetriever()
             try {
                 retriever.setDataSource(fd.fileDescriptor)
 
-                val result = Bundle()
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull()?.let { result.putLong(KEY_DURATION_MS, it) }
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
@@ -246,11 +256,41 @@ class IsolatedMetadataService : Service() {
                                 ?.let { d -> cnt.toFloat() / (d / 1000f) }
                         }
                 frameRate?.let { result.putFloat(KEY_FRAME_RATE, it) }
-
-                result
+            } catch (_: Exception) {
+                // Non-fatal: fall through to metadata-extractor.
             } finally {
                 retriever.release()
             }
+
+            // ── 2) metadata-extractor fallback for dimensions ─────────────
+            // Recovers width/height from the QuickTime/MP4 video track when the
+            // retriever failed or omitted them. Rewind the shared descriptor first.
+            if (!result.containsKey(KEY_VIDEO_WIDTH) || !result.containsKey(KEY_VIDEO_HEIGHT)) {
+                runCatching {
+                    Os.lseek(fd.fileDescriptor, 0, OsConstants.SEEK_SET)
+                    FileInputStream(fd.fileDescriptor).use { stream ->
+                        val meta = ImageMetadataReader.readMetadata(stream)
+                        meta.getFirstDirectoryOfType(QuickTimeVideoDirectory::class.java)?.let { dir ->
+                            if (!result.containsKey(KEY_VIDEO_WIDTH))
+                                dir.getInteger(QuickTimeVideoDirectory.TAG_WIDTH)
+                                    ?.takeIf { it > 0 }?.let { result.putInt(KEY_VIDEO_WIDTH, it) }
+                            if (!result.containsKey(KEY_VIDEO_HEIGHT))
+                                dir.getInteger(QuickTimeVideoDirectory.TAG_HEIGHT)
+                                    ?.takeIf { it > 0 }?.let { result.putInt(KEY_VIDEO_HEIGHT, it) }
+                        }
+                        meta.getFirstDirectoryOfType(Mp4VideoDirectory::class.java)?.let { dir ->
+                            if (!result.containsKey(KEY_VIDEO_WIDTH))
+                                dir.getInteger(Mp4VideoDirectory.TAG_WIDTH)
+                                    ?.takeIf { it > 0 }?.let { result.putInt(KEY_VIDEO_WIDTH, it) }
+                            if (!result.containsKey(KEY_VIDEO_HEIGHT))
+                                dir.getInteger(Mp4VideoDirectory.TAG_HEIGHT)
+                                    ?.takeIf { it > 0 }?.let { result.putInt(KEY_VIDEO_HEIGHT, it) }
+                        }
+                    }
+                }
+            }
+
+            result
         }
     }
 
@@ -300,6 +340,10 @@ class IsolatedMetadataService : Service() {
     @Suppress("DEPRECATION")
     private fun parseRawVideoMetadata(pfd: ParcelFileDescriptor): Bundle {
         val result = Bundle()
+        val dirNames = ArrayList<String>()
+        var dirIndex = 0
+
+        // ── 1) MediaMetadataRetriever (container/stream level tags) ────────
         val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(pfd.fileDescriptor)
@@ -345,15 +389,48 @@ class IsolatedMetadataService : Service() {
                 }
             }
             if (tagNames.isNotEmpty()) {
-                result.putStringArrayList(KEY_RAW_DIR_NAMES, arrayListOf("Video Metadata"))
-                result.putStringArrayList("dir_0_names", tagNames)
-                result.putStringArrayList("dir_0_descs", tagDescs)
-            } else {
-                result.putStringArrayList(KEY_RAW_DIR_NAMES, arrayListOf())
+                val dirKey = "dir_$dirIndex"
+                dirNames.add("Video Metadata")
+                result.putStringArrayList("${dirKey}_names", tagNames)
+                result.putStringArrayList("${dirKey}_descs", tagDescs)
+                dirIndex++
             }
+        } catch (_: Exception) {
+            // setDataSource throws on some containers/codecs (e.g. HEVC .MOV).
+            // Non-fatal: metadata-extractor below still reads the QuickTime tags.
         } finally {
             retriever.release()
         }
+
+        // ── 2) metadata-extractor (rich container EXIF: QuickTime/MOV, MP4) ─
+        // MediaMetadataRetriever does not surface QuickTime/EXIF tags such as
+        // camera Make/Model, lens or focal length. metadata-extractor reads the
+        // QuickTime ('mvhd'/'mebx'/'mdta') and MP4 atoms that hold them, so .MOV
+        // files from iPhones show their full metadata like images do. Rewind the
+        // shared file descriptor first since the retriever advanced its offset.
+        runCatching {
+            Os.lseek(pfd.fileDescriptor, 0, OsConstants.SEEK_SET)
+            FileInputStream(pfd.fileDescriptor).use { stream ->
+                val metadata = ImageMetadataReader.readMetadata(stream)
+                for (directory in metadata.directories) {
+                    val tags = directory.tags.filter { it.description != null }
+                    if (tags.isEmpty()) continue
+                    val dirKey = "dir_$dirIndex"
+                    dirNames.add(directory.name)
+                    val tagNames = ArrayList<String>(tags.size)
+                    val tagDescs = ArrayList<String>(tags.size)
+                    for (tag in tags) {
+                        tagNames.add(tag.tagName)
+                        tagDescs.add(tag.description)
+                    }
+                    result.putStringArrayList("${dirKey}_names", tagNames)
+                    result.putStringArrayList("${dirKey}_descs", tagDescs)
+                    dirIndex++
+                }
+            }
+        }
+
+        result.putStringArrayList(KEY_RAW_DIR_NAMES, dirNames)
         return result
     }
 
