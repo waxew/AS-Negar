@@ -809,22 +809,34 @@ private fun measureTextBounds(annotation: TextAnnotation, canvasSize: Size): Rec
 }
 
 /**
- * Keep a text annotation grabbable by clamping its bounding-box center within the canvas.
- * Without this, rotating or growing a text box (or dragging a very wide/tall one) can move the
- * whole box off-canvas, leaving nothing on screen to tap and making it unselectable.
+ * Keep a text annotation fully within the canvas by clamping its bounding-box edges.
+ *
+ * When the box fits, it is kept entirely on-screen (left/top edges in [0, canvas - box]),
+ * so text can never drift out of bounds. When the box is larger than the canvas (e.g. very
+ * large font or many interior blank lines), it is clamped to cover the canvas instead of
+ * escaping it, keeping it grabbable. This is stricter than center-only clamping, which let
+ * up to half the box — and its handles — slide off-screen.
  */
 private fun clampAnnotationCenter(annotation: TextAnnotation, canvasSize: Size): TextAnnotation {
     if (canvasSize.width <= 0f || canvasSize.height <= 0f) return annotation
     val bounds = measureTextBounds(annotation, canvasSize)
-    val cxNorm = bounds.center.x / canvasSize.width
-    val cyNorm = bounds.center.y / canvasSize.height
-    val clampedCx = cxNorm.coerceIn(0f, 1f)
-    val clampedCy = cyNorm.coerceIn(0f, 1f)
-    if (clampedCx == cxNorm && clampedCy == cyNorm) return annotation
+    val newLeft = if (bounds.width <= canvasSize.width) {
+        bounds.left.coerceIn(0f, canvasSize.width - bounds.width)
+    } else {
+        bounds.left.coerceIn(canvasSize.width - bounds.width, 0f)
+    }
+    val newTop = if (bounds.height <= canvasSize.height) {
+        bounds.top.coerceIn(0f, canvasSize.height - bounds.height)
+    } else {
+        bounds.top.coerceIn(canvasSize.height - bounds.height, 0f)
+    }
+    val dxNorm = (newLeft - bounds.left) / canvasSize.width
+    val dyNorm = (newTop - bounds.top) / canvasSize.height
+    if (dxNorm == 0f && dyNorm == 0f) return annotation
     return annotation.copy(
         position = Offset(
-            annotation.position.x + (clampedCx - cxNorm),
-            annotation.position.y + (clampedCy - cyNorm)
+            annotation.position.x + dxNorm,
+            annotation.position.y + dyNorm
         )
     )
 }
