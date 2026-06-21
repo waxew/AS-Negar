@@ -168,7 +168,7 @@
     <string name="error_copying_to_clipboard">クリップボードへのコピーに失敗しました</string>
     <string name="ignored_albums">非表示にしたアルバム</string>
     <string name="add_to_ignored">非表示にするアルバムに追加</string>
-    <string name="override">上書き</string>
+    <string name="override">Overwrite</string>
     <string name="save_copy">コピーを保存</string>
     <string name="revert_to_original">オリジナルに戻す</string>
     <string name="revert_to_original_confirmation">すべての編集を破棄し、元の画像を復元します。この操作は元に戻せません。</string>
@@ -178,7 +178,7 @@
     <string name="edit_backups_storage">使用中のストレージ</string>
     <string name="edit_backups_storage_summary">%1$s が %2$d バックアップで使用されています</string>
     <string name="edit_backups_no_backups">バックアップがありません</string>
-    <string name="edit_backups_no_backups_summary">編集を上書き保存したときに元の画像がバックアップされます</string>
+    <string name="edit_backups_no_backups_summary">Original images will be backed up when you overwrite an edit</string>
     <string name="edit_backups_auto_cleanup">自動クリーンアップ</string>
     <string name="edit_backups_auto_cleanup_summary">90日以上経過したバックアップを自動的に削除する</string>
     <string name="edit_backups_delete_all">すべてのバックアップを削除</string>
@@ -419,6 +419,8 @@
     <string name="extended_date">拡張表示</string>
     <string name="auto_play_video">ビデオの自動再生</string>
     <string name="auto_play_video_summary">メディアの表示中はビデオを自動再生する</string>
+    <string name="video_surface_rebind">Fix black video on hide</string>
+    <string name="video_surface_rebind_summary">Refresh the video surface when hiding or showing the controls</string>
     <string name="shared_elements">メディアのアニメーション</string>
     <string name="shared_elements_summary">メディアアイテムのタップ/戻り時に共有要素遷移を使用する</string>
     <string name="type_stylus">ペン</string>
@@ -489,6 +491,7 @@
     <string name="verify_identity">本人確認を行ってください</string>
     <string name="vault_encrypt_failed">%1$d 個の暗号化に失敗しました</string>
     <string name="vault_hide_in_progress">メディアを非表示にしています…</string>
+    <string name="vault_hide_no_local_items">Cloud items can\'t be added to a vault</string>
     <string name="vault_setup_password_prompt">この保管庫にカスタムパスワードを設定しますか？</string>
     <string name="vault_skip_password">端末のセキュリティを使用する</string>
     <string name="vault_set_password">Set custom password</string>
@@ -560,6 +563,7 @@
     <string name="show_favorite_button_description">メディアビューアーツールバーにハートボタンを表示します。お気に入りから写真を素早く追加または削除できます。</string>
     <string name="auto_hide_on_video_play_description">ビデオの再生が開始されると、画面上部と下部のバーが自動的に非表示になり、フルスクリーンの操作が可能になります。画面をタップするとコントロールが戻ります。</string>
     <string name="auto_play_video_description">メディアビューアーでスワイプ中に動画を選択すると、自動的に再生が開始されます。手動でタップして再生するようにするには、この設定をオフにしてください。</string>
+    <string name="video_surface_rebind_description">On some devices the video can turn black when you hide or show the playback controls, even though the audio keeps playing. This re-binds the video surface on each change to keep it visible. Enabled by default on devices where the issue is known to occur.</string>
     <string name="fancy_blur_description">メディアビューアー内の写真の背景にぼかし効果を適用します。Android 12 以降が必要です。</string>
     <string name="shared_elements_description">グリッドサムネイルと全画面メディアビューアー間のスムーズな共有要素の切り替えを有効にします。これにより、アイテムの拡大/縮小として視覚的な接続が作成されます。</string>
     <string name="old_navbar_description">テキストラベル付きのマテリアルナビゲーションバーに切り替えます。大きな画面では、代わりにサイドにナビゲーションレールが表示されます。</string>
