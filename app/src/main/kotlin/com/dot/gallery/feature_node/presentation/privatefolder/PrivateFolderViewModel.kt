@@ -34,11 +34,15 @@ class PrivateFolderViewModel @Inject constructor(
         const val PRIVATE_FOLDER_ALBUM_ID = -300L
     }
 
-    private val rawMedia = repository.listMedia()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val scanState = repository.listMediaProgressive()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            PrivateFolderRepository.ScanState(emptyList(), isLoading = true)
+        )
 
-    private val uriMediaFlow = rawMedia.map { list ->
-        list.map { pm ->
+    private val uriMediaFlow = scanState.map { state ->
+        state.isLoading to state.media.map { pm ->
             Media.UriMedia(
                 id = pm.uri.hashCode().toLong() or (1L shl 62),
                 label = pm.displayName,
@@ -63,9 +67,9 @@ class PrivateFolderViewModel @Inject constructor(
     val mediaState: StateFlow<MediaState<Media.UriMedia>> = combine(
         uriMediaFlow,
         distributor.dateFormatsFlow
-    ) { mediaList, (defaultFmt, extendedFmt, weeklyFmt) ->
+    ) { (isLoading, mediaList), (defaultFmt, extendedFmt, weeklyFmt) ->
         if (mediaList.isEmpty()) {
-            MediaState(isLoading = false)
+            MediaState(isLoading = isLoading)
         } else {
             mapMediaToItem(
                 data = mediaList,
@@ -74,7 +78,7 @@ class PrivateFolderViewModel @Inject constructor(
                 defaultDateFormat = defaultFmt,
                 extendedDateFormat = extendedFmt,
                 weeklyDateFormat = weeklyFmt
-            )
+            ).copy(isLoading = isLoading)
         }
     }.flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MediaState())

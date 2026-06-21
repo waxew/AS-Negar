@@ -14,9 +14,11 @@ import com.dot.gallery.feature_node.presentation.util.printDebug
 import com.dot.gallery.feature_node.presentation.util.printWarning
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 
 /**
  * Queries media files from the user's private folder via SAF [DocumentFile] APIs.
@@ -41,36 +43,66 @@ class PrivateFolderRepository(private val context: Context) {
     }
 
     /**
-     * Lists all image and video files from the private folder.
-     * Emits an empty list if no folder is configured or permission is lost.
+     * A progressive snapshot of the private folder scan. [media] is the
+     * sorted list found so far; [isLoading] is true while the SAF tree is
+     * still being traversed and false once the scan has fully completed.
      */
-    fun listMedia(): Flow<List<PrivateMedia>> = flow {
+    data class ScanState(
+        val media: List<PrivateMedia>,
+        val isLoading: Boolean
+    )
+
+    /**
+     * Lists all image and video files from the private folder, emitting
+     * progressive snapshots as subfolders are traversed.
+     *
+     * The tree is walked breadth-first so shallow media appears first, and
+     * intermediate results are emitted (time-throttled) so the UI fills in
+     * incrementally instead of staying empty until the whole — potentially
+     * huge — tree has been scanned. The terminal emission carries
+     * [ScanState.isLoading] = false.
+     */
+    fun listMediaProgressive(): Flow<ScanState> = flow {
         val uriString = PrivateFolderManager.getUri(context).firstOrNull()
         if (uriString.isNullOrEmpty()) {
-            emit(emptyList())
+            emit(ScanState(emptyList(), isLoading = false))
             return@flow
         }
 
         if (!PrivateFolderManager.hasValidPermission(context, uriString)) {
             printWarning("PrivateFolderRepository: lost permission for $uriString")
-            emit(emptyList())
+            emit(ScanState(emptyList(), isLoading = false))
             return@flow
         }
 
+        // Signal that scanning has started so the UI can show a loading state
+        // instead of an empty state while deep trees are still being walked.
+        emit(ScanState(emptyList(), isLoading = true))
+
         val treeUri = uriString.toUri()
-        val rootDocUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-            treeUri, DocumentsContract.getTreeDocumentId(treeUri)
-        )
+        val rootDocId = DocumentsContract.getTreeDocumentId(treeUri)
 
         val media = mutableListOf<PrivateMedia>()
-        collectMedia(treeUri, rootDocUri, media)
+        collectMedia(treeUri, rootDocId, media)
         printDebug("PrivateFolderRepository: found ${media.size} media files")
-        emit(media.sortedByDescending { it.lastModified })
+        emit(ScanState(media.sortedByDescending { it.lastModified }, isLoading = false))
     }.flowOn(Dispatchers.IO)
 
-    private fun collectMedia(
+    /**
+     * Lists all image and video files from the private folder.
+     * Emits an empty list if no folder is configured or permission is lost.
+     */
+    fun listMedia(): Flow<List<PrivateMedia>> =
+        listMediaProgressive().map { it.media }
+
+    /**
+     * Breadth-first traversal of the SAF tree. Emits time-throttled,
+     * accumulating sorted snapshots through [emit] so the UI can render
+     * media as it is discovered rather than waiting for the full scan.
+     */
+    private suspend fun FlowCollector<ScanState>.collectMedia(
         treeUri: Uri,
-        childrenUri: Uri,
+        rootDocId: String,
         result: MutableList<PrivateMedia>
     ) {
         val projection = arrayOf(
@@ -81,38 +113,55 @@ class PrivateFolderRepository(private val context: Context) {
             DocumentsContract.Document.COLUMN_LAST_MODIFIED
         )
 
-        var cursor: Cursor? = null
-        try {
-            cursor = context.contentResolver.query(childrenUri, projection, null, null, null)
-            cursor?.use {
-                while (it.moveToNext()) {
-                    val docId = it.getString(0) ?: continue
-                    val name = it.getString(1) ?: "unknown"
-                    val mime = it.getString(2) ?: continue
-                    val size = it.getLong(3)
-                    val modified = it.getLong(4)
+        val queue = ArrayDeque<String>()
+        queue.add(rootDocId)
+        var lastEmit = System.currentTimeMillis()
+        var pending = 0
 
-                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                        val subChildrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                            treeUri, docId
-                        )
-                        collectMedia(treeUri, subChildrenUri, result)
-                    } else if (mime.startsWith("image/") || mime.startsWith("video/")) {
-                        val docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
-                        result.add(
-                            PrivateMedia(
-                                uri = docUri,
-                                displayName = name,
-                                mimeType = mime,
-                                size = size,
-                                lastModified = modified
+        while (queue.isNotEmpty()) {
+            val docId = queue.removeFirst()
+            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, docId)
+            var cursor: Cursor? = null
+            try {
+                cursor = context.contentResolver.query(childrenUri, projection, null, null, null)
+                cursor?.use {
+                    while (it.moveToNext()) {
+                        val childDocId = it.getString(0) ?: continue
+                        val name = it.getString(1) ?: "unknown"
+                        val mime = it.getString(2) ?: continue
+                        val size = it.getLong(3)
+                        val modified = it.getLong(4)
+
+                        if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                            queue.add(childDocId)
+                        } else if (mime.startsWith("image/") || mime.startsWith("video/")) {
+                            val docUri =
+                                DocumentsContract.buildDocumentUriUsingTree(treeUri, childDocId)
+                            result.add(
+                                PrivateMedia(
+                                    uri = docUri,
+                                    displayName = name,
+                                    mimeType = mime,
+                                    size = size,
+                                    lastModified = modified
+                                )
                             )
-                        )
+                            pending++
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                printWarning("PrivateFolderRepository: query failed for $childrenUri: ${e.message}")
             }
-        } catch (e: Exception) {
-            printWarning("PrivateFolderRepository: query failed for $childrenUri: ${e.message}")
+
+            // Emit a throttled intermediate snapshot so the grid fills in as
+            // we go, without sorting the whole list on every single folder.
+            val now = System.currentTimeMillis()
+            if (pending > 0 && now - lastEmit >= INTERMEDIATE_EMIT_INTERVAL_MS) {
+                emit(ScanState(result.sortedByDescending { it.lastModified }, isLoading = true))
+                lastEmit = now
+                pending = 0
+            }
         }
     }
 
@@ -127,5 +176,10 @@ class PrivateFolderRepository(private val context: Context) {
             printWarning("PrivateFolderRepository: delete failed for ${media.uri}: ${e.message}")
             false
         }
+    }
+
+    private companion object {
+        /** Minimum gap between intermediate progressive emissions while scanning. */
+        const val INTERMEDIATE_EMIT_INTERVAL_MS = 300L
     }
 }
