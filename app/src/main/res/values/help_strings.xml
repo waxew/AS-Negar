@@ -1298,4 +1298,24 @@
     <string name="help_release_502_backup_desc">Start backup and Upload now work even when Auto-sync is turned off</string>
     <string name="help_release_502_bugfixes_title">Bug fixes</string>
     <string name="help_release_502_bugfixes_desc">Fixed grouped video overlapping the controls and stretching when switching members, and View all metadata for photos opened from other apps</string>
+
+    <!-- Fix black video on hide (5.0.3) -->
+    <string name="help_tip_video_fix_black_title">Fix black video on hide</string>
+    <string name="help_tip_video_fix_black_subtitle">Stop video blacking out when the bars hide</string>
+    <string name="help_tip_video_fix_black_p1_title">Keep video visible</string>
+    <string name="help_tip_video_fix_black_p1_desc">On some devices (notably Samsung) a playing video can black out when the system bars are shown or hidden, even though it keeps playing. Enable Media Viewer › Video Playback › \'Fix black video on hide\' to re-bind the player surface on every bar change. It is on by default for Samsung devices and off elsewhere — turn it off if you don\'t need it.</string>
+
+    <!-- RELEASE NOTES: 5.0.3 -->
+    <string name="help_release_503_video_meta_title">Richer video metadata</string>
+    <string name="help_release_503_video_meta_desc">iPhone HEVC .MOV files now show full QuickTime and EXIF details — camera make and model, lens, focal length and dates — instead of an empty sheet</string>
+    <string name="help_release_503_private_folder_title">Faster private folders</string>
+    <string name="help_release_503_private_folder_desc">Private folder media now fills in progressively as it is discovered instead of staying blank until the whole folder is scanned</string>
+    <string name="help_release_503_black_video_title">Fix black video on hide</string>
+    <string name="help_release_503_black_video_desc">A new Video Playback toggle re-binds the player surface so videos no longer black out when the system bars are shown or hidden (on by default for Samsung)</string>
+    <string name="help_release_503_viewer_title">Smoother viewer</string>
+    <string name="help_release_503_viewer_desc">Paddings, the info sheet and video controls adapt correctly on rotation, the timeline keeps its scroll position when you return, and the info panel no longer auto-hides mid-drag or gets stuck invisible</string>
+    <string name="help_release_503_editor_title">Editor fixes</string>
+    <string name="help_release_503_editor_desc">Crop no longer zooms when dragged out of bounds, and markup hangs, undo of no-op adjustments, the rotate button and off-canvas text have all been fixed</string>
+    <string name="help_release_503_bugfixes_title">Bug fixes</string>
+    <string name="help_release_503_bugfixes_desc">Fixed hiding items to a vault from the selection sheet, View all metadata for images opened from other apps, a stuck pull-to-refresh spinner, the material navigation toggle flashing the screen, and secure camera reviews over the lockscreen</string>
 </resources>

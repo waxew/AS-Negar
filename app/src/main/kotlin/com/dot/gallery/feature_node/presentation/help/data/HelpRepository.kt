@@ -410,7 +410,13 @@ object HelpRepository {
             icon = HelpIcon.ofVector(Icons.Outlined.VideoSettings), category = HelpCategory.VIEWER_SETTINGS,
             pages = listOf(
                 TutorialPage(title = R.string.help_tip_video_options_popup_p1_title, description = R.string.help_tip_video_options_popup_p1_desc, previewType = PreviewType.MEDIA_VIEWER)
-            ), sinceVersion = "4.3.0")
+            ), sinceVersion = "4.3.0"),
+        HelpTip(id = "video_fix_black", title = R.string.help_tip_video_fix_black_title, subtitle = R.string.help_tip_video_fix_black_subtitle,
+            icon = HelpIcon.ofVector(Icons.Outlined.Movie), category = HelpCategory.VIEWER_SETTINGS,
+            deepLink = Screen.SettingsMediaViewerScreen(),
+            pages = listOf(
+                TutorialPage(title = R.string.help_tip_video_fix_black_p1_title, description = R.string.help_tip_video_fix_black_p1_desc)
+            ), sinceVersion = "5.0.3")
     )
     // endregion
 
@@ -889,6 +895,19 @@ object HelpRepository {
         SETTINGS_SECURITY_TIPS + GESTURE_TIPS + SELECTION_TIPS + ACCESSIBILITY_TIPS
 
     private val ALL_RELEASES: List<ReleaseNotes> = listOf(
+        ReleaseNotes(
+            versionName = "5.0.3",
+            versionCode = 50303,
+            releaseDate = "2026-06-22",
+            highlights = listOf(
+                ReleaseHighlight(tipId = "exif_view", title = R.string.help_release_503_video_meta_title, description = R.string.help_release_503_video_meta_desc, icon = HelpIcon.ofVector(Icons.Outlined.VideoSettings)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_503_private_folder_title, description = R.string.help_release_503_private_folder_desc, icon = HelpIcon.ofVector(Icons.Outlined.FolderCopy)),
+                ReleaseHighlight(tipId = "video_fix_black", title = R.string.help_release_503_black_video_title, description = R.string.help_release_503_black_video_desc, icon = HelpIcon.ofVector(Icons.Outlined.Movie)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_503_viewer_title, description = R.string.help_release_503_viewer_desc, icon = HelpIcon.ofVector(Icons.Outlined.Collections)),
+                ReleaseHighlight(tipId = "edit_markup", title = R.string.help_release_503_editor_title, description = R.string.help_release_503_editor_desc, icon = HelpIcon.ofVector(Icons.Outlined.Edit)),
+                ReleaseHighlight(tipId = null, title = R.string.help_release_503_bugfixes_title, description = R.string.help_release_503_bugfixes_desc, icon = HelpIcon.ofVector(Icons.Outlined.BugReport))
+            )
+        ),
         ReleaseNotes(
             versionName = "5.0.2",
             versionCode = 50201,
