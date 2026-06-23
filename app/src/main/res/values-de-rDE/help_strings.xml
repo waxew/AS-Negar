@@ -108,8 +108,8 @@
     <string name="help_tip_personalize_colors_p1_title">Color palette</string>
     <string name="help_tip_personalize_colors_p1_desc">Gestalten Sie die Galerie individuell, indem Sie ihr Farbschema anpassen. Die Systemfarben passen zu dem Thema Ihres Telefons (Material Sie). Neutral gibt einen sauberen, subtilen Look. Voreingestellte Paletten bieten kuratierte Farbkombinationen. Oder wählen Sie eine individuelle Farbe aus – die Galerie generiert ein komplettes Design.</string>
     <string name="help_tip_personalize_colors_p2_title">Make it yours</string>
-    <string name="help_tip_personalize_colors_p2_desc">The chosen color affects buttons, highlights, icons, cards, and backgrounds throughout the entire app. Experiment with different options to find what suits you — you can always change it later. Tip: System colors update automatically when you change your phone\'s wallpaper.</string>
-    <string name="help_tip_personalize_colors_p2_s1">Go to Settings &gt; Appearance &gt; Color palette</string>
+    <string name="help_tip_personalize_colors_p2_desc">Die gewählte Farbe wirkt sich auf Schaltflächen, Hervorhebungen, Symbole, Karten und Hintergründe in der gesamten App aus. Probieren Sie verschiedene Optionen aus, um die für Sie passende zu finden – Sie können die Einstellung später jederzeit ändern. Tipp: Die Systemfarben werden automatisch aktualisiert, wenn Sie den Hintergrund Ihres Smartphones ändern.</string>
+    <string name="help_tip_personalize_colors_p2_s1">Gehe zu „Einstellungen“ → „Darstellung“ → „Farbpalette“</string>
     <string name="help_tip_personalize_colors_p2_s2">Choose System, Neutral, a preset, or Custom</string>
     <string name="help_tip_personalize_colors_p2_s3">For custom, tap any color to pick it</string>
     <string name="help_tip_personalize_colors_p2_s4">Preview changes instantly</string>
