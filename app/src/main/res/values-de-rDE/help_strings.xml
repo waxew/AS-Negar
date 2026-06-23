@@ -34,11 +34,11 @@
     <string name="help_tip_basics_share_subtitle">Share media with other apps and people</string>
     <string name="help_tip_basics_share_p1_title">Share your media</string>
     <string name="help_tip_basics_share_p1_desc">Open a photo or video, then tap the share button in the bottom bar to send it via any app on your device — messaging apps, email, social media, cloud storage, and more. You can also share multiple photos at once by selecting them first in the grid. The share sheet shows your most-used apps at the top for quick access.</string>
-    <string name="help_tip_basics_share_p1_s1">Open a photo or video</string>
+    <string name="help_tip_basics_share_p1_s1">Ein Foto oder Video öffnen</string>
     <string name="help_tip_basics_share_p1_s2">Tap the share icon in the bottom bar</string>
     <string name="help_tip_basics_share_p1_s3">Choose an app to share with</string>
     <string name="help_tip_basics_share_p1_s4">Tip: select multiple photos in the grid first to batch-share</string>
-    <string name="help_tip_basics_copy_clipboard_title">Copy media to clipboard</string>
+    <string name="help_tip_basics_copy_clipboard_title">Medien in die Zwischenablage kopieren</string>
     <string name="help_tip_basics_copy_clipboard_subtitle">Copy a photo to paste it into other apps</string>
     <string name="help_tip_basics_copy_clipboard_p1_title">Copy to clipboard</string>
     <string name="help_tip_basics_copy_clipboard_p1_desc">Copy a photo directly to your clipboard, then paste it into messaging apps, document editors, email, or any app that accepts images. This is faster than sharing when you just need to quickly drop an image into a conversation or document. The copied image stays on your clipboard until you copy something else.</string>
@@ -74,10 +74,10 @@
     <string name="help_tip_nav_old_navbar_p1_title">Navigation bar styles</string>
     <string name="help_tip_nav_old_navbar_p1_desc">Gallery offers two navigation bar styles. The modern style shows labeled icons for Timeline, Albums, and Library. The classic compact style uses smaller icons without labels, giving you more screen space for your photos. Try both to see which you prefer.</string>
     <string name="help_tip_nav_old_navbar_p1_s1">Go to Settings &gt; Navigation</string>
-    <string name="help_tip_nav_old_navbar_p1_s2">Toggle \'Old navigation bar style\'</string>
+    <string name="help_tip_nav_old_navbar_p1_s2">„Alten Navigationsleistenstil“ umschalten</string>
     <string name="help_tip_nav_library_title">Use the library</string>
     <string name="help_tip_nav_library_subtitle">Quick access to favorites, trash, vault, and more</string>
-    <string name="help_tip_nav_library_p1_title">The Library</string>
+    <string name="help_tip_nav_library_p1_title">Die Bibliothek</string>
     <string name="help_tip_nav_library_p1_desc">The Library is your hub for everything beyond the main timeline and albums. From here you can access: Favorites (your starred photos), Trash (recently deleted items, recoverable for 30 days), Vault (encrypted private photos), Locations (photos organized by where they were taken), and Categories (AI-sorted photo groups). Think of it as your gallery\'s control center.</string>
     <string name="help_tip_nav_launch_screen_title">Set your default launch screen</string>
     <string name="help_tip_nav_launch_screen_subtitle">Choose which screen appears when you open Gallery</string>
@@ -106,7 +106,7 @@
     <string name="help_tip_personalize_colors_title">Customize color palette</string>
     <string name="help_tip_personalize_colors_subtitle">Pick any color to theme the entire app</string>
     <string name="help_tip_personalize_colors_p1_title">Color palette</string>
-    <string name="help_tip_personalize_colors_p1_desc">Make Gallery truly yours by customizing its color scheme. System colors match your phone\'s wallpaper-based theme (Material You). Neutral gives a clean, subtle look. Preset palettes offer curated color combinations. Or pick any custom color you like — Gallery will generate a complete theme from it.</string>
+    <string name="help_tip_personalize_colors_p1_desc">Gestalten Sie die Galerie individuell, indem Sie ihr Farbschema anpassen. Die Systemfarben passen zu dem Thema Ihres Telefons (Material Sie). Neutral gibt einen sauberen, subtilen Look. Voreingestellte Paletten bieten kuratierte Farbkombinationen. Oder wählen Sie eine individuelle Farbe aus – die Galerie generiert ein komplettes Design.</string>
     <string name="help_tip_personalize_colors_p2_title">Make it yours</string>
     <string name="help_tip_personalize_colors_p2_desc">The chosen color affects buttons, highlights, icons, cards, and backgrounds throughout the entire app. Experiment with different options to find what suits you — you can always change it later. Tip: System colors update automatically when you change your phone\'s wallpaper.</string>
     <string name="help_tip_personalize_colors_p2_s1">Go to Settings &gt; Appearance &gt; Color palette</string>
