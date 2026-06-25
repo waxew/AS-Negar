@@ -95,14 +95,14 @@
     <string name="help_tip_nav_auto_hide_bars_p1_s3">Scroll down to see them hide, scroll up to bring them back</string>
     <!-- GET STARTED: PERSONALIZATION -->
     <string name="help_tip_personalize_theme_title">Change your theme</string>
-    <string name="help_tip_personalize_theme_subtitle">Light, dark, or follow your system</string>
+    <string name="help_tip_personalize_theme_subtitle">فاتح، داكن، أو اتبع نظامك</string>
     <string name="help_tip_personalize_theme_p1_title">Choose your theme</string>
-    <string name="help_tip_personalize_theme_p1_desc">Gallery supports light and dark themes, and can follow your system setting automatically. The theme affects all screens, dialogs, and menus throughout the app. Most users prefer the system default so Gallery matches the rest of their phone.</string>
+    <string name="help_tip_personalize_theme_p1_desc">يدعم تطبيق «المعرض» السمات الفاتحة والداكنة، ويمكنه التوافق تلقائيًّا مع إعدادات نظام التشغيل. تؤثر السمة على جميع الشاشات ومربعات الحوار والقوائم في جميع أنحاء التطبيق. يفضل معظم المستخدمين الإعداد الافتراضي للنظام حتى يتناسب تطبيق «المعرض» مع باقي أجزاء هواتفهم.</string>
     <string name="help_tip_personalize_theme_p2_title">Theme options</string>
-    <string name="help_tip_personalize_theme_p2_desc">System default follows your phone\'s current mode. Force dark mode keeps Gallery dark regardless of system settings — great for nighttime browsing. If you have an OLED display, enable AMOLED pure black for true black backgrounds that save battery and look stunning.</string>
+    <string name="help_tip_personalize_theme_p2_desc">يتبع الإعداد الافتراضي للنظام الوضع الحالي لهاتفك. أما خيار «افرض الوضع الداكن» فيبقي تطبيق «المعرض» في الوضع الداكن بغض النظر عن إعدادات النظام — وهو خيار رائع للتصفح الليلي. إذا كان هاتفك مزودًا بشاشة OLED، فقم بتفعيل خيار «الأسود النقي لـ AMOLED» للحصول على خلفيات سوداء حقيقية توفر طاقة البطارية وتبدو مذهلة.</string>
     <string name="help_tip_personalize_theme_p2_s1">Go to Settings &gt; Appearance</string>
     <string name="help_tip_personalize_theme_p2_s2">Choose System, Light, or Force Dark</string>
-    <string name="help_tip_personalize_theme_p2_s3">For OLED screens, also enable \'AMOLED pure black\'</string>
+    <string name="help_tip_personalize_theme_p2_s3">لشاشة OLED، فعِّل أيضًا \"AMOLED أسود نقي\"</string>
     <string name="help_tip_personalize_colors_title">Customize color palette</string>
     <string name="help_tip_personalize_colors_subtitle">Pick any color to theme the entire app</string>
     <string name="help_tip_personalize_colors_p1_title">Color palette</string>
@@ -120,12 +120,12 @@
     <string name="help_tip_personalize_grid_p2_title">Find your perfect size</string>
     <string name="help_tip_personalize_grid_p2_desc">The grid ranges from 2 columns (large thumbnails) to 10 columns (tiny thumbnails for maximum overview). Gallery remembers your preference separately for the timeline and album views. Tip: try 3-4 columns for a good balance between seeing photo details and fitting many on screen.</string>
     <string name="help_tip_personalize_amoled_title">Enable AMOLED dark mode</string>
-    <string name="help_tip_personalize_amoled_subtitle">Pure black backgrounds for OLED screens</string>
+    <string name="help_tip_personalize_amoled_subtitle">خلفيات سوداء نقية لشاشات OLED</string>
     <string name="help_tip_personalize_amoled_p1_title">AMOLED mode</string>
     <string name="help_tip_personalize_amoled_p1_desc">If your phone has an OLED or AMOLED display, this mode uses true black pixels which are actually turned off — saving battery and creating a striking visual. Combine with Force dark mode for the best results. Note: this setting only takes effect when dark mode is active.</string>
     <string name="help_tip_personalize_amoled_p1_s1">Go to Settings &gt; Appearance</string>
     <string name="help_tip_personalize_amoled_p1_s2">Enable Force dark mode first</string>
-    <string name="help_tip_personalize_amoled_p1_s3">Toggle \'AMOLED pure black\'</string>
+    <string name="help_tip_personalize_amoled_p1_s3">بدّل \"AMOLED أسود نقي\"</string>
     <string name="help_tip_personalize_amoled_p1_s4">Enjoy true blacks on your OLED display</string>
     <string name="help_tip_personalize_dark_mode_title">Switch between light and dark</string>
     <string name="help_tip_personalize_dark_mode_subtitle">Choose the mode that\'s easiest on your eyes</string>
@@ -667,12 +667,12 @@
     <string name="help_tip_settings_dark_mode_p1_s2">تبديل \'افرض الوضع الداكن\'</string>
     <string name="help_tip_settings_dark_mode_p1_s3">يظل «المعرض» داكن حتى عندما يكون جوالك في الوضع الفاتح</string>
     <string name="help_tip_settings_amoled_title">أسود نقي AMOLED</string>
-    <string name="help_tip_settings_amoled_subtitle">Pure black backgrounds for OLED screens</string>
+    <string name="help_tip_settings_amoled_subtitle">خلفيات سوداء نقية لشاشات OLED</string>
     <string name="help_tip_settings_amoled_p1_title">AMOLED mode</string>
-    <string name="help_tip_settings_amoled_p1_desc">On OLED and AMOLED displays, true black pixels are completely turned off, saving battery and creating a stunning high-contrast look. This setting replaces dark gray backgrounds with pure black. Note: it only takes effect when dark mode is active (either system dark mode or Force dark mode).</string>
+    <string name="help_tip_settings_amoled_p1_desc">في شاشات OLED وAMOLED، يتم إيقاف تشغيل وحدات البكسل ذات اللون الأسود الحقيقي تمامًا، مما يوفر طاقة البطارية ويمنح الشاشة مظهرًا مذهلًا عالٍ التباين. يعمل هذا الإعداد على استبدال الخلفيات الرمادية الداكنة باللون الأسود النقي. ملاحظة: لا يسري مفعول هذا الإعداد إلا عند تفعيل الوضع الداكن (سواء كان الوضع الداكن للنظام أو «افرض الوضع الداكن»).</string>
     <string name="help_tip_settings_amoled_p1_s1">Go to Settings &gt; Appearance</string>
     <string name="help_tip_settings_amoled_p1_s2">Enable dark mode or Force dark mode</string>
-    <string name="help_tip_settings_amoled_p1_s3">Toggle \'AMOLED pure black\'</string>
+    <string name="help_tip_settings_amoled_p1_s3">بدّل \"AMOLED أسود نقي\"</string>
     <string name="help_tip_settings_amoled_p1_s4">Best results on OLED/AMOLED screens</string>
     <!-- SETTINGS: GENERAL -->
     <string name="help_tip_settings_trash_toggle_title">Enable/disable trash</string>
