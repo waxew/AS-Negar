@@ -563,7 +563,7 @@
     <string name="show_favorite_button_description">在媒体查看器工具栏中显示一个心形按钮，可让您快速将当前照片添加到收藏夹或从收藏夹中移除。</string>
     <string name="auto_hide_on_video_play_description">视频开始播放时自动隐藏顶栏和底栏以带来全屏体验。轻触屏幕即可恢复控制栏。</string>
     <string name="auto_play_video_description">在媒体查看器中滑动到视频时自动播放。禁用此功能后，需手动点击才能播放。</string>
-    <string name="video_surface_rebind_description">On some devices the video can turn black when you hide or show the playback controls, even though the audio keeps playing. This re-binds the video surface on each change to keep it visible. Enabled by default on devices where the issue is known to occur.</string>
+    <string name="video_surface_rebind_description">在某些设备上，当隐藏或显示播放控件时，视频画面可能会黑屏，尽管音频仍在播放。此功能会在每次操作变化时重新绑定视频区域，以确保其保持可见。在已知会出现此问题的设备上，该功能默认启用。</string>
     <string name="fancy_blur_description">在媒体查看器中为照片背景添加模糊效果。需要 Android 12 或更高版本。</string>
     <string name="shared_elements_description">启用网格缩略图与全屏媒体查看器之间共享元素的平滑过渡。这使得项目的缩放在视觉上更加连贯。</string>
     <string name="old_navbar_description">切换至带有文本标签的经典 Material 导航栏。在大屏幕上会显示为侧边导航栏。</string>
