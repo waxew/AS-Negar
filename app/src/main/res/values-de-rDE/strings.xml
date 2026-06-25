@@ -555,7 +555,7 @@
     <string name="group_burst_sequences_summary">Ordnet Serienaufnahmen zu, die denselben Zeitstempel haben.\n\nErkannte Muster:\n• Samsung — 20151021_072800_007\n• Pixel/Motorola — IMG_20151021_072800_BURST007\n• Sony — DSC_0007_BURST20151021072800\n• OnePlus — IMG_20151021_072800_BURST(007)\n• Generisch — Suffixe _BURST###, _COVER</string>
     <string name="group_cloud_local_title">Cloud + lokale Kopien</string>
     <string name="group_cloud_local_summary">Gruppiert Cloud- und lokale Kopien derselben Datei. Zeigt ein Cloud-Symbol auf der Miniaturansicht an, um ein übereinstimmendes Paar zu kennzeichnen.</string>
-    <string name="allow_gif_animation_description">Wenn diese Option aktiviert ist, werden GIF-Bilder direkt in der Zeitleiste und in den Albumrastern abgespielt. Deaktiviere diese Option, um stattdessen statische Miniaturansichten anzuzeigen. Dies kann Verzögerungen in Ordnern mit vielen GIFs verringern.</string>
+    <string name="allow_gif_animation_description">Wenn diese Option aktiviert ist, werden GIF-Bilder direkt in deiner Timeline und in den Albumrastern abgespielt. Deaktiviere diese Option, um stattdessen statische Miniaturansichten anzuzeigen. Dies kann Verzögerungen in Ordnern mit vielen GIFs verringern.</string>
     <string name="hide_timeline_for_albums_description">Entfernt die Überschriften der Datumsbereiche beim Durchblättern eines Albums und zeigt so eine übersichtlichere, durchgehende Medienansicht an.</string>
     <string name="merge_albums_by_name_description">Führt Alben mit demselben Namen aus verschiedenen Speicherorten zu einem einzigen Album zusammen. Das ist nützlich, wenn sich Ihre Medien auf den internen Speicher und die SD-Karte verteilen.</string>
     <string name="full_brightness_view_description">Die Bildschirmhelligkeit wird automatisch auf das Maximum eingestellt, wenn Sie ein Foto oder Video im Vollbildmodus ansehen. Die Helligkeit kehrt auf die normale Stufe zurück, sobald Sie den Viewer verlassen.</string>
@@ -569,7 +569,7 @@
     <string name="old_navbar_description">Wechselt zur klassischen Material-Navigationsleiste mit Textbeschriftungen. Auf größeren Bildschirmen wird stattdessen eine seitliche Navigationsleiste angezeigt.</string>
     <string name="auto_hide_searchbar_description">Die Suchleiste oder die obere Leiste verschwindet aus dem Blickfeld, wenn man nach unten scrollt, wodurch mehr Platz für Inhalte entsteht. Sie wird wieder angezeigt, wenn man nach oben scrollt.</string>
     <string name="auto_hide_navigationbar_description">Die Suchleiste oder die obere Leiste verschwindet aus dem Blickfeld, wenn man nach unten scrollt, wodurch mehr Platz für Inhalte entsteht. Sie wird wieder angezeigt, wenn man nach oben scrollt.</string>
-    <string name="show_selection_titles_description">Zeigt den Titeltext unter jedem Element in der unteren Auswahlleiste an (Zeitleiste, Alben, Bibliothek). Deaktivieren Sie diese Option, um eine kompaktere Navigation nur mit Symbolen zu erhalten.</string>
+    <string name="show_selection_titles_description">Zeigt den Titeltext unter jedem Element in der unteren Auswahlleiste an (Timeline, Alben, Bibliothek). Deaktivieren Sie diese Option, um eine kompaktere Navigation nur mit Symbolen zu erhalten.</string>
     <string name="secure_mode_description">Verhindert, dass die App-Inhalte in Screenshots, der aktuellen App-Übersicht und Bildschirmaufnahmen erscheinen. Nützlich für die Privatsphäre, wenn Ihre Galerie sensible Inhalte enthält.</string>
     <string name="allow_vibrations_description">Ermöglicht es der App, bei bestimmten Aktionen und Gesten haptisches Feedback zu geben, beispielsweise beim langen Drücken zur Auswahl oder bei Zoom-Übergängen durch Auf- und Zuziehen.</string>
     <string name="trash_enabled_description">Wenn diese Funktion aktiviert ist, werden gelöschte Fotos und Videos in den Papierkorb verschoben und dort 30 Tage lang aufbewahrt, bevor sie endgültig gelöscht werden. Wenn diese Funktion deaktiviert ist, erfolgt die Löschung sofort und ist unwiderruflich.</string>
@@ -833,7 +833,7 @@
     <string name="help_cat_basics">Die Grundlagen</string>
     <string name="help_cat_navigation">Navigation</string>
     <string name="help_cat_personalization">Personalisierung</string>
-    <string name="help_cat_timeline_albums">Zeitleiste &amp; Albumeinstellungen</string>
+    <string name="help_cat_timeline_albums">Timeline- &amp; Album-Einstellungen</string>
     <string name="help_cat_viewing">Foto &amp; Videoansicht</string>
     <string name="help_cat_viewer_actions">Medienbetrachter Aktionen</string>
     <string name="help_cat_viewer_settings">Medienbetrachter Einstellungen</string>
@@ -992,10 +992,10 @@
     <string name="filter_active">Filter aktiv</string>
     <string name="show_filter_button">Filter-Knopf</string>
     <string name="show_filter_button_summary">Filter-Knopf in der Suchleiste anzeigen</string>
-    <string name="show_filter_button_description">Zeigt ein Filtersymbol in der Suchleiste auf dem Zeitleistenbildschirm an. Tippe darauf, um ein Fenster zu öffnen, in dem du deine Galerie nach Medientyp, Favoriten, Jahr oder Album eingrenzen kannst.</string>
+    <string name="show_filter_button_description">Zeigt ein Filtersymbol in der Suchleiste auf dem Timelinebildschirm an. Tippe darauf, um ein Fenster zu öffnen, in dem du deine Galerie nach Medientyp, Favoriten, Jahr oder Album eingrenzen kannst.</string>
     <string name="show_searchbar_favorite_button">Favoriten-Knopf</string>
     <string name="show_searchbar_favorite_button_summary">Favoriten-Knopf neben der Suchleiste anzeigen</string>
-    <string name="show_searchbar_favorite_button_description">Zeigt einen Herzknopf neben der Suchleiste auf dem Zeitleisten-Bildschirm. Tippe ihn, um deine Favoriten-Sammlung schnell zu öffnen.</string>
+    <string name="show_searchbar_favorite_button_description">Zeigt einen Herzknopf neben der Suchleiste auf dem Zeitleisten-Bildschirm. Tippe ihn an, um deine Favoriten-Sammlung schnell zu öffnen.</string>
     <string name="trash_restore_all">Alle wiederherstellen</string>
     <string name="trash_delete_all">Alle löschen</string>
     <string name="favorites_info_title">Deine Favoriten</string>
@@ -1007,7 +1007,7 @@
     <string name="date_headers_title">Datums-Trennzeichen</string>
     <string name="date_headers_summary">Datumstrennzeichen pro Abschnitt ein- oder ausblenden</string>
     <string name="date_headers_description">Mit Datumstrennzeichen lassen sich deine Medien nach Datum in Gruppen einteilen. Du kannst diese für jeden Bereich der App aktivieren oder deaktivieren.</string>
-    <string name="date_headers_timeline">Zeitleiste</string>
+    <string name="date_headers_timeline">Timeline</string>
     <string name="date_headers_albums">Alben</string>
     <string name="date_headers_favorites">Favoriten</string>
     <string name="date_headers_vault">Tresor</string>
@@ -1021,7 +1021,7 @@
     <string name="media_grouping_restart_note">Änderungen werden sofort in der gesamten App übernommen</string>
     <string name="group_method_monthly">Monatlich</string>
     <string name="group_method_yearly">Jährlich</string>
-    <string name="group_method_timeline">Zeitleiste</string>
+    <string name="group_method_timeline">Timeline</string>
     <string name="group_method_albums">Alben</string>
     <string name="group_method_favorites">Favoriten</string>
     <string name="group_method_vault">Tresor</string>
@@ -1032,7 +1032,7 @@
     <string name="story_cards_settings_title">Story-Karten</string>
     <string name="story_cards_settings_summary">Story-Karten oberhalb der Zeitleiste konfigurieren</string>
     <string name="story_cards_enabled">Story-Karten anzeigen</string>
-    <string name="story_cards_enabled_summary">Story Karten oberhalb der Zeitleiste anzeigen</string>
+    <string name="story_cards_enabled_summary">Story Karten oberhalb deiner Timeline anzeigen</string>
     <string name="story_cards_order_title">Kartentypen &amp; Sortierung</string>
     <string name="story_viewer_settings_title">Story Betrachter</string>
     <string name="story_viewer_auto_advance">Automatisches Springen</string>
@@ -1123,7 +1123,7 @@
     <string name="cloud_archive">Archiv</string>
     <string name="cloud_archive_empty">Keine archivierten Elemente</string>
     <string name="cloud_archive_info_title">Archiv</string>
-    <string name="cloud_archive_info_summary">Archivierte Fotos und Videos werden in deiner Zeitleiste ausgeblendet, sind aber weiterhin hier zu finden</string>
+    <string name="cloud_archive_info_summary">Archivierte Fotos und Videos werden in deiner Timeline ausgeblendet, sind aber weiterhin hier zu finden</string>
     <string name="cloud_shared_links">Geteilte Links</string>
     <string name="cloud_shared_links_empty">Keine geteilten Links</string>
     <string name="cloud_shared_links_delete_title">Geteilten Link löschen</string>
