@@ -12,9 +12,9 @@
     <string name="help_tip_basics_timeline_p2_s3">Use the right-edge scrollbar to jump to a month</string>
     <string name="help_tip_basics_timeline_p2_s4">Pinch to change thumbnail size</string>
     <string name="help_tip_basics_timeline_p2_s5">Tap any photo to view it full-screen</string>
-    <string name="help_tip_basics_view_media_title">View photos and videos</string>
+    <string name="help_tip_basics_view_media_title">اعرض الصور والفيديوهات</string>
     <string name="help_tip_basics_view_media_subtitle">Tap to open, swipe to navigate, pinch to zoom</string>
-    <string name="help_tip_basics_view_media_p1_title">Open a photo or video</string>
+    <string name="help_tip_basics_view_media_p1_title">افتح صورة أو فيديو</string>
     <string name="help_tip_basics_view_media_p1_desc">Tap any thumbnail in the timeline or an album to open it in the full-screen viewer. The photo smoothly animates from the grid into full view (if shared element transitions are enabled in Appearance settings). Videos begin playing automatically by default.</string>
     <string name="help_tip_basics_view_media_p2_title">Navigate between media</string>
     <string name="help_tip_basics_view_media_p2_desc">Swipe left or right to move between photos and videos without going back to the grid. Swipe down to close the viewer and return to where you were. The viewer remembers your position, so you won\'t lose your place.</string>
@@ -75,9 +75,9 @@
     <string name="help_tip_nav_old_navbar_p1_desc">Gallery offers two navigation bar styles. The modern style shows labeled icons for Timeline, Albums, and Library. The classic compact style uses smaller icons without labels, giving you more screen space for your photos. Try both to see which you prefer.</string>
     <string name="help_tip_nav_old_navbar_p1_s1">Go to Settings &gt; Navigation</string>
     <string name="help_tip_nav_old_navbar_p1_s2">Toggle \'Old navigation bar style\'</string>
-    <string name="help_tip_nav_library_title">Use the library</string>
-    <string name="help_tip_nav_library_subtitle">Quick access to favorites, trash, vault, and more</string>
-    <string name="help_tip_nav_library_p1_title">The Library</string>
+    <string name="help_tip_nav_library_title">استخدم المكتبة</string>
+    <string name="help_tip_nav_library_subtitle">وصول سريع إلى المفضلة، وسلة المهملات، والخزنة، والمزيد</string>
+    <string name="help_tip_nav_library_p1_title">المكتبة</string>
     <string name="help_tip_nav_library_p1_desc">The Library is your hub for everything beyond the main timeline and albums. From here you can access: Favorites (your starred photos), Trash (recently deleted items, recoverable for 30 days), Vault (encrypted private photos), Locations (photos organized by where they were taken), and Categories (AI-sorted photo groups). Think of it as your gallery\'s control center.</string>
     <string name="help_tip_nav_launch_screen_title">Set your default launch screen</string>
     <string name="help_tip_nav_launch_screen_subtitle">Choose which screen appears when you open Gallery</string>
@@ -94,20 +94,20 @@
     <string name="help_tip_nav_auto_hide_bars_p1_s2">Toggle \'Auto-hide search bar\' and/or \'Auto-hide navigation bar\'</string>
     <string name="help_tip_nav_auto_hide_bars_p1_s3">Scroll down to see them hide, scroll up to bring them back</string>
     <!-- GET STARTED: PERSONALIZATION -->
-    <string name="help_tip_personalize_theme_title">Change your theme</string>
+    <string name="help_tip_personalize_theme_title">غيِّر السمة</string>
     <string name="help_tip_personalize_theme_subtitle">فاتح، داكن، أو اتبع نظامك</string>
-    <string name="help_tip_personalize_theme_p1_title">Choose your theme</string>
+    <string name="help_tip_personalize_theme_p1_title">اختر سمتك</string>
     <string name="help_tip_personalize_theme_p1_desc">يدعم تطبيق «المعرض» السمات الفاتحة والداكنة، ويمكنه التوافق تلقائيًّا مع إعدادات نظام التشغيل. تؤثر السمة على جميع الشاشات ومربعات الحوار والقوائم في جميع أنحاء التطبيق. يفضل معظم المستخدمين الإعداد الافتراضي للنظام حتى يتناسب تطبيق «المعرض» مع باقي أجزاء هواتفهم.</string>
-    <string name="help_tip_personalize_theme_p2_title">Theme options</string>
+    <string name="help_tip_personalize_theme_p2_title">خيارات السمة</string>
     <string name="help_tip_personalize_theme_p2_desc">يتبع الإعداد الافتراضي للنظام الوضع الحالي لهاتفك. أما خيار «افرض الوضع الداكن» فيبقي تطبيق «المعرض» في الوضع الداكن بغض النظر عن إعدادات النظام — وهو خيار رائع للتصفح الليلي. إذا كان هاتفك مزودًا بشاشة OLED، فقم بتفعيل خيار «الأسود النقي لـ AMOLED» للحصول على خلفيات سوداء حقيقية توفر طاقة البطارية وتبدو مذهلة.</string>
     <string name="help_tip_personalize_theme_p2_s1">Go to Settings &gt; Appearance</string>
     <string name="help_tip_personalize_theme_p2_s2">Choose System, Light, or Force Dark</string>
     <string name="help_tip_personalize_theme_p2_s3">لشاشة OLED، فعِّل أيضًا \"AMOLED أسود نقي\"</string>
     <string name="help_tip_personalize_colors_title">Customize color palette</string>
     <string name="help_tip_personalize_colors_subtitle">Pick any color to theme the entire app</string>
-    <string name="help_tip_personalize_colors_p1_title">Color palette</string>
+    <string name="help_tip_personalize_colors_p1_title">لوحة الألوان</string>
     <string name="help_tip_personalize_colors_p1_desc">Make Gallery truly yours by customizing its color scheme. System colors match your phone\'s wallpaper-based theme (Material You). Neutral gives a clean, subtle look. Preset palettes offer curated color combinations. Or pick any custom color you like — Gallery will generate a complete theme from it.</string>
-    <string name="help_tip_personalize_colors_p2_title">Make it yours</string>
+    <string name="help_tip_personalize_colors_p2_title">اجعله ملكك</string>
     <string name="help_tip_personalize_colors_p2_desc">The chosen color affects buttons, highlights, icons, cards, and backgrounds throughout the entire app. Experiment with different options to find what suits you — you can always change it later. Tip: System colors update automatically when you change your phone\'s wallpaper.</string>
     <string name="help_tip_personalize_colors_p2_s1">Go to Settings &gt; Appearance &gt; Color palette</string>
     <string name="help_tip_personalize_colors_p2_s2">Choose System, Neutral, a preset, or Custom</string>
@@ -119,17 +119,17 @@
     <string name="help_tip_personalize_grid_p1_desc">Place two fingers on the grid and pinch in or out to change the thumbnail size. Pinching out (spreading fingers) makes photos larger with fewer columns — great for seeing detail. Pinching in (squeezing fingers) makes photos smaller with more columns — ideal for scanning through lots of photos quickly.</string>
     <string name="help_tip_personalize_grid_p2_title">Find your perfect size</string>
     <string name="help_tip_personalize_grid_p2_desc">The grid ranges from 2 columns (large thumbnails) to 10 columns (tiny thumbnails for maximum overview). Gallery remembers your preference separately for the timeline and album views. Tip: try 3-4 columns for a good balance between seeing photo details and fitting many on screen.</string>
-    <string name="help_tip_personalize_amoled_title">Enable AMOLED dark mode</string>
+    <string name="help_tip_personalize_amoled_title">فعّل الوضع الداكن AMOLED</string>
     <string name="help_tip_personalize_amoled_subtitle">خلفيات سوداء نقية لشاشات OLED</string>
-    <string name="help_tip_personalize_amoled_p1_title">AMOLED mode</string>
-    <string name="help_tip_personalize_amoled_p1_desc">If your phone has an OLED or AMOLED display, this mode uses true black pixels which are actually turned off — saving battery and creating a striking visual. Combine with Force dark mode for the best results. Note: this setting only takes effect when dark mode is active.</string>
+    <string name="help_tip_personalize_amoled_p1_title">وضع AMOLED</string>
+    <string name="help_tip_personalize_amoled_p1_desc">إذا كان هاتفك مزودًا بشاشة OLED أو AMOLED، فإن هذا الوضع يستخدم وحدات بكسل سوداء حقيقية يتم إيقاف تشغيلها فعليًّا — مما يوفر طاقة البطارية ويخلق تأثيرًا بصريًّا مذهلًا. استخدمه مع «افرض الوضع الداكن» للحصول على أفضل النتائج. ملاحظة: لا يسري مفعول هذا الإعداد إلا عندما يكون «الوضع الداكن» نشطًا.</string>
     <string name="help_tip_personalize_amoled_p1_s1">Go to Settings &gt; Appearance</string>
-    <string name="help_tip_personalize_amoled_p1_s2">Enable Force dark mode first</string>
+    <string name="help_tip_personalize_amoled_p1_s2">فعّل أولاً «افرض الوضع الداكن»</string>
     <string name="help_tip_personalize_amoled_p1_s3">بدّل \"AMOLED أسود نقي\"</string>
     <string name="help_tip_personalize_amoled_p1_s4">Enjoy true blacks on your OLED display</string>
-    <string name="help_tip_personalize_dark_mode_title">Switch between light and dark</string>
+    <string name="help_tip_personalize_dark_mode_title">التبديل بين الوضع الفاتح والداكن</string>
     <string name="help_tip_personalize_dark_mode_subtitle">Choose the mode that\'s easiest on your eyes</string>
-    <string name="help_tip_personalize_dark_mode_p1_title">Light and dark mode</string>
+    <string name="help_tip_personalize_dark_mode_p1_title">الوضع الفاتح والداكن</string>
     <string name="help_tip_personalize_dark_mode_p1_desc">Light mode is clean and bright, best for well-lit environments. Dark mode reduces eye strain at night and saves battery on OLED screens. The system default option automatically switches based on your phone\'s settings, so Gallery always matches the rest of your apps.</string>
     <string name="help_tip_personalize_blur_title">Enable fancy blur effects</string>
     <string name="help_tip_personalize_blur_subtitle">Beautiful frosted glass effects throughout the app</string>
@@ -206,9 +206,9 @@
     <string name="help_tip_timeline_date_header_p1_s1">Go to Settings &gt; Timeline &amp; Albums</string>
     <string name="help_tip_timeline_date_header_p1_s2">Tap \'Date header format\'</string>
     <string name="help_tip_timeline_date_header_p1_s3">Choose your preferred date style</string>
-    <string name="help_tip_timeline_fav_icon_title">Favorite icon position</string>
+    <string name="help_tip_timeline_fav_icon_title">موضع أيقونة المفضل</string>
     <string name="help_tip_timeline_fav_icon_subtitle">Change where the favorite icon appears on thumbnails</string>
-    <string name="help_tip_timeline_fav_icon_p1_title">Favorite icon position</string>
+    <string name="help_tip_timeline_fav_icon_p1_title">موضع أيقونة المفضل</string>
     <string name="help_tip_timeline_fav_icon_p1_desc">The small heart icon on favorited photos can be placed in different corners of the thumbnail, or hidden entirely if you prefer a cleaner look. If the icon overlaps with important parts of your photos, try moving it to a different corner.</string>
     <string name="help_tip_timeline_fav_icon_p1_s1">Go to Settings &gt; Timeline &amp; Albums</string>
     <string name="help_tip_timeline_fav_icon_p1_s2">Tap \'Favorite icon position\'</string>
@@ -888,22 +888,22 @@
     <string name="help_tip_security_private_folder_title">Private folder</string>
     <string name="help_tip_security_private_folder_subtitle">Keep sensitive files hidden and protected via Android\'s Storage Access Framework</string>
     <string name="help_tip_security_private_folder_p1_title">How the private folder works</string>
-    <string name="help_tip_security_private_folder_p1_desc">The private folder uses Android\'s Storage Access Framework (SAF) to store files outside of MediaStore. Files in your private folder never appear in the normal timeline, are not indexed by other apps, and are protected behind the app\'s security gate.</string>
+    <string name="help_tip_security_private_folder_p1_desc">يستخدم المجلد الخاص إطار عمل الوصول إلى التخزين (SAF) الخاص بنظام أندرويد لتخزين الملفات خارج MediaStore. ولا تظهر الملفات الموجودة في مجلدك الخاص أبدًا في الخط الزمني العادي، ولا يتم فهرستها بواسطة التطبيقات الأخرى، كما أنها محمية خلف بوابة الأمان الخاصة بالتطبيق.</string>
     <string name="help_tip_security_private_folder_p2_title">Setting up a private folder</string>
     <string name="help_tip_security_private_folder_p2_desc">Pick any folder on your device as the private folder. The app takes persistent access permission so it survives reboots. You can browse, view, and manage private files just like regular media.</string>
     <string name="help_tip_security_private_folder_p2_s1">Go to Settings → Security</string>
     <string name="help_tip_security_private_folder_p2_s2">Tap Private folder and select a directory</string>
     <string name="help_tip_security_private_folder_p2_s3">Access your private files from the Library</string>
     <!-- Timeline Filter (4.2.3) -->
-    <string name="help_tip_timeline_filter_title">Timeline filter</string>
+    <string name="help_tip_timeline_filter_title">تصفية الخط الزمني</string>
     <string name="help_tip_timeline_filter_subtitle">Filter your timeline by type, favorites, year, or album</string>
-    <string name="help_tip_timeline_filter_p1_title">Filter your timeline</string>
+    <string name="help_tip_timeline_filter_p1_title">تصفية خط زمنك</string>
     <string name="help_tip_timeline_filter_p1_desc">The timeline filter lets you narrow down what you see without leaving the main screen. Filter by media type (photos, videos, GIFs), show only favorites, jump to a specific year, or scope the timeline to a single album. Combine multiple filters for precise results.</string>
-    <string name="help_tip_timeline_filter_p2_title">How to use</string>
-    <string name="help_tip_timeline_filter_p2_desc">Access the filter directly from the search bar at the top of the timeline. Tap the filter icon to expand filter options. Active filters are shown as chips that can be individually removed.</string>
-    <string name="help_tip_timeline_filter_p2_s1">Tap the filter icon in the search bar</string>
-    <string name="help_tip_timeline_filter_p2_s2">Select a filter category (type, favorites, year, album)</string>
-    <string name="help_tip_timeline_filter_p2_s3">Tap a filter chip to remove it</string>
+    <string name="help_tip_timeline_filter_p2_title">كيفيه الأستخدام</string>
+    <string name="help_tip_timeline_filter_p2_desc">يمكنك الوصول إلى التصفية مباشرةً من شريط البحث الموجود أعلى الخط الزمني. انقر على أيقونة عامل التصفية لتوسيع خيارات التصفية. تظهر التصفيات النشطة على شكل رقاقة يمكن إزالتها كل على حدة.</string>
+    <string name="help_tip_timeline_filter_p2_s1">انقر على أيقونة التصفية في شريط البحث</string>
+    <string name="help_tip_timeline_filter_p2_s2">اختر فئة تصفية (النوع، المفضلة، السنة، الألبوم)</string>
+    <string name="help_tip_timeline_filter_p2_s3">انقر على رقاقة التصفية لإزالتها</string>
     <string name="help_tip_timeline_filter_p2_s4">The filter visibility toggle is available in Settings</string>
     <!-- Animated Format Support (4.2.3) -->
     <string name="help_tip_animated_formats_title">Animated image support</string>
@@ -972,7 +972,7 @@
     <string name="help_release_430_bugfixes_title">Bug fixes</string>
     <string name="help_release_430_bugfixes_desc">Fixed move/copy album access with MANAGE_MEDIA, screen rotation reset on video exit, status bar sync, ClassCastException after unlock, grid realignment on back navigation, loading shimmer during startup, and empty-media padding</string>
     <!-- RELEASE NOTES: 4.2.3 -->
-    <string name="help_release_423_timeline_filter_title">Timeline filter</string>
+    <string name="help_release_423_timeline_filter_title">تصفية الخط الزمني</string>
     <string name="help_release_423_timeline_filter_desc">Filter the timeline by media type, favorites, year, or album</string>
     <string name="help_release_423_animated_formats_title">Animated format support</string>
     <string name="help_release_423_animated_formats_desc">Play animated AVIF, JXL, and APNG images alongside GIF</string>
@@ -1004,7 +1004,7 @@
     <string name="help_release_422_rescan_tracking_title">Persistent rescan tracking</string>
     <string name="help_release_422_rescan_tracking_desc">MediaStore rescan state is now persisted in the database across app restarts</string>
     <string name="help_release_422_performance_title">Various performance improvements</string>
-    <string name="help_release_422_performance_desc">Lazy per-album timeline flows, reduced recompositions in media viewer, optimized collection types and state management</string>
+    <string name="help_release_422_performance_desc">تدفقات زمنية سلسة لكل ألبوم، وتقليل عمليات إعادة الترتيب في عارض الوسائط، وتحسين أنواع المجموعات وإدارة الحالات</string>
     <string name="help_release_422_bugfixes_title">Bug fixes &amp; improvements</string>
     <string name="help_release_422_bugfixes_desc">Fixed slow AI classification, dark status bar icons, map intent crash, motion player leak, large batch copy crash, filename date fallback, and updated dependencies</string>
     <!-- RELEASE NOTES: 4.2.1 -->
@@ -1096,11 +1096,11 @@
     <string name="help_release_400_ui_refresh_title">UI refresh</string>
     <string name="help_release_400_ui_refresh_desc">Polished interface with refined animations and layouts</string>
     <!-- TIMELINE: PER-SCREEN GROUPING (5.0.0) -->
-    <string name="help_tip_timeline_group_period_title">Group by day, month, or year</string>
+    <string name="help_tip_timeline_group_period_title">جمّع حسب اليوم أو الشهر أو السنة</string>
     <string name="help_tip_timeline_group_period_subtitle">Choose how each screen groups media — and set it per screen</string>
     <string name="help_tip_timeline_group_period_p1_title">Flexible date grouping</string>
     <string name="help_tip_timeline_group_period_p1_desc">Pick how your media is grouped under date headers: a flat list, by day, by month, or by year. Bigger groups make it faster to scan a large library, while daily grouping keeps each day neatly separated. Each section of the app — Timeline, Favorites, albums, locations, and cloud archive — can use its own grouping, so you can keep the Timeline by month while browsing Favorites by year.</string>
-    <string name="help_tip_timeline_group_period_p2_title">Set grouping per screen</string>
+    <string name="help_tip_timeline_group_period_p2_title">عيّن التجميع لكل شاشة</string>
     <string name="help_tip_timeline_group_period_p2_desc">Open Settings &gt; Timeline &amp; albums to choose the grouping method and toggle date separators independently for each screen. You can also turn off date headers entirely for a clean, continuous grid.</string>
     <string name="help_tip_timeline_group_period_p2_s1">Go to Settings &gt; Timeline &amp; albums</string>
     <string name="help_tip_timeline_group_period_p2_s2">Pick a group method for each screen</string>
@@ -1178,7 +1178,7 @@
     <string name="help_tip_cloud_timeline_subtitle">Remote and local media merge into one unified timeline</string>
     <string name="help_tip_cloud_timeline_p1_title">One unified timeline</string>
     <string name="help_tip_cloud_timeline_p1_desc">Once a server is connected, your cloud assets are merged into the same timeline as your device photos, sorted by date. Photos that exist both locally and on the server are intelligently grouped so you don\'t see duplicates. A small icon on each thumbnail shows its sync status.</string>
-    <string name="help_tip_cloud_timeline_p2_title">View remote media</string>
+    <string name="help_tip_cloud_timeline_p2_title">اعرض الوسائط عن بُعد</string>
     <string name="help_tip_cloud_timeline_p2_desc">Open any cloud photo or video to view it full quality, streamed from your server. You can see its full EXIF metadata — camera, lens, GPS, exposure — and favorite or unfavorite it just like local media.</string>
     <string name="help_tip_cloud_backup_title">Back up to your server</string>
     <string name="help_tip_cloud_backup_subtitle">Upload selected albums with Wi-Fi and cellular controls</string>
@@ -1198,7 +1198,7 @@
     <string name="help_tip_cloud_explore_p2_desc">Use CLIP-based smart search to find photos by describing them in natural language. You can also create shareable links for assets and albums, then list, edit, or delete them — all from within Gallery.</string>
     <!-- RELEASE NOTES: 5.0.0 -->
     <string name="help_release_500_cloud_title">Cloud sync &amp; Immich</string>
-    <string name="help_release_500_cloud_desc">Connect your self-hosted Immich server and browse remote photos in a unified timeline with people, map, and smart search</string>
+    <string name="help_release_500_cloud_desc">صل خادم Immich الذي تستضيفه بنفسك وتصفح الصور عن بُعد في خط زمني موحد مع ميزات الأشخاص والخريطة والبحث الذكي</string>
     <string name="help_release_500_cloud_backup_title">Cloud photo backup</string>
     <string name="help_release_500_cloud_backup_desc">Back up selected albums to your server with deduplication and Wi-Fi/cellular controls</string>
     <string name="help_release_500_backup_restore_title">Backup &amp; restore wizard</string>
