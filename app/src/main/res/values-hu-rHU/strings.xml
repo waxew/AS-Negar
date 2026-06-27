@@ -21,8 +21,8 @@
     <string name="pause_video">Videó szüneteltetése</string>
     <string name="play_video">Videó lejátszása</string>
     <string name="favorites">Kedvencek</string>
-    <string name="no_media_title">Seems empty here</string>
-    <string name="empty_trash_title">Squeaky Clean</string>
+    <string name="no_media_title">Úgy tűnik, itt nincs semmi</string>
+    <string name="empty_trash_title">Patyolattiszta</string>
     <string name="empty_trash_cd">A kuka üres</string>
     <string name="error_title">Something went wrong :(</string>
     <string name="error_cd">An error occurred</string>
