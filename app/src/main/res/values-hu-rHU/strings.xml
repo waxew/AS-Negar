@@ -123,7 +123,7 @@
     <string name="dialog_delete">Deleting Permanently</string>
     <string name="s_items">%1$s items</string>
     <string name="trashing_items">Trashing %1$s items..</string>
-    <string name="deleting_items">Deleting %1$s items...</string>
+    <string name="deleting_items">%1$s elem törlése…</string>
     <string name="long_press_to_remove">Long press to remove</string>
     <string name="dialog_from_trash">Restoring from Trash</string>
     <string name="restoring_items">Restoring %1$s items..</string>
@@ -243,7 +243,7 @@
     <string name="setup_location_options_timeline">Timeline</string>
     <string name="setup_location_options_both">Both</string>
     <string name="setup_location_type_title">Who should be ignored</string>
-    <string name="setup_location_type_subtitle">You can select either a single album or create a Regex pattern to match multiple</string>
+    <string name="setup_location_type_subtitle">Kiválaszthatsz egy albumot, több albumot, vagy létrehozhatsz egy Regex mintát több album kiválasztásához</string>
     <string name="setup_location_types_single">Single Album</string>
     <string name="setup_location_types_multiple">Multiple Albums</string>
     <string name="setup_location_types_regex">Regex Pattern</string>
