@@ -118,7 +118,7 @@
     <string name="help_tip_personalize_grid_p1_title">Pinch to zoom the grid</string>
     <string name="help_tip_personalize_grid_p1_desc">Place two fingers on the grid and pinch in or out to change the thumbnail size. Pinching out (spreading fingers) makes photos larger with fewer columns — great for seeing detail. Pinching in (squeezing fingers) makes photos smaller with more columns — ideal for scanning through lots of photos quickly.</string>
     <string name="help_tip_personalize_grid_p2_title">Find your perfect size</string>
-    <string name="help_tip_personalize_grid_p2_desc">The grid ranges from 2 columns (large thumbnails) to 10 columns (tiny thumbnails for maximum overview). Gallery remembers your preference separately for the timeline and album views. Tip: try 3-4 columns for a good balance between seeing photo details and fitting many on screen.</string>
+    <string name="help_tip_personalize_grid_p2_desc">A rács 2 oszloptól (nagy bélyegképek) 10 oszlopig (apró bélyegképek a maximális áttekinthetőségért) állítható. A Galéria külön megjegyzi az idővonal- és albumnézet beállításait. Tipp: próbálj ki 3–4 oszlopot a fotók részletessége és az egyszerre megjelenő képek száma közötti jó egyensúly érdekében.</string>
     <string name="help_tip_personalize_amoled_title">Enable AMOLED dark mode</string>
     <string name="help_tip_personalize_amoled_subtitle">Pure black backgrounds for OLED screens</string>
     <string name="help_tip_personalize_amoled_p1_title">AMOLED mode</string>
@@ -375,9 +375,9 @@
     <string name="help_tip_edit_rotate_p2_s3">Tap to apply the transformation</string>
     <string name="help_tip_edit_rotate_p2_s4">Combine with crop for precise framing</string>
     <string name="help_tip_edit_filters_title">Apply photo filters</string>
-    <string name="help_tip_edit_filters_subtitle">20 preset filters to transform your photos</string>
+    <string name="help_tip_edit_filters_subtitle">Előre beállított szűrők, köztük az egyérintéses Negatív, a fotók átalakításához</string>
     <string name="help_tip_edit_filters_p1_title">Photo filters</string>
-    <string name="help_tip_edit_filters_p1_desc">Choose from 20 carefully crafted preset filters that transform the mood and tone of your photos. Warm filters (Honey, Desert, Palma) add golden tones. Cool filters (Isla, Clay) add blue or muted tones. Each filter previews instantly so you can compare the effect before applying.</string>
+    <string name="help_tip_edit_filters_p1_desc">Válassz az előre beállított, gondosan összeállított szűrők közül, amelyek új hangulatot kölcsönöznek a fotóidnak. A meleg tónusú szűrők (Honey, Desert, Palma) aranyló árnyalatokat adnak, míg a hideg tónusú szűrők (Isla, Clay) kékes vagy visszafogott színeket eredményeznek. Az új Negatív szűrő egyetlen érintéssel invertálja a színeket. Minden szűrő előnézete azonnal megjelenik, így alkalmazás előtt összehasonlíthatod a hatásukat.</string>
     <string name="help_tip_edit_filters_p2_title">Apply a filter</string>
     <string name="help_tip_edit_filters_p2_desc">Scroll horizontally through the filter strip at the bottom to browse options. Tap any filter to see a live preview on your photo. If you don\'t like the result, simply tap another filter or tap the original to remove it. Filters can be combined with fine-tune adjustments for even more control.</string>
     <string name="help_tip_edit_filters_p2_s1">Open a photo and tap edit</string>
@@ -1262,5 +1262,5 @@
     <string name="help_release_503_editor_title">Editor fixes</string>
     <string name="help_release_503_editor_desc">Crop no longer zooms when dragged out of bounds, and markup hangs, undo of no-op adjustments, the rotate button and off-canvas text have all been fixed</string>
     <string name="help_release_503_bugfixes_title">Bug fixes</string>
-    <string name="help_release_503_bugfixes_desc">Fixed hiding items to a vault from the selection sheet, View all metadata for images opened from other apps, a stuck pull-to-refresh spinner, the material navigation toggle flashing the screen, and secure camera reviews over the lockscreen</string>
+    <string name="help_release_503_bugfixes_desc">Javítva a kijelölt elemek Széfbe rejtése a kiválasztási panelről, a más alkalmazásokból megnyitott képek összes metaadatának megjelenítése, a beragadt „lehúzás a frissítéshez” jelző, a Material navigációs kapcsoló okozta képernyővillanás, valamint a zárolási képernyő felett megjelenő biztonságos kamera előnézete</string>
 </resources>
