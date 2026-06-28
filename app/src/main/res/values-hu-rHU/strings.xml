@@ -72,7 +72,7 @@
     <string name="restore_banner_message">The full Donate and GitHub banner will be restored at the top of the Settings page.</string>
     <string name="restore_banner_confirm">Move to top</string>
     <string name="use_as">Use as</string>
-    <string name="set_as">"Set as: "</string>
+    <string name="set_as">"Beállítás mint: "</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_confirm">Confirm</string>
     <string name="action_confirmed">Confirmed</string>
