@@ -494,7 +494,7 @@
     <string name="vault_hide_no_local_items">Cloud items can\'t be added to a vault</string>
     <string name="vault_setup_password_prompt">Would you like to set a custom password for this vault?</string>
     <string name="vault_skip_password">Use device security</string>
-    <string name="vault_set_password">Set custom password</string>
+    <string name="vault_set_password">Jelszó beállítása</string>
     <string name="vault_deletion_title_named">Delete \"%1$s\"?</string>
     <string name="vault_deletion_summary_named">Vault \"%1$s\" and all its content will be deleted permanently.\nThis action cannot be undone.</string>
     <string name="vault_manage_security">Manage security</string>
@@ -526,7 +526,7 @@
     <string name="ppi_resolution_string">" • %.1f × %.1f %s"</string>
     <string name="at_kbps">" at %1$s"</string>
     <string name="video_fps">%.1f fps</string>
-    <string name="collecting_metadata">Collecting metadata...</string>
+    <string name="collecting_metadata">Metaadatok gyűjtése…</string>
     <string name="database">Database</string>
     <string name="refresh_metadata">Refresh Metadata</string>
     <string name="change_thumbnail">Change album cover</string>
