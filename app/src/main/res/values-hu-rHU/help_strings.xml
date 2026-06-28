@@ -762,7 +762,7 @@
     <string name="help_tip_gesture_pinch_grid_p1_title">Pinch zoom</string>
     <string name="help_tip_gesture_pinch_grid_p1_desc">Place two fingers on the photo grid and pinch in or out to change the column count. Pinching out (spreading fingers) reduces columns for larger thumbnails — great for seeing details. Pinching in (squeezing fingers) adds columns for smaller thumbnails — ideal for scanning lots of photos. The transition is smooth and animated.</string>
     <string name="help_tip_gesture_pinch_grid_p2_title">Range</string>
-    <string name="help_tip_gesture_pinch_grid_p2_desc">Grid ranges from 2 columns (very large thumbnails) to 10 columns (tiny thumbnails for maximum overview). Gallery remembers your preference separately for the timeline and album views, so you can use different sizes in each. Tip: 3-4 columns is a good default for most people.</string>
+    <string name="help_tip_gesture_pinch_grid_p2_desc">A rács 2 oszloptól (nagyon nagy bélyegképek) 10 oszlopig (apró bélyegképek a maximális áttekinthetőségért) állítható. A Galéria külön megjegyzi az idővonal- és albumnézet beállításait, így mindkettőhöz eltérő bélyegképméretet használhatsz. Tipp: a legtöbb felhasználó számára a 3–4 oszlop jó választás.</string>
     <string name="help_tip_gesture_swipe_viewer_title">Swipe to navigate</string>
     <string name="help_tip_gesture_swipe_viewer_subtitle">Swipe between photos in the viewer</string>
     <string name="help_tip_gesture_swipe_viewer_p1_title">Swipe navigation</string>
@@ -1017,7 +1017,7 @@
     <string name="help_release_421_vault_overhaul_title">Vault overhaul</string>
     <string name="help_release_421_vault_overhaul_desc">Gate authentication, custom passwords, per-vault security, and streamlined flow</string>
     <string name="help_release_421_nomaps_withml_title">NoMaps WithML variant</string>
-    <string name="help_release_421_nomaps_withml_desc">New build variant with AI models but without map dependencies</string>
+    <string name="help_release_421_nomaps_withml_desc">Új építési változat AI alapú modellekkel, de online funkciók (térképek, felhő, hálózat) nélkül</string>
     <string name="help_release_421_bugfixes_title">Bug fixes &amp; improvements</string>
     <string name="help_release_421_bugfixes_desc">Fixed phantom selections, corrected setup permissions, and improved image loading</string>
     <!-- RELEASE NOTES -->
@@ -1262,5 +1262,5 @@
     <string name="help_release_503_editor_title">Editor fixes</string>
     <string name="help_release_503_editor_desc">Crop no longer zooms when dragged out of bounds, and markup hangs, undo of no-op adjustments, the rotate button and off-canvas text have all been fixed</string>
     <string name="help_release_503_bugfixes_title">Bug fixes</string>
-    <string name="help_release_503_bugfixes_desc">Javítva a kijelölt elemek Széfbe rejtése a kiválasztási panelről, a más alkalmazásokból megnyitott képek összes metaadatának megjelenítése, a beragadt „lehúzás a frissítéshez” jelző, a Material navigációs kapcsoló okozta képernyővillanás, valamint a zárolási képernyő felett megjelenő biztonságos kamera előnézete</string>
+    <string name="help_release_503_bugfixes_desc">Javítva a kijelölt elemek Széfbe helyezése a kiválasztási panelről, a más alkalmazásokból megnyitott képek összes metaadatának megjelenítése, a beragadt „lehúzás a frissítéshez” jelző, a Material navigációs sáv kapcsoló okozta képernyővillanás, valamint a zárolási képernyőről indított kamera előnézetének hibája</string>
 </resources>
