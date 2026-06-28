@@ -25,9 +25,9 @@
     <string name="empty_trash_title">Patyolat tiszta</string>
     <string name="empty_trash_cd">A kuka üres</string>
     <string name="error_title">Something went wrong :(</string>
-    <string name="error_cd">An error occurred</string>
-    <string name="copy_error">Copy error</string>
-    <string name="trash_restore">Restore</string>
+    <string name="error_cd">Hiba történt</string>
+    <string name="copy_error">Másolási hiba</string>
+    <string name="trash_restore">Visszaállítás</string>
     <string name="trash_empty">Üres</string>
     <string name="trash_delete">Törlés</string>
     <string name="share">Share</string>
