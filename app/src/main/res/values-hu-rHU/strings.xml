@@ -324,7 +324,7 @@
     <string name="no_metadata_found">No metadata found</string>
     <string name="loading_metadata">Loading metadata…</string>
     <string name="categorise_your_media">Categorise your media</string>
-    <string name="disclaimer_classification">Your media is not uploaded to any server, all classification is done locally on your device by using TensorFlow-Lite with a pre-trained model available in the app\'s assets.</string>
+    <string name="disclaimer_classification">A médiafájlok nem kerülnek feltöltésre semmilyen szerverre. Az összes osztályozás helyben, az eszközödön történik az ONNX Runtime segítségével, az alkalmazásba beépített, előre betanított modell használatával.</string>
     <string name="ai_category">Smart Features</string>
     <!-- AI Model Management -->
     <string name="ai_models_not_installed">AI models are not installed. Download them from Settings &gt; Smart Features.</string>
@@ -408,7 +408,7 @@
     <string name="classified_media">%1$s classified media</string>
     <string name="scan_for_new_categories">Scan for new categories</string>
     <string name="ai_models_not_available">AI models are not downloaded. Download them from Settings → Smart Features.</string>
-    <string name="scanning_media">Scanning media...</string>
+    <string name="scanning_media">Média beolvasása…</string>
     <string name="date_header_title">Date Header</string>
     <string name="media_view">Media View</string>
     <string name="exif_date">Exif Date</string>
@@ -432,7 +432,7 @@
     <string name="filters">Filters</string>
     <string name="markup">Markup</string>
     <string name="type_size">Size</string>
-    <string name="encrypting_media">Encrypting media...</string>
+    <string name="encrypting_media">Média titkosítása…</string>
     <string name="vault_encrypt_notification_title">Encrypting media</string>
     <string name="vault_decrypt_notification_title">Decrypting media</string>
     <string name="vault_operation_in_progress">%1$d%% completed</string>
@@ -445,7 +445,7 @@
     <string name="vault_deletion_title">Confirm Deletion?</string>
     <string name="vault_deletion_summary">The current vault and its content will be deleted permanently.\nThis action cannot be undone.</string>
     <string name="create_new_vault_title">Create new vault?</string>
-    <string name="create_new_vault_summary">The vault will be accessed using your phone security measures (password or biometrics)\n\nEncryption key can be accessed inside the vault and will be used in order to restore any vaults.</string>
+    <string name="create_new_vault_summary">Létrejön egy új széf, amelyet az eszköz zárolási képernyője véd (PIN-kód, jelszó vagy biometrikus azonosítás).\n\nA fájljaid AES-256 titkosítás védi, és csak hitelesítés után férhetsz hozzájuk.</string>
     <string name="select_a_vault">Select a vault</string>
     <string name="vault_select_subtitle">Choose which vault to open</string>
     <string name="vault_items_encrypted">%1$d item(s) encrypted successfully</string>
