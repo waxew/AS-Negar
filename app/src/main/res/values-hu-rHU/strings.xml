@@ -52,10 +52,10 @@
     <string name="pin">Kitűzés</string>
     <string name="nav_timeline">Idővonal</string>
     <string name="location_cd">Média helye</string>
-    <string name="location_map_cd">Location Map</string>
-    <string name="show_in_app">Show in app</string>
-    <string name="open_externally">Open externally</string>
-    <string name="no_map_app">No app available to show the location</string>
+    <string name="location_map_cd">Helyszín térképen</string>
+    <string name="show_in_app">Megjelenítés az alkalmazásban</string>
+    <string name="open_externally">Megnyitás külső alkalmazásban</string>
+    <string name="no_map_app">Nincs telepített alkalmazás a helyszín megjelenítéséhez</string>
     <string name="app_dev">by %s</string>
     <string name="app_dev_name">IacobIonut01</string>
     <string name="donate">Donate</string>
