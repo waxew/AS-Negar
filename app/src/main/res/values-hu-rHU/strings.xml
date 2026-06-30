@@ -71,7 +71,7 @@
     <string name="restore_banner_title">Panel visszaállítása?</string>
     <string name="restore_banner_message">A teljes Adományozás és GitHub panel visszakerül a Beállítások oldal tetejére.</string>
     <string name="restore_banner_confirm">Áthelyezés felülre</string>
-    <string name="use_as">Mégse</string>
+    <string name="use_as">Beállítás mint</string>
     <string name="set_as">"Beállítás mint: "</string>
     <string name="action_cancel">Mégse</string>
     <string name="action_confirm">Megerősítés</string>
