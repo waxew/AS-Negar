@@ -63,12 +63,12 @@
     <string name="donate_button_cd">Adományozás gomb</string>
     <string name="github_button_cd">Github Gomb</string>
     <string name="github_url">https://github.com/IacobIonut01/Gallery</string>
-    <string name="dismiss_banner">Dismiss banner</string>
-    <string name="dismiss_banner_title">Move banner?</string>
+    <string name="dismiss_banner">Panel elrejtése</string>
+    <string name="dismiss_banner_title">Panel áthelyezése?</string>
     <string name="dismiss_banner_message">Az Adományozás és a GitHub gombok egy kompakt sávba kerülnek át a Beállítások oldal alján.</string>
     <string name="dismiss_banner_confirm">Move to bottom</string>
-    <string name="show_banner">Show banner</string>
-    <string name="restore_banner_title">Restore banner?</string>
+    <string name="show_banner">Panel megjelenítése</string>
+    <string name="restore_banner_title">Panel visszaállítása?</string>
     <string name="restore_banner_message">A teljes Adományozás és GitHub panel visszakerül a Beállítások oldal tetejére.</string>
     <string name="restore_banner_confirm">Move to top</string>
     <string name="use_as">Use as</string>
