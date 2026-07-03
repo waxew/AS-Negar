@@ -53,7 +53,7 @@
     <string name="nav_timeline">Oś czasu</string>
     <string name="location_cd">Lokalizacja nośników</string>
     <string name="location_map_cd">Mapa lokalizacji</string>
-    <string name="show_in_app">Show in app</string>
+    <string name="show_in_app">Pokaż w aplikacji</string>
     <string name="open_externally">Open externally</string>
     <string name="no_map_app">Brak dostępnej aplikacji do pokazywania lokalizacji</string>
     <string name="app_dev">przez %s</string>
@@ -111,9 +111,9 @@
     <string name="allow_gif_animation_summary">Odtwarzaj animacje GIF na osi czasu i w siatce albumów. Wyłącz, aby zmniejszyć opóźnienie w folderach z wieloma GIFami</string>
     <string name="amoled_mode_title">Użyj trybu Amoled</string>
     <string name="amoled_mode_summary">Wyższy kontrast, najlepszy dla ekranów Amoled</string>
-    <string name="use_system_font_title">Use system font</string>
-    <string name="use_system_font_summary">Use your device\'s default font instead of the built-in one</string>
-    <string name="use_system_font_description">When enabled, the app uses your device\'s system font instead of the built-in Google Sans font. This can improve readability if you use a custom system font.</string>
+    <string name="use_system_font_title">Użyj czcionki systemowej</string>
+    <string name="use_system_font_summary">Użyj domyślnej czcionki urządzenia zamiast wbudowanej</string>
+    <string name="use_system_font_description">Kiedy aktywne, aplikacja używa systemowej czcionki urządzenia zamiast wbudowanej Google Sans. Może to poprawić czytelność, jeśli używasz niestandardowej czcionki systemowej.</string>
     <string name="color_palette_preview_description">Ikony, tekst i inne elementy pasują do kolorów tapety</string>
     <string name="color_palette_wallpaper_colors">Kolory tapery</string>
     <string name="color_palette_other_colors">Inne kolory</string>
@@ -168,7 +168,7 @@
     <string name="error_copying_to_clipboard">Kopiowanie do schowka nie powiodło się</string>
     <string name="ignored_albums">Wykluczone albumy</string>
     <string name="add_to_ignored">Dodaj do wykluczonych albumów</string>
-    <string name="override">Overwrite</string>
+    <string name="override">Nadpisz</string>
     <string name="save_copy">Zapisz kopię</string>
     <string name="revert_to_original">Przywróć do oryginału</string>
     <string name="revert_to_original_confirmation">To spowoduje odrzucenie wszystkich edycji i przywróci oryginalne zdjęcie. Nie można cofnąć tej czynności.</string>
@@ -368,19 +368,19 @@
     <string name="reset_categories">Resetuj kategorie</string>
     <string name="reset_categories_summary">Usuń wszystkie kategorie i przywróć ustawienia domyślne</string>
     <string name="create">Utwórz</string>
-    <string name="save">Save</string>
-    <string name="browse_categories">Browse categories</string>
+    <string name="save">Zapisz</string>
+    <string name="browse_categories">Przeglądaj kategorie</string>
     <string name="category_media_count">%1$d items</string>
     <!-- Category Editor (unified create/edit) -->
-    <string name="new_category">New category</string>
+    <string name="new_category">Nowa kategoria</string>
     <string name="describe_content">Describe what to include</string>
     <string name="describe_content_hint">Describe what photos this category should contain</string>
     <string name="describe_content_example">e.g., photos of my dog at the beach</string>
-    <string name="quick_start">Quick start</string>
+    <string name="quick_start">Szybki start</string>
     <string name="quick_start_subtitle">Tap a suggestion to get started</string>
     <string name="matching_preview">Preview</string>
     <string name="see_all_matches">See all %1$d matches</string>
-    <string name="sensitivity">Sensitivity</string>
+    <string name="sensitivity">Czułość</string>
     <string name="sensitivity_broad">Broad</string>
     <string name="sensitivity_broad_desc">Include loosely related photos</string>
     <string name="sensitivity_balanced">Balanced</string>
@@ -394,9 +394,9 @@
     <string name="category_updated">Category updated — reclassifying…</string>
     <string name="category_deleted">Category deleted</string>
     <!-- Reference images (image-to-image search) -->
-    <string name="reference_images">Reference photos</string>
-    <string name="reference_images_hint">Add photos to find visually similar ones</string>
-    <string name="add_reference_photos">Add photos</string>
+    <string name="reference_images">Zdjęcia referencyjne</string>
+    <string name="reference_images_hint">Dodaj zdjęcia, żeby znaleźć inne podobne wizualnie</string>
+    <string name="add_reference_photos">Dodaj zdjęcia</string>
     <string name="reference_images_count">%1$d selected</string>
     <string name="restore">Przywróć</string>
     <string name="encrypted">Zaszyfrowane</string>
