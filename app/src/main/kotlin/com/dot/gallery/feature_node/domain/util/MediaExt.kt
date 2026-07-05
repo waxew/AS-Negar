@@ -46,9 +46,23 @@ import java.util.UUID
  * - NEF: image/vnd.nikon.nef
  * - Minolta: image/vnd.minolta.mrw
  */
+/**
+ * Common camera-RAW file extensions. Used as a fallback for [Media.isRaw] because MediaStore
+ * does not always report a canonical `image/x-*` / `image/vnd.*` mime for RAW files — DNGs in
+ * particular are frequently scanned as `image/dng`, `image/tiff`, or with a blank mime, which
+ * would otherwise make them read as non-RAW and win the representative tie-break by file size
+ * (#995).
+ */
+private val RAW_EXTENSIONS = setOf(
+    "dng", "arw", "cr2", "cr3", "crw", "nef", "nrw", "orf", "raf", "rw2",
+    "pef", "srw", "raw", "dcr", "kdc", "k25", "mrw", "x3f", "erf", "3fr",
+    "mef", "mos", "iiq", "sr2", "srf"
+)
+
 val Media.isRaw: Boolean
-    get() =
-        mimeType.isNotBlank() && (mimeType.startsWith("image/x-") || mimeType.startsWith("image/vnd."))
+    get() = (mimeType.isNotBlank() &&
+            (mimeType.startsWith("image/x-") || mimeType.startsWith("image/vnd."))) ||
+            label.substringAfterLast('.', "").lowercase() in RAW_EXTENSIONS
 
 private val Media.rawExtension: String
     get() = if (mimeType.startsWith("image/vnd."))
@@ -56,7 +70,11 @@ private val Media.rawExtension: String
         .removePrefix("-")
 
 val Media.fileExtension: String
-    get() = if (isRaw) rawExtension else label.substringAfterLast(".").removePrefix(".")
+    get() = if (isRaw) {
+        // Prefer the real filename extension so RAW files matched by extension (e.g. an
+        // `image/dng` DNG) still report the correct type instead of a mime fragment.
+        label.substringAfterLast('.', "").ifEmpty { rawExtension }
+    } else label.substringAfterLast(".").removePrefix(".")
 
 val Media.volume: String
     get() = path.substringBeforeLast("/").removeSuffix(relativePath.removeSuffix("/"))
@@ -399,15 +417,24 @@ val Media.cloudGroupKey: String
  * Selects the "best" representative from a group of related media items.
  * Priority: non-RAW > RAW, original (no suffix) > edit, larger file > smaller.
  */
+private fun <T : Media> representativeComparator(): Comparator<T> =
+    compareBy<T> { it.isCloud }           // local first (false < true)
+        .thenBy { it.isRaw }              // non-RAW first (false < true)
+        .thenBy { it.label != it.groupBaseName + "." + it.label.substringAfterLast(".") } // original first
+        .thenByDescending { it.size }     // larger files first
+
 fun <T : Media> List<T>.selectRepresentative(): T {
     if (size == 1) return first()
-    return sortedWith(
-        compareBy<T> { it.isCloud }           // local first (false < true)
-            .thenBy { it.isRaw }              // non-RAW first (false < true)
-            .thenBy { it.label != it.groupBaseName + "." + it.label.substringAfterLast(".") } // original first
-            .thenByDescending { it.size }     // larger files first
-    ).first()
+    return sortedWith(representativeComparator()).first()
 }
+
+/**
+ * Orders a group of related media by the same priority as [selectRepresentative] so the chosen
+ * representative (e.g. the developed JPG over its RAW/DNG sibling) comes first. Keeps the stack's
+ * opened view and multi-file share consistent with the cover shown in the grid (#995).
+ */
+fun <T : Media> List<T>.sortedByRepresentative(): List<T> =
+    if (size <= 1) this else sortedWith(representativeComparator())
 
 /**
  * Type of a media group, used for search carousel cards.

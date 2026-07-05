@@ -30,6 +30,7 @@ import com.dot.gallery.feature_node.domain.util.MediaGroupType
 import com.dot.gallery.feature_node.domain.util.classifyGroupType
 import com.dot.gallery.feature_node.domain.util.groupKey
 import com.dot.gallery.feature_node.domain.util.selectRepresentative
+import com.dot.gallery.feature_node.domain.util.sortedByRepresentative
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.picker.AllowedMedia
 import kotlinx.coroutines.Dispatchers
@@ -240,7 +241,10 @@ suspend fun <T : Media> mapMediaToItem(
                     if (groupType in enabledGroupTypes) {
                         val representative = group.selectRepresentative()
                         pagerMediaList.add(representative)
-                        mediaGroupsMap[representative.id] = group
+                        // Store members ordered so the representative (JPG over its RAW/DNG
+                        // sibling) is first — keeps the opened stack and multi-file share aligned
+                        // with the grid cover (#995).
+                        mediaGroupsMap[representative.id] = group.sortedByRepresentative()
                         return@flatMap listOf(
                             MediaItem.MediaViewItem(
                                 key = "media_${representative.id}_${representative.label}",
