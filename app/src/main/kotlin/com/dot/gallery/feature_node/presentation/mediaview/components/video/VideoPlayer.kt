@@ -1,10 +1,8 @@
 package com.dot.gallery.feature_node.presentation.mediaview.components.video
 
-import android.app.Activity
 import android.net.Uri
 import android.view.SurfaceView
 import android.view.View
-import android.view.WindowManager
 import androidx.media3.common.Player
 import androidx.media3.ui.SubtitleView
 import androidx.annotation.OptIn
@@ -55,7 +53,7 @@ import androidx.compose.ui.layout.onVisibilityChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
@@ -147,16 +145,19 @@ fun <T : Media> VideoPlayer(
         }
     }
 
-    // Keep screen awake while playing
-    val context = LocalContext.current
+    // Keep the screen awake while this video is playing. Use the per-view
+    // keepScreenOn flag instead of a window-level FLAG_KEEP_SCREEN_ON: the pager
+    // pre-composes neighbouring pages, so a paused neighbour clearing the shared
+    // window flag would cancel the currently-playing page's request and let the
+    // screen time out mid-playback (#1005). keepScreenOn is scoped per-view and
+    // the framework keeps the screen on while any view requests it, so the
+    // players no longer fight over a single global flag.
+    val view = LocalView.current
     LaunchedEffect(isPlayingState.value) {
-        (context as? Activity)?.let { act ->
-            if (isPlayingState.value) {
-                act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            } else {
-                act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            }
-        }
+        view.keepScreenOn = isPlayingState.value
+    }
+    DisposableEffect(view) {
+        onDispose { view.keepScreenOn = false }
     }
     val presentationState = rememberPresentationState(
         player = currentPlayer,
