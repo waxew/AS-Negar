@@ -86,6 +86,8 @@ fun <T : Media> BlurredMediaBackground(
                     resize(width = 600, height = 600, precision = Precision.LESS_PIXELS)
                     crossfade(false)
                     setExtra("realMimeType", media.mimeType)
+                    // Bust the cache when the underlying file changes (#1004).
+                    setExtra(key = "mediaVersion", value = "${media.timestamp}:${media.size}")
                     if (isEncrypted) {
                         setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
                     }
@@ -125,6 +127,12 @@ fun <T : Media> ZoomablePagerImage(
     val mediaUri = remember(media) {
         media.getUri().toString()
     }
+    // A content-version token folded into the Sketch cache key so the memory and
+    // disk result caches are tied to the current file bytes. After editing or
+    // overwriting an image its URI is unchanged, so without this the viewer kept
+    // serving the stale original from cache while the Glide grid (keyed on
+    // media.toString()) had already refreshed (#1004).
+    val mediaVersion = remember(media) { "${media.timestamp}:${media.size}" }
     val isEncrypted = remember(media) {
         media.isEncrypted
     }
@@ -150,6 +158,7 @@ fun <T : Media> ZoomablePagerImage(
             resize(width = 600, height = 600, precision = Precision.LESS_PIXELS)
             crossfade(false)
             setExtra("realMimeType", media.mimeType)
+            setExtra(key = "mediaVersion", value = mediaVersion)
             if (isEncrypted) {
                 setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
             }
@@ -165,6 +174,7 @@ fun <T : Media> ZoomablePagerImage(
                 crossfade(durationMillis = 200)
             }
             setExtra("realMimeType", media.mimeType)
+            setExtra(key = "mediaVersion", value = mediaVersion)
             if (isEncrypted) {
                 setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
             }
@@ -201,8 +211,11 @@ fun <T : Media> ZoomablePagerImage(
             val uri = media.getUri()
             val providerName = uri.authority ?: return@LaunchedEffect
             val providerType = try { ProviderType.valueOf(providerName) } catch (_: Exception) { return@LaunchedEffect }
-            val remoteId = uri.pathSegments?.firstOrNull() ?: return@LaunchedEffect
-            val cloudSource = CloudImageSource(providerType, remoteId)
+            // remoteId may contain slashes (SMB/NFS/WebDAV paths like "Photos/IMG.jpg"); pathSegments
+            // .first() would truncate it to the folder and request the directory as the original.
+            val remoteId = uri.path?.trimStart('/')?.takeIf { it.isNotEmpty() } ?: return@LaunchedEffect
+            val configId = uri.getQueryParameter("cfg")?.toLongOrNull() ?: -1L
+            val cloudSource = CloudImageSource(providerType, remoteId, configId)
             zoomState.setSubsamplingImage(SubsamplingImage(imageSource = cloudSource))
         }
     } else if (isJxl) {
