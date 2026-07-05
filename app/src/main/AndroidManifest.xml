@@ -264,6 +264,25 @@
             </intent-filter>
         </activity>
 
+        <!--
+            Handles the legacy crop intent so ReFra can crop images for callers such as the
+            Settings AvatarPicker (profile picture), matching Gallery2/Google Photos (#997).
+        -->
+        <activity
+            android:name=".feature_node.presentation.crop.CropActivity"
+            android:exported="true"
+            android:configChanges="orientation|keyboard|keyboardHidden|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Gallery">
+            <intent-filter android:label="@string/editor_crop">
+                <action android:name="com.android.camera.action.CROP"/>
+
+                <category android:name="android.intent.category.DEFAULT"/>
+
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+        </activity>
+
         <!-- Widget Configuration Activity -->
         <activity
             android:name=".feature_node.presentation.widget.WidgetConfigActivity"
