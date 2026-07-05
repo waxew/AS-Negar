@@ -147,6 +147,7 @@ import com.dot.gallery.feature_node.presentation.util.setHdrMode
 import com.dot.gallery.feature_node.presentation.util.toggleSystemBars
 import com.dot.gallery.ui.theme.isDarkTheme
 import com.github.panpf.sketch.BitmapImage
+import com.github.panpf.sketch.request.CachePolicy
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.sketch
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -523,6 +524,13 @@ fun <T : Media> MediaViewScreen(
                                     key = "realMimeType",
                                     value = media.mimeType,
                                 )
+                                // Always decode from the source for the gain-map probe.
+                                // Sketch's result cache re-encodes bitmaps with
+                                // Bitmap.compress, which strips the Ultra HDR gain map, so a
+                                // cached result would report hasGainmap()=false and leave the
+                                // window in SDR mode after the app restarts (#998).
+                                resultCachePolicy(CachePolicy.DISABLED)
+                                memoryCachePolicy(CachePolicy.DISABLED)
                             }
                             val result = context.sketch.execute(request)
                             (result.image as? BitmapImage)?.bitmap?.let { bitmap ->
