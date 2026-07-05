@@ -177,7 +177,9 @@ open class PickerViewModel @Inject constructor(
                     favorite = 0,
                     trashed = 0,
                     size = pm.size,
-                    duration = null
+                    // Placeholder duration so video files register as videos
+                    // (Media.isVideo requires a non-null duration) — #1003.
+                    duration = if (pm.isVideo) "" else null
                 ) as Media
             }
         }.combine(distributor.dateFormatsFlow) { media, (defaultFormat, extendedFormat, weeklyFormat) ->
