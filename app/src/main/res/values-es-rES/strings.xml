@@ -168,7 +168,7 @@
     <string name="error_copying_to_clipboard">Error al copiar al portapapeles</string>
     <string name="ignored_albums">Álbumes ignorados</string>
     <string name="add_to_ignored">Añadir a álbumes ignorados</string>
-    <string name="override">Overwrite</string>
+    <string name="override">Sobreescribir</string>
     <string name="save_copy">Guardar una copia</string>
     <string name="revert_to_original">Revertir al Original</string>
     <string name="revert_to_original_confirmation">Esto descartará todas las ediciones y restaurará la imagen original. Esta acción no se puede deshacer.</string>
@@ -675,7 +675,7 @@
         <item quantity="other">%s Ítems</item>
     </plurals>
     <plurals name="album_count">
-        <item quantity="one">%d album</item>
+        <item quantity="one">%d álbum</item>
         <item quantity="other">%d álbumes</item>
     </plurals>
     <!-- Widgets -->
@@ -786,11 +786,11 @@
     <string name="album_sections_detail_description">Organiza tus álbumes en secciones como Común, Aplicaciones y categorías personalizadas. Arrastra para cambiar el orden, activar o desactivar la visibilidad, o crear tus propias categorías.</string>
     <string name="section_type_common">Álbumes del sistema</string>
     <string name="section_type_apps">Álbumes de la aplicación</string>
-    <string name="section_type_uncategorized">Other albums</string>
-    <string name="section_type_custom">Custom section</string>
-    <string name="hidden">Hidden</string>
-    <string name="section_auto">Automatic</string>
-    <string name="section_actions">Section actions</string>
+    <string name="section_type_uncategorized">Otros álbumes</string>
+    <string name="section_type_custom">Sección de personalización</string>
+    <string name="hidden">Oculto</string>
+    <string name="section_auto">Automático</string>
+    <string name="section_actions">Acciones de sección</string>
     <!-- Visual / Image-to-Image search -->
     <string name="visual_search">Búsqueda visual</string>
     <string name="search_by_image">Buscar por imagen</string>
@@ -883,32 +883,32 @@
     <string name="cast_perm_multicast_desc">Necesario para la detección automática de dispositivos en la red</string>
     <!-- Backup &amp; Restore (#909) -->
     <string name="settings_backup">Backup &amp; restore</string>
-    <string name="settings_backup_summary">Export and import settings, favorites and vaults</string>
-    <string name="backup_include_header">Include in backup</string>
-    <string name="backup_include_settings">App settings</string>
-    <string name="backup_include_settings_summary">All preferences and customizations</string>
-    <string name="backup_include_local_favorites">Local favorites</string>
+    <string name="settings_backup_summary">Exportar e importar ajustes, favoritos y bóvedas</string>
+    <string name="backup_include_header">Incluir en la copia de seguridad</string>
+    <string name="backup_include_settings">Ajustes de aplicación</string>
+    <string name="backup_include_settings_summary">Todas las preferencias y personalizaciones</string>
+    <string name="backup_include_local_favorites">Favoritos del dispositivo</string>
     <string name="backup_include_local_favorites_summary">Re-applied on import where matching photos are found</string>
-    <string name="backup_include_cloud_favorites">Cloud favorites</string>
-    <string name="backup_include_cloud_favorites_summary">Favorites of synced cloud media</string>
-    <string name="backup_include_cloud_configs">Cloud accounts</string>
-    <string name="backup_include_cloud_configs_summary">Server configurations (may require re-authentication after import)</string>
-    <string name="backup_include_vaults">Vaults</string>
+    <string name="backup_include_cloud_favorites">Favoritos de la nube</string>
+    <string name="backup_include_cloud_favorites_summary">Favoritos de multimedia sincronizadas en la nube</string>
+    <string name="backup_include_cloud_configs">Cuentas de la nube</string>
+    <string name="backup_include_cloud_configs_summary">Configuraciones del servidor (puede requerir re-autenticación después de importar)</string>
+    <string name="backup_include_vaults">Bóvedas</string>
     <string name="backup_include_vaults_summary">Full vault contents, decrypted into the backup</string>
-    <string name="backup_warning">The backup may contain decrypted vault media and account credentials. Store it somewhere safe.</string>
-    <string name="backup_export">Export backup</string>
-    <string name="backup_import">Import backup</string>
+    <string name="backup_warning">La copia de seguridad puede contener bóvedas de multimedia desencriptadas y credenciales de cuenta. Guárdalas en un lugar seguro.</string>
+    <string name="backup_export">Exportar copia de seguridad</string>
+    <string name="backup_import">Importar copia de seguridad</string>
     <string name="backup_export_done">Exported %1$d settings, %2$d favorites, %3$d cloud accounts, %4$d vaults (%5$d items).</string>
     <string name="backup_import_done">Imported %1$d settings, %2$d cloud favorites, %3$d cloud accounts, %4$d vaults (%5$d items). %6$d local favorites pending confirmation.</string>
-    <string name="backup_error">Backup failed: %1$s</string>
+    <string name="backup_error">Copia de seguridad fallida: %1$s</string>
     <string name="backup_export_vault_notice">Vault media will be decrypted into the backup in binary form. You\'ll be asked to verify your vault security before exporting.</string>
     <string name="backup_export_password_notice">For extra safety you can encrypt the whole backup with a password. You\'ll need it to import the backup later — it cannot be recovered.</string>
-    <string name="backup_protect_with_password">Encrypt backup with a password</string>
-    <string name="backup_password">Password</string>
-    <string name="backup_password_confirm">Confirm password</string>
-    <string name="backup_show_password">Show password</string>
-    <string name="backup_verify_export_subtitle">Verify your identity to export vault contents</string>
-    <string name="backup_unlock_vault_subtitle">Unlock \"%1$s\" to include it in the backup</string>
+    <string name="backup_protect_with_password">Encriptar copia de seguridad con una contraseña</string>
+    <string name="backup_password">Contraseña</string>
+    <string name="backup_password_confirm">Confirmar contraseña</string>
+    <string name="backup_show_password">Mostrar contraseña</string>
+    <string name="backup_verify_export_subtitle">Verifica tu identidad para exportar contenidos de la bóveda</string>
+    <string name="backup_unlock_vault_subtitle">Desbloquear \"%1$s\" para incluirlo en la copia de seguridad</string>
     <string name="backup_unlock_vaults_gate_subtitle">Verify your vault security to choose which vaults to back up</string>
     <string name="backup_import_password_title">Encrypted backup</string>
     <string name="backup_import_password_desc">This backup is password-protected. Enter the password to import it.</string>
