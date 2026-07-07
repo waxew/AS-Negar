@@ -827,7 +827,7 @@
     <string name="help_make_most">Make the most of Gallery</string>
     <string name="help_explore_tips">Explore more tips</string>
     <string name="help_done">Done</string>
-    <string name="help_open_settings">Open settings</string>
+    <string name="help_open_settings">Ayarları aç</string>
     <string name="help_latest">Latest</string>
     <string name="help_not_found">This tip could not be found.</string>
     <string name="help_cat_basics">The basics</string>
@@ -841,7 +841,7 @@
     <string name="help_cat_search">Search</string>
     <string name="help_cat_ai">AI features</string>
     <string name="help_cat_albums">Albums &amp; collections</string>
-    <string name="help_cat_vault">Vault</string>
+    <string name="help_cat_vault">Kasa</string>
     <string name="help_cat_cloud_sync">Cloud &amp; sync</string>
     <string name="help_cat_fav_trash">Favorites &amp; trash</string>
     <string name="help_cat_locations">Location browsing</string>
@@ -872,12 +872,12 @@
     <string name="cast_stop_current">Stop current cast</string>
     <string name="cast_permissions_required">Permissions required</string>
     <string name="cast_permissions_message">The following permissions are needed for casting. Please grant them in app settings.</string>
-    <string name="cast_open_settings">Open settings</string>
-    <string name="cast_perm_internet">Internet</string>
+    <string name="cast_open_settings">Ayarları aç</string>
+    <string name="cast_perm_internet">İnternet</string>
     <string name="cast_perm_internet_desc">Required for connecting to cast devices and streaming media</string>
-    <string name="cast_perm_wifi_state">Wi-Fi state</string>
+    <string name="cast_perm_wifi_state">Wi-Fi durumu</string>
     <string name="cast_perm_wifi_state_desc">Required for detecting network information</string>
-    <string name="cast_perm_network_state">Network state</string>
+    <string name="cast_perm_network_state">Ağ durumu</string>
     <string name="cast_perm_network_state_desc">Required for checking network connectivity</string>
     <string name="cast_perm_multicast">Multicast</string>
     <string name="cast_perm_multicast_desc">Required for automatic device discovery on your network</string>
@@ -885,7 +885,7 @@
     <string name="settings_backup">Backup &amp; restore</string>
     <string name="settings_backup_summary">Export and import settings, favorites and vaults</string>
     <string name="backup_include_header">Include in backup</string>
-    <string name="backup_include_settings">App settings</string>
+    <string name="backup_include_settings">Uygulama ayarları</string>
     <string name="backup_include_settings_summary">All preferences and customizations</string>
     <string name="backup_include_local_favorites">Local favorites</string>
     <string name="backup_include_local_favorites_summary">Re-applied on import where matching photos are found</string>
@@ -893,7 +893,7 @@
     <string name="backup_include_cloud_favorites_summary">Favorites of synced cloud media</string>
     <string name="backup_include_cloud_configs">Cloud accounts</string>
     <string name="backup_include_cloud_configs_summary">Server configurations (may require re-authentication after import)</string>
-    <string name="backup_include_vaults">Vaults</string>
+    <string name="backup_include_vaults">Kasalar</string>
     <string name="backup_include_vaults_summary">Full vault contents, decrypted into the backup</string>
     <string name="backup_warning">The backup may contain decrypted vault media and account credentials. Store it somewhere safe.</string>
     <string name="backup_export">Export backup</string>
@@ -915,7 +915,7 @@
     <string name="backup_wrong_password">Incorrect password</string>
     <string name="backup_result_exported">Backup exported</string>
     <string name="backup_result_imported">Backup imported</string>
-    <string name="backup_stat_favorites">Favorites</string>
+    <string name="backup_stat_favorites">Favoriler</string>
     <string name="backup_vaults_value">%1$d (%2$d items)</string>
     <string name="backup_import_pending_favorites">%1$d local favorites awaiting your confirmation.</string>
     <!-- Backup wizard -->
@@ -925,7 +925,7 @@
     <string name="backup_next">Next</string>
     <string name="backup_back">Back</string>
     <string name="backup_save_file">Save backup file</string>
-    <string name="backup_encrypt_header">Encryption</string>
+    <string name="backup_encrypt_header">Şifreleme</string>
     <string name="backup_restore_header">Choose what to restore</string>
     <string name="backup_restore">Restore</string>
     <string name="backup_made_with_version">Created with ReFra %1$s</string>
@@ -939,7 +939,7 @@
     <string name="backup_done">Done</string>
     <string name="backup_try_again">Try again</string>
     <!-- Security Settings (#820, #821, #825, #826, #827) -->
-    <string name="settings_security">Security</string>
+    <string name="settings_security">Güvenlik</string>
     <string name="settings_security_summary">Sandboxing, encryption, private folder</string>
     <string name="security_sandbox_header">Sandbox</string>
     <string name="security_metadata_isolation">Metadata isolation mode</string>
@@ -955,8 +955,8 @@
     <string name="security_sandboxed_decode_description">Moves the decoding of complex image formats (HEIF, AVIF, JPEG XL) into a separate isolated process with no permissions. If the decoder encounters a malformed file, it cannot affect the main app.\n\nThis adds a small overhead (~5–15%) to initial image loads but has no effect on cached thumbnails.</string>
     <string name="security_enforced_by_advanced_protection">This setting is enforced because Android Advanced Protection Mode is enabled on this device. It will be restored to your preference when Advanced Protection is turned off.</string>
     <string name="security_enforced_by_advanced_protection_short">Enforced by Advanced Protection</string>
-    <string name="security_data_protection_header">Data Protection</string>
-    <string name="security_encryption_status">Encryption</string>
+    <string name="security_data_protection_header">Veri Koruma</string>
+    <string name="security_encryption_status">Şifreleme</string>
     <string name="security_encryption_active">Settings and database are encrypted</string>
     <string name="security_private_folder">Private folder</string>
     <string name="security_private_folder_summary_none">Not configured</string>
@@ -975,7 +975,7 @@
     <string name="private_folder_security_title">Private folder security</string>
     <string name="private_folder_security_subtitle">How would you like to protect the private folder?</string>
     <string name="private_folder_security_none">None</string>
-    <string name="private_folder_security_device">Device security</string>
+    <string name="private_folder_security_device">Cihaz güvenliği</string>
     <string name="private_folder_security_custom">Custom password</string>
     <string name="private_folder_unlock">Unlock private folder</string>
     <string name="private_folder_unlock_subtitle">Authenticate to access your private folder</string>
@@ -984,11 +984,11 @@
     <string name="filter_title">Filter</string>
     <string name="filter_type">Type</string>
     <string name="filter_all">All</string>
-    <string name="filter_status">Status</string>
+    <string name="filter_status">Durum</string>
     <string name="filter_time">Time</string>
-    <string name="filter_source">Source</string>
-    <string name="filter_reset">Reset</string>
-    <string name="filter_apply">Apply</string>
+    <string name="filter_source">Kaynak</string>
+    <string name="filter_reset">Sıfırla</string>
+    <string name="filter_apply">Uygula</string>
     <string name="filter_active">Filter active</string>
     <string name="show_filter_button">Filter button</string>
     <string name="show_filter_button_summary">Show filter button in search bar</string>
@@ -997,8 +997,8 @@
     <string name="show_searchbar_favorite_button_summary">Show favorite button next to search bar</string>
     <string name="show_searchbar_favorite_button_description">Shows a heart button next to the search bar on the timeline screen. Tap it to quickly open your favorites collection.</string>
     <string name="trash_restore_all">Restore all</string>
-    <string name="trash_delete_all">Delete all</string>
-    <string name="favorites_info_title">Your Favorites</string>
+    <string name="trash_delete_all">Tümünü sil</string>
+    <string name="favorites_info_title">Favorilerin</string>
     <string name="favorites_info_summary">Long press on any photo or video to select it, then tap the heart icon to add it to your favorites. Items added here are a shortcut and won\'t be removed from their original album.</string>
     <string name="favorites_group_by_date">Group by date</string>
     <string name="favorites_group_by_date_on">Grouped by date</string>
@@ -1008,33 +1008,33 @@
     <string name="date_headers_summary">Show or hide date separators per section</string>
     <string name="date_headers_description">Date separators organize your media into groups by date. Enable or disable them for each section of the app.</string>
     <string name="date_headers_timeline">Timeline</string>
-    <string name="date_headers_albums">Albums</string>
-    <string name="date_headers_favorites">Favorites</string>
-    <string name="date_headers_vault">Vault</string>
-    <string name="date_headers_cloud_archive">Cloud archive</string>
+    <string name="date_headers_albums">Albümler</string>
+    <string name="date_headers_favorites">Favoriler</string>
+    <string name="date_headers_vault">Kasa</string>
+    <string name="date_headers_cloud_archive">Bulut arşivi</string>
     <string name="date_headers_location">Map &amp; location</string>
     <!-- Per-section group method settings -->
     <string name="group_method_title">Media grouping</string>
     <string name="group_method_summary">Set how media is grouped per section</string>
     <string name="group_method_description">Choose how media is grouped in each section. Daily shows one header per day, Monthly combines into month groups, and Yearly groups by year.</string>
-    <string name="group_method_normal">Daily</string>
+    <string name="group_method_normal">Günlük</string>
     <string name="media_grouping_restart_note">Changes apply instantly across the app</string>
-    <string name="group_method_monthly">Monthly</string>
-    <string name="group_method_yearly">Yearly</string>
+    <string name="group_method_monthly">Aylık</string>
+    <string name="group_method_yearly">Yıllık</string>
     <string name="group_method_timeline">Timeline</string>
-    <string name="group_method_albums">Albums</string>
-    <string name="group_method_favorites">Favorites</string>
-    <string name="group_method_vault">Vault</string>
-    <string name="group_method_cloud_archive">Cloud archive</string>
+    <string name="group_method_albums">Albümler</string>
+    <string name="group_method_favorites">Favoriler</string>
+    <string name="group_method_vault">Kasa</string>
+    <string name="group_method_cloud_archive">Bulut arşivi</string>
     <string name="group_method_location">Map &amp; location</string>
     <string name="customize_date_formats">Customize date formats</string>
     <!-- Story Cards -->
-    <string name="story_cards_settings_title">Story Cards</string>
+    <string name="story_cards_settings_title">Hikaye Kartları</string>
     <string name="story_cards_settings_summary">Configure story cards above the timeline</string>
-    <string name="story_cards_enabled">Show Story Cards</string>
+    <string name="story_cards_enabled">Hikaye Kartlarını Göster</string>
     <string name="story_cards_enabled_summary">Display story cards above the timeline</string>
     <string name="story_cards_order_title">Card types &amp; order</string>
-    <string name="story_viewer_settings_title">Story viewer</string>
+    <string name="story_viewer_settings_title">Hikaye görüntüleyici</string>
     <string name="story_viewer_auto_advance">Auto-advance</string>
     <string name="story_viewer_auto_advance_summary">Automatically move to the next photo</string>
     <string name="story_viewer_duration">Duration per photo</string>
@@ -1067,15 +1067,15 @@
     <string name="cloud_sync_settings">Sync settings</string>
     <string name="cloud_sync_enabled">Auto-sync enabled</string>
     <string name="cloud_sync_wifi_only">Wi-Fi only</string>
-    <string name="cloud_sync_interval">Sync interval</string>
+    <string name="cloud_sync_interval">Senkronizasyon aralığı</string>
     <string name="cloud_connected">Connected</string>
     <string name="cloud_disconnected">Disconnected</string>
-    <string name="cloud_error">Error</string>
+    <string name="cloud_error">Hata</string>
     <string name="cloud_syncing">Syncing…</string>
     <string name="cloud_authenticating">Authenticating…</string>
     <string name="cloud_assets_count">%d remote assets</string>
     <string name="cloud_last_connected">Last connected: %s</string>
-    <string name="cloud_media">Cloud</string>
+    <string name="cloud_media">Bulut</string>
     <string name="cloud_sync_header">Sync</string>
     <string name="cloud_sync_now">Sync now</string>
     <string name="cloud_sync_now_syncing">Syncing…</string>
@@ -1129,7 +1129,7 @@
     <string name="cloud_shared_links_delete_title">Delete shared link</string>
     <string name="cloud_shared_links_delete_message">Are you sure you want to delete this shared link?</string>
     <string name="cloud_shared_links_filter_all">All</string>
-    <string name="cloud_shared_links_filter_albums">Albums</string>
+    <string name="cloud_shared_links_filter_albums">Albümler</string>
     <string name="cloud_shared_links_filter_individual">Individual shares</string>
     <string name="cloud_shared_links_edit_title">Edit link</string>
     <string name="cloud_shared_links_edit_custom_url">Custom URL</string>
@@ -1139,17 +1139,17 @@
     <string name="cloud_shared_links_edit_description">Description</string>
     <string name="cloud_shared_links_edit_expire">Expire after</string>
     <string name="cloud_shared_links_edit_expire_never">Never</string>
-    <string name="cloud_shared_links_edit_expire_1day">in 1 day</string>
-    <string name="cloud_shared_links_edit_expire_7days">in 7 days</string>
-    <string name="cloud_shared_links_edit_expire_30days">in 30 days</string>
-    <string name="cloud_shared_links_edit_expire_3months">in 3 months</string>
-    <string name="cloud_shared_links_edit_expire_1year">in 1 year</string>
+    <string name="cloud_shared_links_edit_expire_1day">1 gün içinde</string>
+    <string name="cloud_shared_links_edit_expire_7days">7 gün içinde</string>
+    <string name="cloud_shared_links_edit_expire_30days">30 gün içinde</string>
+    <string name="cloud_shared_links_edit_expire_3months">3 ay içinde</string>
+    <string name="cloud_shared_links_edit_expire_1year">1 yıl içinde</string>
     <string name="cloud_shared_links_edit_show_metadata">Show metadata</string>
     <string name="cloud_shared_links_edit_allow_download">Allow public user to download</string>
     <string name="cloud_shared_links_edit_allow_upload">Allow public user to upload</string>
     <string name="cloud_shared_links_edit_allow_download_badge">Download</string>
     <string name="cloud_shared_links_edit_show_metadata_badge">EXIF</string>
-    <string name="cloud_shared_links_confirm">Confirm</string>
+    <string name="cloud_shared_links_confirm">Onayla</string>
     <string name="cloud_shared_links_expires_on">Expires %1$s</string>
     <string name="cloud_shared_links_no_expiry">No expiry</string>
     <string name="cloud_shared_links_link_copied">Link copied to clipboard</string>
@@ -1159,7 +1159,7 @@
     <string name="cloud_backup_and_sync">Backup &amp; Sync</string>
     <string name="cloud_backup_all_done">All backed up</string>
     <string name="cloud_backup_remaining">%1$d items to back up</string>
-    <string name="cloud_backup_total">Total</string>
+    <string name="cloud_backup_total">Toplam</string>
     <string name="cloud_backup_backed_up">Backed up</string>
     <string name="cloud_backup_remaining_label">Remaining</string>
     <string name="cloud_backup_albums">Backup albums</string>
@@ -1220,20 +1220,20 @@
     <string name="cloud_free_space_cutoff">Remove items older than:</string>
     <string name="cloud_free_space_30d">30 days</string>
     <string name="cloud_free_space_60d">60 days</string>
-    <string name="cloud_free_space_90d">90 days</string>
-    <string name="cloud_free_space_6m">6 months</string>
-    <string name="cloud_free_space_1y">1 year</string>
+    <string name="cloud_free_space_90d">90 gün</string>
+    <string name="cloud_free_space_6m">6 ay</string>
+    <string name="cloud_free_space_1y">1 yıl</string>
     <string name="cloud_free_space_scan">Scan for backed-up items</string>
-    <string name="cloud_free_space_scanning">Scanning…</string>
+    <string name="cloud_free_space_scanning">Taranıyor…</string>
     <string name="cloud_free_space_remove_count">Remove %1$d local copies</string>
     <!-- Memories -->
-    <string name="cloud_memories">Memories</string>
+    <string name="cloud_memories">Anılar</string>
     <string name="cloud_memories_empty">No memories yet</string>
     <string name="cloud_memories_empty_summary">Memories from past years will appear here</string>
     <string name="cloud_memories_memory">Memory</string>
     <string name="cloud_memories_years_ago">On this day, %1$d years ago</string>
     <!-- Notifications -->
-    <string name="cloud_notifications">Notifications</string>
+    <string name="cloud_notifications">Bildirimler</string>
     <string name="cloud_notif_background_backup">Background backup</string>
     <string name="cloud_notif_total_progress">Show total progress</string>
     <string name="cloud_notif_total_progress_summary">Show notification with overall backup progress</string>
@@ -1243,18 +1243,18 @@
     <string name="cloud_notif_failures_summary">Show notification when backup fails</string>
     <!-- Networking -->
     <string name="cloud_networking">Networking</string>
-    <string name="cloud_net_connection">Connection</string>
+    <string name="cloud_net_connection">Bağlantı</string>
     <string name="cloud_net_auto_url">Automatic URL switching</string>
     <string name="cloud_net_auto_url_summary">Switch between local and external server URLs based on Wi-Fi network</string>
-    <string name="cloud_net_local">Local network</string>
+    <string name="cloud_net_local">Yerel ağ</string>
     <string name="cloud_net_wifi_name">Wi-Fi name</string>
     <string name="cloud_net_local_url">Local server URL</string>
-    <string name="cloud_net_not_configured">Not configured</string>
-    <string name="cloud_net_external">External network</string>
+    <string name="cloud_net_not_configured">Yapılandırılmadı</string>
+    <string name="cloud_net_external">Harici ağ</string>
     <string name="cloud_net_fallback_urls">Fallback URLs</string>
     <string name="cloud_net_no_external">No external URLs configured</string>
     <!-- Advanced -->
-    <string name="cloud_advanced">Advanced</string>
+    <string name="cloud_advanced">Gelişmiş</string>
     <string name="cloud_adv_troubleshooting">Troubleshooting</string>
     <string name="cloud_adv_verbose">Verbose logging</string>
     <string name="cloud_adv_verbose_summary">Enable detailed logging for debugging</string>
@@ -1270,7 +1270,7 @@
     <string name="cloud_adv_clear_cache">Clear image cache</string>
     <!-- Viewer -->
     <string name="cloud_viewer">Viewer Settings</string>
-    <string name="cloud_viewer_photos">Photos</string>
+    <string name="cloud_viewer_photos">Fotoğraflar</string>
     <string name="cloud_viewer_load_preview">Load preview image</string>
     <string name="cloud_viewer_load_preview_summary">Load medium-quality preview when opening a photo</string>
     <string name="cloud_viewer_load_original">Load original image</string>
@@ -1289,23 +1289,23 @@
     <!-- Cloud Provider Settings Screen -->
     <string name="cloud_provider_settings">Cloud Settings</string>
     <string name="cloud_server_url_label">Server URL</string>
-    <string name="cloud_server_version_label">Server Version</string>
+    <string name="cloud_server_version_label">Sunucu Sürümü</string>
     <string name="cloud_sync_now_summary">Fetch latest media and albums</string>
     <string name="cloud_auto_sync">Auto-sync</string>
     <string name="cloud_auto_sync_summary">Periodically sync media and albums</string>
     <string name="cloud_wifi_only_summary">Sync your media only when connected to a Wi-Fi network</string>
-    <string name="cloud_connection_header">Connection</string>
+    <string name="cloud_connection_header">Bağlantı</string>
     <string name="cloud_credentials">Credentials</string>
     <string name="cloud_credentials_summary">Change or update your server credentials.\nUpdating them will result in cache invalidation.</string>
     <string name="cloud_delete_provider">Delete Cloud Provider</string>
-    <string name="cloud_auto_sync_interval">Sync interval</string>
+    <string name="cloud_auto_sync_interval">Senkronizasyon aralığı</string>
     <string name="cloud_auto_sync_interval_summary">How often to sync media automatically</string>
-    <string name="cloud_sync_interval_15min">Every 15 minutes</string>
-    <string name="cloud_sync_interval_30min">Every 30 minutes</string>
-    <string name="cloud_sync_interval_1hr">Every hour</string>
-    <string name="cloud_sync_interval_6hr">Every 6 hours</string>
-    <string name="cloud_sync_interval_12hr">Every 12 hours</string>
-    <string name="cloud_sync_interval_24hr">Every 24 hours</string>
+    <string name="cloud_sync_interval_15min">15 dakikada bir</string>
+    <string name="cloud_sync_interval_30min">30 dakikada bir</string>
+    <string name="cloud_sync_interval_1hr">Saatte bir</string>
+    <string name="cloud_sync_interval_6hr">6 saatte bir</string>
+    <string name="cloud_sync_interval_12hr">12 saatte bir</string>
+    <string name="cloud_sync_interval_24hr">24 saatte bir</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
     <!-- Upload Details -->
@@ -1332,5 +1332,5 @@
     <string name="cloud_net_use_current">Use current connection</string>
     <string name="cloud_net_add_external">Add external URL</string>
     <string name="cloud_net_external_hint">https://immich.example.com</string>
-    <string name="cloud_net_remove">Remove</string>
+    <string name="cloud_net_remove">Kaldır</string>
 </resources>
