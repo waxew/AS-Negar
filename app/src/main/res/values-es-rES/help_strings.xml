@@ -14,7 +14,7 @@
     <string name="help_tip_basics_timeline_p2_s5">Tap any photo to view it full-screen</string>
     <string name="help_tip_basics_view_media_title">View photos and videos</string>
     <string name="help_tip_basics_view_media_subtitle">Tap to open, swipe to navigate, pinch to zoom</string>
-    <string name="help_tip_basics_view_media_p1_title">Open a photo or video</string>
+    <string name="help_tip_basics_view_media_p1_title">Abre una foto o video</string>
     <string name="help_tip_basics_view_media_p1_desc">Tap any thumbnail in the timeline or an album to open it in the full-screen viewer. The photo smoothly animates from the grid into full view (if shared element transitions are enabled in Appearance settings). Videos begin playing automatically by default.</string>
     <string name="help_tip_basics_view_media_p2_title">Navigate between media</string>
     <string name="help_tip_basics_view_media_p2_desc">Swipe left or right to move between photos and videos without going back to the grid. Swipe down to close the viewer and return to where you were. The viewer remembers your position, so you won\'t lose your place.</string>
