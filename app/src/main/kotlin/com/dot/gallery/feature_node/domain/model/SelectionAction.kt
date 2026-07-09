@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EnhancedEncryption
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FolderSpecial
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.automirrored.outlined.RotateRight
 import androidx.compose.material.icons.outlined.SelectAll
@@ -104,6 +105,11 @@ enum class SelectionAction(
         descriptionRes = R.string.action_desc_hide,
         zone = ActionZone.BOTTOM,
     ),
+    MOVE_TO_PRIVATE_FOLDER(
+        labelRes = R.string.move_to_private_folder,
+        descriptionRes = R.string.action_desc_move_to_private_folder,
+        zone = ActionZone.BOTTOM,
+    ),
     EDIT(
         labelRes = R.string.edit,
         descriptionRes = R.string.action_desc_edit,
@@ -133,6 +139,7 @@ enum class SelectionAction(
             MOVE -> Icons.AutoMirrored.Outlined.DriveFileMove
             TRASH -> Icons.Outlined.DeleteOutline
             ADD_TO_VAULT -> Icons.Outlined.EnhancedEncryption
+            MOVE_TO_PRIVATE_FOLDER -> Icons.Outlined.FolderSpecial
             EDIT -> Icons.Outlined.Edit
             ROTATE -> Icons.AutoMirrored.Outlined.RotateRight
             DOWNLOAD -> Icons.Outlined.Download

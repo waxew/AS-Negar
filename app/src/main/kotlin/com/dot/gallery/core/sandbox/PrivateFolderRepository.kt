@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 /**
  * Queries media files from the user's private folder via SAF [DocumentFile] APIs.
@@ -162,6 +163,58 @@ class PrivateFolderRepository(private val context: Context) {
                 lastEmit = now
                 pending = 0
             }
+        }
+    }
+
+    /**
+     * Copy an external media [sourceUri] (e.g. a MediaStore item) into the
+     * configured private folder via SAF. The system document provider assigns
+     * a unique display name if [displayName] already exists, so this never
+     * overwrites. Returns true if the file was written successfully.
+     *
+     * Callers that want a "move" should delete the original only after this
+     * returns true (e.g. via a MediaStore delete request).
+     */
+    suspend fun addMedia(
+        sourceUri: Uri,
+        displayName: String,
+        mimeType: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        val uriString = PrivateFolderManager.getUri(context).firstOrNull()
+        if (uriString.isNullOrEmpty()) {
+            printWarning("PrivateFolderRepository: no private folder configured")
+            return@withContext false
+        }
+        if (!PrivateFolderManager.hasValidPermission(context, uriString)) {
+            printWarning("PrivateFolderRepository: lost permission for $uriString")
+            return@withContext false
+        }
+
+        val treeUri = uriString.toUri()
+        val rootDocId = DocumentsContract.getTreeDocumentId(treeUri)
+        val parentDocUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, rootDocId)
+        val safeMime = mimeType.ifBlank { "application/octet-stream" }
+        val safeName = displayName.ifBlank { "file_${System.currentTimeMillis()}" }
+
+        var newDocUri: Uri? = null
+        return@withContext try {
+            newDocUri = DocumentsContract.createDocument(
+                context.contentResolver, parentDocUri, safeMime, safeName
+            ) ?: return@withContext false
+            val copied = context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                context.contentResolver.openOutputStream(newDocUri)?.use { output ->
+                    input.copyTo(output)
+                    true
+                } ?: false
+            } ?: false
+            if (!copied) {
+                runCatching { DocumentsContract.deleteDocument(context.contentResolver, newDocUri) }
+            }
+            copied
+        } catch (e: Exception) {
+            printWarning("PrivateFolderRepository: addMedia failed for $sourceUri: ${e.message}")
+            newDocUri?.let { runCatching { DocumentsContract.deleteDocument(context.contentResolver, it) } }
+            false
         }
     }
 

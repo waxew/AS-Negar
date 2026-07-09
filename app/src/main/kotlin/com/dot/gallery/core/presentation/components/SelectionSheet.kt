@@ -107,6 +107,7 @@ import com.dot.gallery.feature_node.presentation.exif.CopyMediaSheet
 import com.dot.gallery.feature_node.presentation.exif.MoveMediaSheet
 import com.dot.gallery.feature_node.presentation.mediaview.components.MediaInfoRow
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
+import com.dot.gallery.feature_node.presentation.privatefolder.PrivateFolderMoveViewModel
 import com.dot.gallery.feature_node.presentation.trashed.components.TrashDialog
 import com.dot.gallery.feature_node.presentation.trashed.components.TrashDialogAction
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
@@ -205,12 +206,26 @@ fun <T : Media> BoxScope.SelectionSheet(
         if (!tabletMode) Modifier.fillMaxWidth()
         else Modifier.wrapContentWidth()
     }
+    val privateFolderMoveViewModel = hiltViewModel<PrivateFolderMoveViewModel>()
+    val privateFolderMoveConfirmState = rememberAppBottomSheetState()
+    val privateFolderUri by Settings.Security.rememberPrivateFolderUri()
+    val privateFolderConfigured = privateFolderUri.isNotEmpty()
     val config by rememberSelectionSheetConfig()
-    val sanitizedConfig = remember(config, isInVault) {
-        val base = config.sanitized()
+    val sanitizedConfig = remember(config, isInVault, privateFolderConfigured) {
+        var base = config.sanitized()
         if (isInVault && SelectionAction.ADD_TO_VAULT !in base.bottomActions) {
-            base.copy(bottomActions = base.bottomActions + SelectionAction.ADD_TO_VAULT)
-        } else base
+            base = base.copy(bottomActions = base.bottomActions + SelectionAction.ADD_TO_VAULT)
+        }
+        // Surface the private-folder move action whenever a private folder is
+        // configured, regardless of the saved config, so it's discoverable.
+        if (!isInVault && privateFolderConfigured &&
+            SelectionAction.MOVE_TO_PRIVATE_FOLDER !in base.bottomActions
+        ) {
+            base = base.copy(
+                bottomActions = base.bottomActions + SelectionAction.MOVE_TO_PRIVATE_FOLDER
+            )
+        }
+        base
     }
     val showFavoriteButton by rememberShowFavoriteButton()
     val trashEnabled = rememberTrashEnabled()
@@ -519,6 +534,17 @@ fun <T : Media> BoxScope.SelectionSheet(
                                     }
                                 }
                             }
+                            SelectionAction.MOVE_TO_PRIVATE_FOLDER -> {
+                                if (privateFolderConfigured) {
+                                    SelectionBarColumn(
+                                        imageVector = action.icon,
+                                        tabletMode = tabletMode,
+                                        title = stringResource(action.labelRes)
+                                    ) {
+                                        scope.launch { privateFolderMoveConfirmState.show() }
+                                    }
+                                }
+                            }
                             SelectionAction.EDIT -> {
                                 SelectionBarColumn(
                                     imageVector = action.icon,
@@ -741,6 +767,30 @@ fun <T : Media> BoxScope.SelectionSheet(
                     vaultViewModel.restoreMedia(vault, media) {}
                 }
                 selector.clearSelection()
+            }
+        }
+    )
+
+    // Move selected local media into the private folder, then request deletion
+    // of the originals so the operation behaves as a true move (#1015).
+    val privateFolderMovingText = stringResource(R.string.private_folder_moving)
+    val privateFolderMoveFailedText = stringResource(R.string.private_folder_move_failed)
+    ConfirmationSheet(
+        state = privateFolderMoveConfirmState,
+        title = stringResource(R.string.private_folder_move_confirm_title),
+        summary = stringResource(R.string.private_folder_move_confirm_summary),
+        onConfirm = {
+            val toMove = selectedMedia.filterNot { it.isCloud }.toList()
+            if (toMove.isNotEmpty()) {
+                scope.launch {
+                    Toast.makeText(context, privateFolderMovingText, Toast.LENGTH_SHORT).show()
+                    val moved = privateFolderMoveViewModel.copyIntoPrivateFolder(toMove)
+                    if (moved.isNotEmpty()) {
+                        handler.deleteMedia(result, moved)
+                    } else {
+                        Toast.makeText(context, privateFolderMoveFailedText, Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     )

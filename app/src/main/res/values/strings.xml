@@ -625,6 +625,8 @@
     <string name="action_desc_move">Move selected items to another album</string>
     <string name="action_desc_trash">Move selected items to the trash</string>
     <string name="action_desc_hide">Encrypt and hide selected items in the vault</string>
+    <string name="action_desc_move_to_private_folder">Move selected items into the private folder</string>
+    <string name="move_to_private_folder">Private folder</string>
     <string name="action_desc_edit">Open the selected item in the photo editor</string>
     <string name="action_desc_rotate">Rotate selected items 90° clockwise</string>
     <string name="action_desc_download">Download cloud media to your device</string>
@@ -1006,6 +1008,10 @@
     <string name="private_folder_remove_keep_hidden_summary">The .nomedia file will remain in the folder. Files will stay hidden from other apps and the media library.</string>
     <string name="private_folder_remove_make_visible">Make files visible</string>
     <string name="private_folder_remove_make_visible_summary">The .nomedia file will be deleted and the folder will be scanned by the system. Files will appear in other gallery apps and the media library.</string>
+    <string name="private_folder_move_confirm_title">Move to private folder?</string>
+    <string name="private_folder_move_confirm_summary">The selected items will be copied into your private folder and the originals will be removed from your device. Files in the private folder are hidden from other apps and the media library.</string>
+    <string name="private_folder_moving">Moving to private folder…</string>
+    <string name="private_folder_move_failed">Could not move items to the private folder</string>
     <string name="private_folder_security_title">Private folder security</string>
     <string name="private_folder_security_subtitle">How would you like to protect the private folder?</string>
     <string name="private_folder_security_none">None</string>
