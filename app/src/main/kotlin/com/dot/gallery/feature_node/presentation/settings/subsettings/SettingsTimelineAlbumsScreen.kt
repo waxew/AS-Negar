@@ -149,6 +149,7 @@ private const val DETAIL_FILTER_BUTTON = "filter_button"
 private const val DETAIL_HIDE_TIMELINE = "hide_timeline"
 private const val DETAIL_MERGE_ALBUMS = "merge_albums"
 private const val DETAIL_ALBUM_SECTIONS = "album_sections"
+private const val DETAIL_PINNED_GRID = "pinned_albums_as_grid"
 private const val DETAIL_FAV_ICON = "fav_icon"
 private const val DETAIL_SEARCHBAR_FAV_BUTTON = "searchbar_fav_button"
 private const val DETAIL_DATE_HEADERS = "date_headers"
@@ -175,6 +176,7 @@ fun SettingsTimelineAlbumsScreen() {
     var hideTimelineOnAlbum by Settings.Album.rememberHideTimelineOnAlbum()
     var mergeAlbumsByName by Settings.Album.rememberMergeAlbumsByName()
     var albumSectionsEnabled by Settings.Album.rememberAlbumSectionsEnabled()
+    var pinnedAlbumsAsGrid by Settings.Album.rememberPinnedAlbumsAsGrid()
     var favIconPosition by rememberFavoriteIconPosition()
     var dateHeaderTimeline by rememberTimelineGroupByDate()
     var dateHeaderFavorites by rememberFavoritesGroupByDate()
@@ -311,6 +313,16 @@ fun SettingsTimelineAlbumsScreen() {
                 onEnabledChange = { albumSectionsEnabled = it },
             )
         }
+        DETAIL_PINNED_GRID -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.pinned_albums_as_grid_title),
+                isChecked = pinnedAlbumsAsGrid,
+                onCheckedChange = { pinnedAlbumsAsGrid = it },
+                description = stringResource(R.string.pinned_albums_as_grid_description),
+                preview = { checked -> PinnedAlbumsGridPreview(checked) },
+            )
+        }
         DETAIL_FAV_ICON -> {
             BackHandler { detailKey = null }
             ChooserPreferenceDetailScreen(
@@ -440,6 +452,8 @@ fun SettingsTimelineAlbumsScreen() {
                 onMergeAlbumsChange = { mergeAlbumsByName = it },
                 albumSectionsEnabled = albumSectionsEnabled,
                 onAlbumSectionsChange = { albumSectionsEnabled = it },
+                pinnedAlbumsAsGrid = pinnedAlbumsAsGrid,
+                onPinnedAlbumsAsGridChange = { pinnedAlbumsAsGrid = it },
                 favIconPosition = favIconPosition,
                 onDetailClick = { detailKey = it },
                 onDateFormatClick = { eventHandler.navigate(Screen.DateFormatScreen()) },
@@ -467,6 +481,8 @@ private fun TimelineAlbumsListScreen(
     onMergeAlbumsChange: (Boolean) -> Unit,
     albumSectionsEnabled: Boolean = false,
     onAlbumSectionsChange: (Boolean) -> Unit = {},
+    pinnedAlbumsAsGrid: Boolean = false,
+    onPinnedAlbumsAsGridChange: (Boolean) -> Unit = {},
     favIconPosition: String,
     onDetailClick: (String) -> Unit,
     onDateFormatClick: () -> Unit,
@@ -580,6 +596,16 @@ private fun TimelineAlbumsListScreen(
             isChecked = albumSectionsEnabled,
             onCheck = onAlbumSectionsChange,
             onClick = { onDetailClick(DETAIL_ALBUM_SECTIONS) },
+            screenPosition = Position.Middle
+        )
+
+        val pinnedAlbumsAsGridPref = rememberSwitchPreference(
+            pinnedAlbumsAsGrid,
+            title = stringResource(R.string.pinned_albums_as_grid_title),
+            summary = stringResource(R.string.pinned_albums_as_grid_summary),
+            isChecked = pinnedAlbumsAsGrid,
+            onCheck = onPinnedAlbumsAsGridChange,
+            onClick = { onDetailClick(DETAIL_PINNED_GRID) },
             screenPosition = Position.Bottom
         )
 
@@ -623,7 +649,7 @@ private fun TimelineAlbumsListScreen(
             timelineLayoutPref, groupSimilarMediaPref,
             allowGifAnimationPref, dateHeaderPref, showFilterButtonPref,
             showSearchBarFavButtonPref, storyCardsPref,
-            hideTimelineOnAlbumPref, mergeAlbumsByNamePref, albumSectionsPref, favIconPositionPref,
+            hideTimelineOnAlbumPref, mergeAlbumsByNamePref, albumSectionsPref, pinnedAlbumsAsGridPref, favIconPositionPref,
             dateHeadersPref, groupMethodPref
         ) {
             mutableStateListOf<SettingsEntity>().apply {
@@ -642,6 +668,7 @@ private fun TimelineAlbumsListScreen(
                 add(hideTimelineOnAlbumPref)
                 add(mergeAlbumsByNamePref)
                 add(albumSectionsPref)
+                add(pinnedAlbumsAsGridPref)
 
                 add(displayHeader)
                 add(dateHeadersPref)
@@ -1005,6 +1032,44 @@ private fun MergeAlbumsPreview(isChecked: Boolean) {
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PinnedAlbumsGridPreview(isChecked: Boolean) {
+    val headerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    val pinnedColor = MaterialTheme.colorScheme.primaryContainer
+    val cellColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(Modifier.size(64.dp, 8.dp).clip(RoundedCornerShape(4.dp)).background(headerColor))
+        if (isChecked) {
+            // Pinned albums shown as regular tiles, wrapping to rows above the others
+            Row(Modifier.fillMaxWidth().height(40.dp), Arrangement.spacedBy(6.dp)) {
+                repeat(3) {
+                    Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(6.dp)).background(pinnedColor))
+                }
+            }
+        } else {
+            // Pinned albums shown as a wide horizontal banner carousel
+            Row(Modifier.fillMaxWidth().height(56.dp), Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.weight(2f).fillMaxHeight().clip(RoundedCornerShape(6.dp)).background(pinnedColor))
+                Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(6.dp)).background(pinnedColor.copy(alpha = 0.5f)))
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(Modifier.size(48.dp, 8.dp).clip(RoundedCornerShape(4.dp)).background(headerColor))
+        repeat(2) {
+            Row(Modifier.fillMaxWidth().height(40.dp), Arrangement.spacedBy(6.dp)) {
+                repeat(3) {
+                    Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(6.dp)).background(cellColor))
                 }
             }
         }

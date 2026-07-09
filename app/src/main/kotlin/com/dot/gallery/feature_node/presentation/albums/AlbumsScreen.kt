@@ -50,6 +50,7 @@ import com.dot.gallery.core.Settings
 import com.dot.gallery.core.Settings.Album.rememberAlbumGridSize
 import com.dot.gallery.core.Settings.Album.rememberLastSort
 import com.dot.gallery.core.Settings.Album.rememberLastViewType
+import com.dot.gallery.core.Settings.Album.rememberPinnedAlbumsAsGrid
 import com.dot.gallery.core.presentation.components.EmptyAlbum
 import com.dot.gallery.core.presentation.components.Error
 import com.dot.gallery.core.presentation.components.FilterButton
@@ -128,6 +129,7 @@ fun AlbumsScreen(
     )
     val listState = rememberLazyListState()
     var viewType by rememberLastViewType()
+    val pinnedAlbumsAsGrid by rememberPinnedAlbumsAsGrid()
 
     LaunchedEffect(pinchState.isZooming) {
         lastCellIndex = albumCellsList.indexOf(pinchState.currentCells)
@@ -188,7 +190,7 @@ fun AlbumsScreen(
                                     enter = enterAnimation,
                                     exit = exitAnimation
                                 ) {
-                                    Column {
+                                    if (pinnedAlbumsAsGrid) {
                                         Text(
                                             modifier = Modifier
                                                 .pinchItem(key = "pinnedAlbums")
@@ -198,12 +200,49 @@ fun AlbumsScreen(
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        CarouselPinnedAlbums(
-                                            albumList = albumsState.value.albumsPinned,
-                                            onAlbumClick = onAlbumClick,
-                                            onAlbumLongClick = onAlbumLongClick
-                                        )
+                                    } else {
+                                        Column {
+                                            Text(
+                                                modifier = Modifier
+                                                    .pinchItem(key = "pinnedAlbums")
+                                                    .padding(horizontal = 8.dp)
+                                                    .padding(vertical = 24.dp),
+                                                text = stringResource(R.string.pinned_albums_title),
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            CarouselPinnedAlbums(
+                                                albumList = albumsState.value.albumsPinned,
+                                                onAlbumClick = onAlbumClick,
+                                                onAlbumLongClick = onAlbumLongClick
+                                            )
+                                        }
                                     }
+                                }
+                            }
+                            if (pinnedAlbumsAsGrid) {
+                                items(
+                                    items = albumsState.value.albumsPinned,
+                                    key = { item -> "pinned_${item.id}" }
+                                ) { item ->
+                                    val trashResult = rememberActivityResult()
+                                    AlbumComponent(
+                                        modifier = Modifier
+                                            .pinchItem(key = "pinned_${item.id}")
+                                            .animateItem(),
+                                        album = item,
+                                        onItemClick = onAlbumClick,
+                                        onTogglePinClick = onAlbumLongClick,
+                                        onMoveAlbumToTrash = {
+                                            onMoveAlbumToTrash(trashResult, it)
+                                        },
+                                        onToggleIgnoreClick = onIgnoreAlbum,
+                                        onToggleLockClick = onLockAlbum,
+                                        onAddToGroup = onAddToGroup,
+                                        onMoveToSection = onMoveToSection,
+                                        onToggleMergeSubfolders = onToggleMergeSubfolders,
+                                        isMergedSubfolder = item.id in mergedSubfolderIds
+                                    )
                                 }
                             }
                             item(
@@ -429,7 +468,7 @@ fun AlbumsScreen(
                                 enter = enterAnimation,
                                 exit = exitAnimation
                             ) {
-                                Column {
+                                if (pinnedAlbumsAsGrid) {
                                     Text(
                                         modifier = Modifier
                                             .padding(horizontal = 8.dp)
@@ -438,12 +477,47 @@ fun AlbumsScreen(
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium
                                     )
-                                    CarouselPinnedAlbums(
-                                        albumList = albumsState.value.albumsPinned,
-                                        onAlbumClick = onAlbumClick,
-                                        onAlbumLongClick = onAlbumLongClick
-                                    )
+                                } else {
+                                    Column {
+                                        Text(
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp)
+                                                .padding(vertical = 24.dp),
+                                            text = stringResource(R.string.pinned_albums_title),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        CarouselPinnedAlbums(
+                                            albumList = albumsState.value.albumsPinned,
+                                            onAlbumClick = onAlbumClick,
+                                            onAlbumLongClick = onAlbumLongClick
+                                        )
+                                    }
                                 }
+                            }
+                        }
+
+                        if (pinnedAlbumsAsGrid) {
+                            items(
+                                items = albumsState.value.albumsPinned,
+                                key = { item -> "pinned_list_${item.id}" }
+                            ) { item ->
+                                val trashResult = rememberActivityResult()
+                                AlbumRowComponent(
+                                    modifier = Modifier.animateItem(),
+                                    album = item,
+                                    onItemClick = onAlbumClick,
+                                    onTogglePinClick = onAlbumLongClick,
+                                    onMoveAlbumToTrash = {
+                                        onMoveAlbumToTrash(trashResult, it)
+                                    },
+                                    onToggleIgnoreClick = onIgnoreAlbum,
+                                    onToggleLockClick = onLockAlbum,
+                                    onAddToGroup = onAddToGroup,
+                                    onMoveToSection = onMoveToSection,
+                                    onToggleMergeSubfolders = onToggleMergeSubfolders,
+                                    isMergedSubfolder = item.id in mergedSubfolderIds
+                                )
                             }
                         }
 

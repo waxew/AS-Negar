@@ -199,6 +199,12 @@ object Settings {
         @Composable
         fun rememberAlbumSectionsEnabled() =
             rememberPreference(key = ALBUM_SECTIONS_ENABLED, defaultValue = false)
+
+        val PINNED_ALBUMS_AS_GRID = booleanPreferencesKey("pinned_albums_as_grid")
+
+        @Composable
+        fun rememberPinnedAlbumsAsGrid() =
+            rememberPreference(key = PINNED_ALBUMS_AS_GRID, defaultValue = false)
     }
 
     object Search {
