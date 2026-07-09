@@ -81,6 +81,7 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
     emptyContent: @Composable () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
+    allowSharedElements: Boolean = true,
     onMediaClick: @DisallowComposableCalls (media: T) -> Unit = {},
 ) {
     val mappedData by rememberedDerivedState(mediaState, groupMethod) {
@@ -222,7 +223,8 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
                 emptyContent = emptyContent,
                 onMediaClick = onMediaClick,
                 sharedTransitionScope = sharedTransitionScope,
-                animatedContentScope = animatedContentScope
+                animatedContentScope = animatedContentScope,
+                allowSharedElements = allowSharedElements
             )
         }
     } else {
@@ -242,7 +244,8 @@ fun <T : Media> GridPinchZoomScope.MediaGridView(
             emptyContent = emptyContent,
             onMediaClick = onMediaClick,
             sharedTransitionScope = sharedTransitionScope,
-            animatedContentScope = animatedContentScope
+            animatedContentScope = animatedContentScope,
+            allowSharedElements = allowSharedElements
         )
     }
 

@@ -286,7 +286,11 @@ fun CategoryEditorScreen(
                             EmptyMedia(title = stringResource(R.string.no_matching_photos))
                         },
                         sharedTransitionScope = sharedTransitionScope,
-                        animatedContentScope = animatedContentScope
+                        animatedContentScope = animatedContentScope,
+                        // Shared-element transitions cannot cross into a ModalBottomSheet's
+                        // separate window/subcomposition; enabling them here crashes on scroll
+                        // with "LookaheadDelegate has not been measured yet" (#1019).
+                        allowSharedElements = false
                     )
                 }
             }

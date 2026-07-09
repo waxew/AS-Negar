@@ -88,6 +88,7 @@ fun <T : Media> GridPinchZoomScope.MediaGrid(
     emptyContent: @Composable () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
+    allowSharedElements: Boolean = true,
     onMediaClick: @DisallowComposableCalls (media: T) -> Unit
 ) {
     LaunchedEffect(gridState.isScrollInProgress) {
@@ -166,6 +167,7 @@ fun <T : Media> GridPinchZoomScope.MediaGrid(
                 leadingItemCount = if (aboveGridContent != null) 1 else 0,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
+                allowSharedElements = allowSharedElements,
                 metadataState = metadataState
             )
         } else {
@@ -179,6 +181,7 @@ fun <T : Media> GridPinchZoomScope.MediaGrid(
                 topContent = topContent,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
+                allowSharedElements = allowSharedElements,
                 metadataState = metadataState
             )
         }
@@ -202,6 +205,7 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
     leadingItemCount: Int,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
+    allowSharedElements: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     val stringToday = stringResource(id = R.string.header_today)
@@ -362,36 +366,38 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
                         }
                     }
                 } else if (it is MediaItem.MediaViewItem) {
-                    with(sharedTransitionScope) {
-                        MediaImage(
-                            modifier = Modifier
-                                .mediaSharedElement(
-                                    allowAnimation = canAnimate,
-                                    media = it.media,
-                                    animatedVisibilityScope = animatedContentScope
+                    val sharedElementModifier = if (allowSharedElements) {
+                        with(sharedTransitionScope) {
+                            Modifier.mediaSharedElement(
+                                allowAnimation = canAnimate,
+                                media = it.media,
+                                animatedVisibilityScope = animatedContentScope
+                            )
+                        }
+                    } else Modifier
+                    MediaImage(
+                        modifier = sharedElementModifier
+                            .animateItem(
+                                fadeInSpec = null,
+                                fadeOutSpec = if (isScrolling) null else spring()
+                            )
+                            .pinchItem(key = it.key),
+                        media = it.media,
+                        stackCount = it.stackCount,
+                        isCloudGroup = it.isCloudGroup,
+                        canClick = { canScroll },
+                        onMediaClick = { onMediaClick(it) },
+                        metadataState = metadataState,
+                        onItemSelect = {
+                            if (allowSelection) {
+                                feedbackManager.vibrate()
+                                selector.toggleSelectionById(
+                                    mediaState = mediaState.value,
+                                    mediaId = it.id
                                 )
-                                .animateItem(
-                                    fadeInSpec = null,
-                                    fadeOutSpec = if (isScrolling) null else spring()
-                                )
-                                .pinchItem(key = it.key),
-                            media = it.media,
-                            stackCount = it.stackCount,
-                            isCloudGroup = it.isCloudGroup,
-                            canClick = { canScroll },
-                            onMediaClick = { onMediaClick(it) },
-                            metadataState = metadataState,
-                            onItemSelect = {
-                                if (allowSelection) {
-                                    feedbackManager.vibrate()
-                                    selector.toggleSelectionById(
-                                        mediaState = mediaState.value,
-                                        mediaId = it.id
-                                    )
-                                }
                             }
-                        )
-                    }
+                        }
+                    )
                 }
             }
 
@@ -414,6 +420,7 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContent(
     topContent: LazyGridScope.() -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
+    allowSharedElements: Boolean = true,
 ) {
     val feedbackManager = rememberFeedbackManager()
     val items by rememberedDerivedState(mediaState.value) {
@@ -481,34 +488,36 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContent(
             key = { item -> item.key },
             contentType = { item -> item.mimeType }
         ) { media ->
-            with(sharedTransitionScope) {
-                MediaImage(
-                    modifier = Modifier
-                        .mediaSharedElement(
-                            allowAnimation = canAnimate,
-                            media = media,
-                            animatedVisibilityScope = animatedContentScope
+            val sharedElementModifier = if (allowSharedElements) {
+                with(sharedTransitionScope) {
+                    Modifier.mediaSharedElement(
+                        allowAnimation = canAnimate,
+                        media = media,
+                        animatedVisibilityScope = animatedContentScope
+                    )
+                }
+            } else Modifier
+            MediaImage(
+                modifier = sharedElementModifier
+                    .animateItem(
+                        fadeInSpec = null,
+                        fadeOutSpec = if (isScrolling) null else spring()
+                    )
+                    .pinchItem(key = media.key),
+                media = media,
+                metadataState = metadataState,
+                canClick = { canScroll },
+                onMediaClick = { onMediaClick(it) },
+                onItemSelect = {
+                    if (allowSelection) {
+                        feedbackManager.vibrate()
+                        selector.toggleSelectionById(
+                            mediaState = mediaState.value,
+                            mediaId = it.id
                         )
-                        .animateItem(
-                            fadeInSpec = null,
-                            fadeOutSpec = if (isScrolling) null else spring()
-                        )
-                        .pinchItem(key = media.key),
-                    media = media,
-                    metadataState = metadataState,
-                    canClick = { canScroll },
-                    onMediaClick = { onMediaClick(it) },
-                    onItemSelect = {
-                        if (allowSelection) {
-                            feedbackManager.vibrate()
-                            selector.toggleSelectionById(
-                                mediaState = mediaState.value,
-                                mediaId = it.id
-                            )
-                        }
                     }
-                )
-            }
+                }
+            )
         }
     }
     }
