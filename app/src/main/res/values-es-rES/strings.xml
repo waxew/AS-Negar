@@ -178,7 +178,7 @@
     <string name="edit_backups_storage">Almacenamiento usado</string>
     <string name="edit_backups_storage_summary">%1$s utilizado por %2$d copia(s) de seguridad</string>
     <string name="edit_backups_no_backups">Ninguna copia de edición</string>
-    <string name="edit_backups_no_backups_summary">Original images will be backed up when you overwrite an edit</string>
+    <string name="edit_backups_no_backups_summary">Se hará una copia de seguridad de las imágenes originales cuando sobreescribas una edición</string>
     <string name="edit_backups_auto_cleanup">Limpieza automática</string>
     <string name="edit_backups_auto_cleanup_summary">Eliminar automáticamente las copias de seguridad de más de 90 días</string>
     <string name="edit_backups_delete_all">Borrar todas las copias de seguridad</string>
@@ -420,7 +420,7 @@
     <string name="auto_play_video">Reproducción automática de vídeo</string>
     <string name="auto_play_video_summary">Reproducir el vídeo automáticamente mientras se visualiza multimedia</string>
     <string name="video_surface_rebind">Fix black video on hide</string>
-    <string name="video_surface_rebind_summary">Refresh the video surface when hiding or showing the controls</string>
+    <string name="video_surface_rebind_summary">Actualizar la superficie del vídeo al ocultar o mostrar los controles</string>
     <string name="shared_elements">Animar elementos multimedia</string>
     <string name="shared_elements_summary">Animación de elementos multimedia clic/retorno mediante transiciones de elementos compartidos</string>
     <string name="type_stylus">Stylus</string>
@@ -491,7 +491,7 @@
     <string name="verify_identity">Verifica tu identidad</string>
     <string name="vault_encrypt_failed">Error al cifrar %1$d elemento(s)</string>
     <string name="vault_hide_in_progress">Ocultar archivos multimedia…</string>
-    <string name="vault_hide_no_local_items">Cloud items can\'t be added to a vault</string>
+    <string name="vault_hide_no_local_items">No se pueden añadir elementos de la nube a una caja fuerte</string>
     <string name="vault_setup_password_prompt">¿Desea establecer una contraseña personalizada para esta caja fuerte?</string>
     <string name="vault_skip_password">Usar seguridad del dispositivo</string>
     <string name="vault_set_password">Establecer contraseña personalizada</string>
@@ -842,7 +842,7 @@
     <string name="help_cat_ai">Funciones de IA</string>
     <string name="help_cat_albums">Álbumes &amp; colecciones</string>
     <string name="help_cat_vault">Caja fuerte</string>
-    <string name="help_cat_cloud_sync">Cloud &amp; sync</string>
+    <string name="help_cat_cloud_sync">Nube &amp; sincronización</string>
     <string name="help_cat_fav_trash">Favoritos &amp; papelera</string>
     <string name="help_cat_locations">Navegación por ubicación</string>
     <string name="help_cat_metadata">Metadatos &amp; EXIF</string>
@@ -882,7 +882,7 @@
     <string name="cast_perm_multicast">Multidifusión</string>
     <string name="cast_perm_multicast_desc">Necesario para la detección automática de dispositivos en la red</string>
     <!-- Backup &amp; Restore (#909) -->
-    <string name="settings_backup">Backup &amp; restore</string>
+    <string name="settings_backup">Respaldo &amp; Restaurar</string>
     <string name="settings_backup_summary">Exportar e importar ajustes, favoritos y bóvedas</string>
     <string name="backup_include_header">Incluir en la copia de seguridad</string>
     <string name="backup_include_settings">Ajustes de aplicación</string>
