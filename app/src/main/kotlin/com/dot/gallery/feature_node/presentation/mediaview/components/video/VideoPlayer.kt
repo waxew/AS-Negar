@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -426,10 +427,15 @@ fun <T : Media> VideoPlayer(
         }
 
         if (presentationState.coverSurface) {
+            // Match the media viewer's background while the SurfaceView has no
+            // content yet (e.g. when swiping to the next video). The viewer forces
+            // a black background when blur is enabled, so painting the cover with
+            // MaterialTheme.colorScheme.background (white in a light theme) caused a
+            // white flash between videos (#1021).
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(if (allowBlur) Color.Black else MaterialTheme.colorScheme.background)
             )
         }
     }
