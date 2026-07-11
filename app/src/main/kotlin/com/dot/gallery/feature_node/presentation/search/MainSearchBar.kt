@@ -54,8 +54,8 @@ import com.dot.gallery.core.Settings.Misc.rememberAutoHideSearchBar
 import com.dot.gallery.core.navigate
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
+import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import dev.chrisbanes.haze.LocalHazeStyle
-import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -150,7 +150,7 @@ fun MainSearchBar(
                     .then(weightModifier)
                     .clip(RoundedCornerShape(100))
                     .then(backgroundModifier)
-                    .hazeEffect(
+                    .hazeEffectScaled(
                         state = LocalHazeState.current,
                         style = LocalHazeStyle.current
                     )

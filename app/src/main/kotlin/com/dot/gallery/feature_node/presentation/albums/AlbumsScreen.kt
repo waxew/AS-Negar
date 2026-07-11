@@ -14,9 +14,14 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -33,12 +38,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.cloud.ui.descriptor.ProviderBrandIcon
 import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
 import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.R
@@ -120,6 +128,13 @@ fun AlbumsScreen(
         initialValue = MediaState()
     )
     val albumsState = distributor.albumsFlow.collectAsStateWithLifecycle()
+
+    // Cloud albums grouped by provider (e.g. SMB, IMMICH) for their dedicated section.
+    val cloudProviderGroups = remember(albumsState.value.albumsCloud) {
+        albumsState.value.albumsCloud
+            .groupBy { it.relativePath.removePrefix("cloud/").substringBefore("/") }
+            .toList()
+    }
 
     var lastCellIndex by rememberAlbumGridSize()
 
@@ -387,6 +402,45 @@ fun AlbumsScreen(
                                     )
                                 }
                             }
+                            // Dedicated cloud section, grouped per provider with its logo.
+                            cloudProviderGroups.forEach { (providerName, cloudAlbums) ->
+                                item(
+                                    span = { GridItemSpan(maxLineSpan) },
+                                    key = "cloud_header_$providerName"
+                                ) {
+                                    CloudAlbumSectionHeader(
+                                        modifier = Modifier.animateItem(),
+                                        providerName = providerName,
+                                        count = cloudAlbums.size
+                                    )
+                                }
+                                items(
+                                    items = cloudAlbums,
+                                    key = { "cloud_${it.id}" }
+                                ) { item ->
+                                    val trashResult = rememberActivityResult()
+                                    with(sharedTransitionScope) {
+                                        AlbumComponent(
+                                            modifier = Modifier
+                                                .pinchItem(key = "cloud_${item.id}")
+                                                .animateItem(),
+                                            thumbnailModifier = Modifier
+                                                .mediaSharedElement(
+                                                    album = item,
+                                                    animatedVisibilityScope = animatedContentScope
+                                                ),
+                                            album = item,
+                                            onItemClick = onAlbumClick,
+                                            onTogglePinClick = onAlbumLongClick,
+                                            onMoveAlbumToTrash = {
+                                                onMoveAlbumToTrash(trashResult, it)
+                                            },
+                                            onToggleIgnoreClick = onIgnoreAlbum,
+                                            isMergedSubfolder = false
+                                        )
+                                    }
+                                }
+                            }
 
                             item(
                                 span = { GridItemSpan(maxLineSpan) },
@@ -650,6 +704,40 @@ fun AlbumsScreen(
                                 )
                             }
                         }
+                        // Dedicated cloud section, grouped per provider with its logo.
+                        cloudProviderGroups.forEach { (providerName, cloudAlbums) ->
+                            item(key = "cloud_header_list_$providerName") {
+                                CloudAlbumSectionHeader(
+                                    modifier = Modifier.animateItem(),
+                                    providerName = providerName,
+                                    count = cloudAlbums.size
+                                )
+                            }
+                            items(
+                                items = cloudAlbums,
+                                key = { "cloud_list_${it.id}" }
+                            ) { item ->
+                                val trashResult = rememberActivityResult()
+                                with(sharedTransitionScope) {
+                                    AlbumRowComponent(
+                                        modifier = Modifier.animateItem(),
+                                        thumbnailModifier = Modifier
+                                            .mediaSharedElement(
+                                                album = item,
+                                                animatedVisibilityScope = animatedContentScope
+                                            ),
+                                        album = item,
+                                        onItemClick = onAlbumClick,
+                                        onTogglePinClick = onAlbumLongClick,
+                                        onMoveAlbumToTrash = {
+                                            onMoveAlbumToTrash(trashResult, it)
+                                        },
+                                        onToggleIgnoreClick = onIgnoreAlbum,
+                                        isMergedSubfolder = false
+                                    )
+                                }
+                            }
+                        }
 
                         item(key = "albumDetails") {
                             AnimatedVisibility(
@@ -706,4 +794,52 @@ fun AlbumsScreen(
         Error(errorMessage = albumsState.value.error)
     }
     /** ************ **/
+}
+
+/**
+ * Header for the dedicated cloud albums section, showing the provider's brand logo
+ * (falling back to a generic cloud glyph) and its display name.
+ */
+@Composable
+private fun CloudAlbumSectionHeader(
+    modifier: Modifier = Modifier,
+    providerName: String,
+    count: Int
+) {
+    val providerType = remember(providerName) {
+        try { ProviderType.valueOf(providerName) } catch (_: Exception) { null }
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .padding(top = 24.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (providerType != null) {
+            ProviderBrandIcon(
+                providerType = providerType,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp)
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Outlined.Cloud,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = providerType?.displayName ?: providerName,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = stringResource(R.string.n_albums, count),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

@@ -5,6 +5,7 @@
 
 package com.dot.gallery.cloud.ui.backup
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
@@ -43,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -60,7 +64,7 @@ import dev.chrisbanes.haze.hazeEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloudBackupScreen(
-    onNavigateToAlbumPicker: () -> Unit,
+    onNavigateToAlbumPicker: (configId: Long) -> Unit,
     onNavigateToBackupOptions: () -> Unit,
     onNavigateToUploadDetails: () -> Unit
 ) {
@@ -170,6 +174,24 @@ fun CloudBackupScreen(
                 }
             }
 
+            // Per-account breakdown
+            if (state.accounts.size > 1) {
+                item {
+                    Text(
+                        text = stringResource(R.string.cloud_backup_per_account),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                items(state.accounts, key = { it.configId }) { account ->
+                    AccountBackupRow(
+                        account = account,
+                        onClick = { onNavigateToAlbumPicker(account.configId) }
+                    )
+                }
+            }
+
             // Album selection
             item {
                 ListItem(
@@ -191,7 +213,7 @@ fun CloudBackupScreen(
                     applyHorizontalPadding = false,
                     applyBottomPadding = false,
                     applyInsets = false,
-                    onClick = onNavigateToAlbumPicker
+                    onClick = { onNavigateToAlbumPicker(-1L) }
                 )
             }
 
@@ -231,6 +253,56 @@ fun CloudBackupScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AccountBackupRow(
+    account: AccountBackupStatus,
+    onClick: () -> Unit
+) {
+    val progress = if (account.totalAssets > 0)
+        account.backedUpCount.toFloat() / account.totalAssets else 1f
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = account.accountLabel,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.cloud_backup_account_albums, account.enabledAlbumCount),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+        )
+        Text(
+            text = stringResource(
+                R.string.cloud_backup_account_progress,
+                account.backedUpCount,
+                account.totalAssets
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

@@ -130,20 +130,21 @@ import com.dot.gallery.cloud.ui.CloudTimelineScreen
 import com.dot.gallery.cloud.ui.CloudUploadSettingsScreen
 import com.dot.gallery.cloud.ui.archive.CloudArchiveScreen
 import com.dot.gallery.cloud.ui.archive.CloudArchiveViewModel
-import com.dot.gallery.cloud.ui.library.CloudLibraryScreen
 import com.dot.gallery.cloud.ui.backup.BackupOptionsScreen
 import com.dot.gallery.cloud.ui.backup.CloudBackupAndSyncScreen
+import com.dot.gallery.cloud.ui.backup.CloudBackupDashboardScreen
 import com.dot.gallery.cloud.ui.backup.CloudBackupScreen
 import com.dot.gallery.cloud.ui.backup.UploadDetailsScreen
+import com.dot.gallery.cloud.ui.destinations.CloudDestinationsScreen
 import com.dot.gallery.cloud.ui.memories.MemoriesScreen
 import com.dot.gallery.cloud.ui.people.PeopleListScreen
 import com.dot.gallery.cloud.ui.people.PersonDetailScreen
 import com.dot.gallery.cloud.ui.people.PersonDetailViewModel
-import com.dot.gallery.cloud.ui.profile.CloudProfileScreen
 import com.dot.gallery.cloud.ui.sharing.SharedLinksScreen
 import com.dot.gallery.cloud.ui.settings.CloudAdvancedSettingsScreen
 import com.dot.gallery.cloud.ui.settings.CloudNetworkingScreen
 import com.dot.gallery.cloud.ui.settings.CloudNotificationSettingsScreen
+import com.dot.gallery.cloud.ui.offline.OfflineModeScreen
 import com.dot.gallery.cloud.ui.settings.CloudProviderSettingsScreen
 import com.dot.gallery.cloud.ui.settings.CloudViewerSettingsScreen
 import com.dot.gallery.cloud.ui.space.FreeUpSpaceScreen
@@ -191,9 +192,11 @@ fun NavigationComp(
     }
     var lastStartScreen by rememberLastScreen()
     val forcedLastScreen by rememberForcedLastScreen()
-    val startDest by rememberSaveable(permissionState, lastStartScreen) {
+    // Read synchronously once so the wizard isn't briefly shown before the real start screen.
+    val setupNeeded = remember { Settings.Misc.isSetupNeeded(context) }
+    val startDest by rememberSaveable(permissionState, lastStartScreen, setupNeeded) {
         mutableStateOf(
-            if (permissionState) {
+            if (permissionState && !setupNeeded) {
                 lastStartScreen
             } else Screen.SetupScreen()
         )
@@ -275,7 +278,12 @@ fun NavigationComp(
                 }
                 SetupScreen {
                     permissionState = true
-                    eventHandler.navigate(Screen.TimelineScreen())
+                    // Pop the wizard off the back stack so pressing back from the timeline
+                    // exits the app instead of returning to setup.
+                    navController.navigate(Screen.TimelineScreen()) {
+                        popUpTo(Screen.SetupScreen()) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             }
             composable(
@@ -1303,7 +1311,15 @@ fun NavigationComp(
                     onSaved = { navController.navigateUp() }
                 )
             }
-            composable(Screen.CloudUploadSettingsScreen()) {
+            composable(
+                route = Screen.CloudUploadSettingsScreen.configId(),
+                arguments = listOf(
+                    navArgument(name = "configId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) {
                 CloudUploadSettingsScreen(
                     navigateUp = { navController.navigateUp() }
                 )
@@ -1329,17 +1345,6 @@ fun NavigationComp(
                 EditBackupsViewerScreen()
             }
 
-            composable(Screen.CloudLibraryScreen()) {
-                CloudLibraryScreen(
-                    paddingValues = paddingValues,
-                    navigate = { route ->
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                        }
-                    }
-                )
-            }
-
             composable(Screen.CloudArchiveScreen()) {
                 val archiveViewModel = hiltViewModel<CloudArchiveViewModel>()
                 val archiveMediaState = archiveViewModel.mediaState.collectAsStateWithLifecycle()
@@ -1353,18 +1358,14 @@ fun NavigationComp(
                 )
             }
 
-            composable(Screen.CloudProfileScreen()) {
-                CloudProfileScreen()
-            }
-
             composable(Screen.SyncStatusScreen()) {
                 SyncStatusScreen()
             }
 
             composable(Screen.CloudBackupScreen()) {
                 CloudBackupScreen(
-                    onNavigateToAlbumPicker = {
-                        navController.navigate(Screen.CloudUploadSettingsScreen())
+                    onNavigateToAlbumPicker = { configId ->
+                        navController.navigate(Screen.CloudUploadSettingsScreen.configId(configId))
                     },
                     onNavigateToBackupOptions = {
                         navController.navigate(Screen.BackupOptionsScreen())
@@ -1377,14 +1378,57 @@ fun NavigationComp(
 
             composable(Screen.CloudBackupAndSyncScreen()) {
                 CloudBackupAndSyncScreen(
-                    onNavigateToAlbumPicker = {
-                        navController.navigate(Screen.CloudUploadSettingsScreen())
+                    onNavigateToAlbumPicker = { configId ->
+                        navController.navigate(Screen.CloudUploadSettingsScreen.configId(configId))
                     },
                     onNavigateToBackupOptions = {
                         navController.navigate(Screen.BackupOptionsScreen())
                     },
                     onNavigateToUploadDetails = {
                         navController.navigate(Screen.UploadDetailsScreen())
+                    }
+                )
+            }
+
+            composable(Screen.CloudBackupDashboardScreen()) {
+                CloudBackupDashboardScreen(
+                    onNavigateToAlbumPicker = { configId ->
+                        // The Destinations screen scoped to this service acts as its album picker.
+                        navController.navigate(Screen.CloudDestinationsScreen.configId(configId))
+                    },
+                    onNavigateToServiceSettings = { configId ->
+                        navController.navigate(Screen.CloudProviderSettingsScreen.configId(configId))
+                    },
+                    onNavigateToBackupOptions = {
+                        navController.navigate(Screen.BackupOptionsScreen())
+                    },
+                    onNavigateToUploadDetails = {
+                        navController.navigate(Screen.UploadDetailsScreen())
+                    },
+                    onNavigateToAccounts = {
+                        navController.navigate(Screen.CloudAccountsScreen())
+                    },
+                    onNavigateToDestinations = {
+                        navController.navigate(Screen.CloudDestinationsScreen())
+                    },
+                    onNavigateToOffline = {
+                        navController.navigate(Screen.CloudOfflineModeScreen())
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.CloudDestinationsScreen.configId(),
+                arguments = listOf(
+                    navArgument(name = "configId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) {
+                CloudDestinationsScreen(
+                    onAddAccount = {
+                        navController.navigate(Screen.CloudAccountsScreen())
                     }
                 )
             }
@@ -1460,17 +1504,6 @@ fun NavigationComp(
                 )
             }
 
-            composable(Screen.CloudPlacesScreen()) {
-                val locationsViewModel = hiltViewModel<CategoriesViewModel>()
-                val locations by locationsViewModel.locations.collectAsStateWithLifecycle()
-                val geoMedia by locationsViewModel.geoMedia.collectAsStateWithLifecycle()
-                LocationsScreen(
-                    metadataState = metadataState,
-                    locations = locations,
-                    geoMedia = geoMedia
-                )
-            }
-
             composable(Screen.FreeUpSpaceScreen()) {
                 FreeUpSpaceScreen()
             }
@@ -1493,6 +1526,10 @@ fun NavigationComp(
 
             composable(Screen.CloudAdvancedSettingsScreen()) {
                 CloudAdvancedSettingsScreen()
+            }
+
+            composable(Screen.CloudOfflineModeScreen()) {
+                OfflineModeScreen()
             }
 
             composable(Screen.SearchScreen()) {

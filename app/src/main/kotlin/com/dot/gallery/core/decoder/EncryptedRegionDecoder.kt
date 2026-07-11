@@ -18,7 +18,7 @@ import com.github.panpf.zoomimage.subsampling.internal.ExifOrientationHelper
 import com.github.panpf.zoomimage.util.IntRectCompat
 
 class EncryptedRegionDecoder(
-    override val subsamplingImage: SubsamplingImage,
+    val subsamplingImage: SubsamplingImage,
     val imageSource: ImageSource,
     private val keychainHolder: KeychainHolder,
 ) : RegionDecoder {
@@ -30,7 +30,9 @@ class EncryptedRegionDecoder(
         ExifOrientationHelper(exifOrientation)
     }
 
-    override val imageInfo: ImageInfo by lazy { imageSource.readEncryptedImageInfo(keychainHolder) }
+    private val cachedImageInfo: ImageInfo by lazy { imageSource.readEncryptedImageInfo(keychainHolder) }
+
+    override fun getImageInfo(): ImageInfo = cachedImageInfo
 
     override fun close() {
         bitmapRegionDecoder?.recycle()
@@ -50,7 +52,7 @@ class EncryptedRegionDecoder(
             inSampleSize = sampleSize
         }
         val originalRegion = exifOrientationHelper
-            .applyToRect(region, imageInfo.size, reverse = true)
+            .applyToRect(region, cachedImageInfo.size, reverse = true)
         val bitmap = bitmapRegionDecoder!!.decodeRegion(originalRegion.toAndroidRect(), options)
         val tileImage = BitmapTileImage(bitmap)
         val correctedImage = exifOrientationHelper.applyToTileImage(tileImage)
@@ -115,7 +117,7 @@ class EncryptedRegionDecoder(
             else -> null
         }
 
-        override fun create(
+        override suspend fun create(
             subsamplingImage: SubsamplingImage,
             imageSource: ImageSource,
         ): EncryptedRegionDecoder = EncryptedRegionDecoder(

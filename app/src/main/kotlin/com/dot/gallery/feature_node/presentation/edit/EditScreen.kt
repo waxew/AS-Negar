@@ -66,7 +66,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorMatrix
@@ -98,6 +97,7 @@ import com.dot.gallery.feature_node.presentation.edit.components.editor.ImageVie
 import com.dot.gallery.feature_node.presentation.edit.components.markup.TextMarkupOverlay
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.util.stableBlur
 import com.dot.gallery.ui.theme.GalleryTheme
 import com.smarttoolfactory.cropper.model.AspectRatio
 import dev.chrisbanes.haze.hazeSource
@@ -272,7 +272,13 @@ fun EditScreen2(
             modifier = Modifier
                 .hazeSource(LocalHazeState.current)
                 .fillMaxSize()
-                .then(if (isSaving || isReverting || cropState.isCropping || requestMarkupApply) Modifier.blur(animatedBlurRadius) else Modifier)
+                .then(
+                    if (isSaving || isReverting || cropState.isCropping || requestMarkupApply)
+                    // Snap the animated radius to buckets so the ramp reuses a few blur shaders
+                    // instead of compiling a new GPU pipeline on every animation frame.
+                        Modifier.stableBlur(animatedBlurRadius, step = 10.dp)
+                    else Modifier
+                )
                 .background(Color.Black)
                 .systemBarsPadding()
         ) {

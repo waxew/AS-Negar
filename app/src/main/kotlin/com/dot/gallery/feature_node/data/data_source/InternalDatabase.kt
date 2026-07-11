@@ -13,18 +13,22 @@ import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import com.dot.gallery.cloud.data.CloudConverters
 import com.dot.gallery.cloud.data.dao.CloudAlbumSyncDao
+import com.dot.gallery.cloud.data.dao.CloudDeleteLocalPrefDao
 import com.dot.gallery.cloud.data.dao.CloudMediaDao
+import com.dot.gallery.cloud.data.dao.CloudOfflinePinDao
 import com.dot.gallery.cloud.data.dao.CloudServerConfigDao
 import com.dot.gallery.cloud.data.dao.CloudUploadPrefDao
 import com.dot.gallery.cloud.data.dao.PersonDao
 import com.dot.gallery.cloud.data.dao.SyncStateDao
 import com.dot.gallery.cloud.data.entity.CloudAlbumSyncEntity
 import com.dot.gallery.cloud.data.entity.CloudMediaEntity
+import com.dot.gallery.cloud.data.entity.CloudOfflinePinEntity
 import com.dot.gallery.cloud.data.entity.CloudServerConfigEntity
 import com.dot.gallery.cloud.data.entity.DetectedFaceEntity
 import com.dot.gallery.cloud.data.entity.OcrResultEntity
 import com.dot.gallery.cloud.data.entity.PersonEntity
 import com.dot.gallery.cloud.data.entity.CloudUploadPrefEntity
+import com.dot.gallery.cloud.data.entity.CloudDeleteLocalPrefEntity
 import com.dot.gallery.cloud.data.entity.SyncStateEntity
 import com.dot.gallery.feature_node.domain.model.AlbumGroup
 import com.dot.gallery.feature_node.domain.model.AlbumGroupMember
@@ -86,10 +90,12 @@ import com.dot.gallery.feature_node.domain.util.Converters
         SyncStateEntity::class,
         CloudAlbumSyncEntity::class,
         CloudUploadPrefEntity::class,
+        CloudDeleteLocalPrefEntity::class,
+        CloudOfflinePinEntity::class,
         AlbumSection::class,
         AlbumSectionMember::class
     ],
-    version = 33,
+    version = 39,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -124,6 +130,16 @@ import com.dot.gallery.feature_node.domain.util.Converters
         AutoMigration(from = 30, to = 31),
         AutoMigration(from = 31, to = 32),
         AutoMigration(from = 32, to = 33),
+        // Migration 33 to 34 is handled manually in CloudUploadPrefMigration.kt
+        // (cloud_upload_pref primary key changed to (serverConfigId, albumId))
+        AutoMigration(from = 34, to = 35), // cloud_media.fileId (server numeric file id)
+        // Migration 35 to 36 is handled manually in CloudMediaPkMigration.kt
+        // (cloud_media primary key extended to (remoteId, providerType, serverConfigId))
+        // Migration 36 to 37 is handled manually in CloudMediaPkMigration.kt
+        // (purges the cloud_media cache to recover from the faulty 35->36 SELECT * copy)
+        // Migration 37 to 38 is handled manually in CloudDeleteLocalPrefMigration.kt
+        // (global per-album delete-local table)
+        AutoMigration(from = 38, to = 39), // cloud_offline_pin (accounts marked available offline)
     ]
 )
 @TypeConverters(Converters::class, CloudConverters::class)
@@ -173,6 +189,10 @@ abstract class InternalDatabase : RoomDatabase() {
     abstract fun getCloudAlbumSyncDao(): CloudAlbumSyncDao
 
     abstract fun getCloudUploadPrefDao(): CloudUploadPrefDao
+
+    abstract fun getCloudDeleteLocalPrefDao(): CloudDeleteLocalPrefDao
+
+    abstract fun getCloudOfflinePinDao(): CloudOfflinePinDao
 
     abstract fun getAlbumSectionDao(): AlbumSectionDao
 

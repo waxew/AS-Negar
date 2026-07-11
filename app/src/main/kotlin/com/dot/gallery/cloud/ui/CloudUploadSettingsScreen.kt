@@ -5,7 +5,12 @@
 
 package com.dot.gallery.cloud.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -20,12 +26,11 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.CloudSync
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,8 +54,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dot.gallery.R
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -68,6 +76,7 @@ fun CloudUploadSettingsScreen(
     val localAlbums by viewModel.localAlbums.collectAsStateWithLifecycle()
     val uploadPrefs by viewModel.uploadPreferences.collectAsStateWithLifecycle()
     val deleteLocalPrefs by viewModel.deleteLocalPreferences.collectAsStateWithLifecycle()
+    val accountLabel by viewModel.accountLabel.collectAsStateWithLifecycle()
 
     val uploadRunning by viewModel.uploadWorkRunning.collectAsStateWithLifecycle()
 
@@ -95,9 +104,16 @@ fun CloudUploadSettingsScreen(
                             text = stringResource(R.string.cloud_upload_albums),
                             style = MaterialTheme.typography.titleMedium
                         )
-                        if (enabledAlbums.isNotEmpty()) {
+                        val subtitle = when {
+                            accountLabel.isNotBlank() && enabledAlbums.isNotEmpty() ->
+                                "$accountLabel · ${enabledAlbums.size} selected"
+                            accountLabel.isNotBlank() -> accountLabel
+                            enabledAlbums.isNotEmpty() -> "${enabledAlbums.size} albums selected"
+                            else -> null
+                        }
+                        if (subtitle != null) {
                             Text(
-                                text = "${enabledAlbums.size} albums selected",
+                                text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -111,6 +127,38 @@ fun CloudUploadSettingsScreen(
                 },
                 scrollBehavior = scrollBehavior
             )
+        },
+        bottomBar = {
+            // Persistent floating action bar — replaces the gigantic mid-screen
+            // button; only present once at least one album is selected.
+            AnimatedVisibility(
+                visible = enabledAlbums.isNotEmpty(),
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it }
+            ) {
+                Surface(
+                    tonalElevation = 3.dp,
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        SetupButton(
+                            text = if (uploadRunning) stringResource(R.string.cloud_upload_syncing)
+                            else stringResource(R.string.cloud_upload_sync_now),
+                            enabled = !uploadRunning,
+                            applyHorizontalPadding = false,
+                            applyBottomPadding = false,
+                            applyInsets = false,
+                            onClick = { viewModel.triggerUploadNow() }
+                        )
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         LazyVerticalGrid(
@@ -139,15 +187,27 @@ fun CloudUploadSettingsScreen(
                     key = { it.toString() }
                 ) { album ->
                     val isSelected = uploadPrefs[album.id] ?: false
-                    SelectableAlbumItem(
-                        album = album,
-                        isSelected = isSelected,
-                        isDisabled = false,
-                        showCheckmark = true,
-                        onClick = {
-                            viewModel.setAlbumUploadEnabled(album.id, album.label, !isSelected)
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        SelectableAlbumItem(
+                            album = album,
+                            isSelected = isSelected,
+                            isDisabled = false,
+                            showCheckmark = true,
+                            onClick = {
+                                viewModel.setAlbumUploadEnabled(album.id, album.label, !isSelected)
+                            }
+                        )
+                        // Non-intrusive status overlay for selected albums: a "New/Queued"
+                        // pill at rest, or a live syncing spinner while a backup is running.
+                        if (isSelected) {
+                            AlbumStatusBadge(
+                                syncing = uploadRunning,
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(12.dp)
+                            )
                         }
-                    )
+                    }
                 }
             }
 
@@ -159,19 +219,6 @@ fun CloudUploadSettingsScreen(
                             .fillMaxWidth()
                             .padding(top = 16.dp)
                     ) {
-                        // Sync now button
-                        SetupButton(
-                            text = if (uploadRunning) stringResource(R.string.cloud_upload_syncing)
-                                   else stringResource(R.string.cloud_upload_sync_now),
-                            enabled = !uploadRunning,
-                            applyHorizontalPadding = false,
-                            applyBottomPadding = false,
-                            applyInsets = false,
-                            onClick = { viewModel.triggerUploadNow() }
-                        )
-
-                        Spacer(Modifier.height(16.dp))
-
                         Text(
                             text = stringResource(R.string.cloud_upload_settings_header),
                             style = MaterialTheme.typography.titleSmall,
@@ -289,6 +336,53 @@ fun CloudUploadSettingsScreen(
                     }
                 }
             }
+        )
+    }
+}
+
+/**
+ * Compact overlay pill shown on selected album thumbnails. While a backup is
+ * running it shows a live spinner ("Syncing"); otherwise it marks the album as
+ * queued/new ("Queued").
+ */
+@Composable
+private fun AlbumStatusBadge(
+    syncing: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val container = if (syncing) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.tertiary
+    val onContainer = if (syncing) MaterialTheme.colorScheme.onPrimary
+    else MaterialTheme.colorScheme.onTertiary
+
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(container.copy(alpha = 0.92f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (syncing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(12.dp),
+                strokeWidth = 2.dp,
+                color = onContainer
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = onContainer,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+        Spacer(Modifier.size(4.dp))
+        Text(
+            text = if (syncing) stringResource(R.string.cloud_backup_album_syncing)
+            else stringResource(R.string.cloud_backup_album_queued),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = onContainer
         )
     }
 }

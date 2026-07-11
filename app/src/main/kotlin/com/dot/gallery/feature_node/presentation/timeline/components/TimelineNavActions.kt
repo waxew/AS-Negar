@@ -36,7 +36,7 @@ import com.dot.gallery.core.navigate
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.Screen
-import dev.chrisbanes.haze.hazeEffect
+import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -67,7 +67,7 @@ fun TimelineNavActions() {
                 .size(56.dp)
                 .clip(CircleShape)
                 .then(favoriteBackgroundModifier)
-                .hazeEffect(
+                .hazeEffectScaled(
                     state = LocalHazeState.current,
                     style = HazeMaterials.regular(
                         containerColor = errorContainer
@@ -103,7 +103,7 @@ fun TimelineNavActions() {
             .size(56.dp)
             .clip(RoundedCornerShape(cornerRadius))
             .then(settingsBackgroundModifier)
-            .hazeEffect(
+            .hazeEffectScaled(
                 state = LocalHazeState.current,
                 style = HazeMaterials.regular(
                     containerColor = tertiaryContainer

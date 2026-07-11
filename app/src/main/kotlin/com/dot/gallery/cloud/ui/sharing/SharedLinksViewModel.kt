@@ -8,6 +8,7 @@ package com.dot.gallery.cloud.ui.sharing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dot.gallery.cloud.core.ProviderRegistry
+import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.core.SharedLinkInfo
 import com.dot.gallery.cloud.data.dao.CloudServerConfigDao
 import com.dot.gallery.cloud.data.repository.CloudRepository
@@ -28,7 +29,10 @@ data class SharedLinksUiState(
     val filter: SharedLinksFilter = SharedLinksFilter.ALL,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val serverBaseUrl: String = "",
+    /** Server base URL per provider, used to build share links. */
+    val serverBaseUrls: Map<ProviderType, String> = emptyMap(),
+    /** Account display label per provider, used for attribution badges. */
+    val accountLabels: Map<ProviderType, String> = emptyMap(),
     val isUpdating: Boolean = false
 ) {
     val filteredLinks: List<SharedLinkInfo>
@@ -37,6 +41,10 @@ data class SharedLinksUiState(
             SharedLinksFilter.ALBUMS -> allLinks.filter { it.type == "ALBUM" }
             SharedLinksFilter.INDIVIDUAL -> allLinks.filter { it.type == "INDIVIDUAL" }
         }
+
+    /** Whether links come from more than one cloud account (controls badge visibility). */
+    val hasMultipleProviders: Boolean
+        get() = allLinks.map { it.providerType }.distinct().size > 1
 }
 
 @HiltViewModel
@@ -49,22 +57,33 @@ class SharedLinksViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SharedLinksUiState())
     val uiState: StateFlow<SharedLinksUiState> = _uiState.asStateFlow()
 
+    /** Accumulates links per provider so multiple clouds can be merged. */
+    private val linksByProvider = mutableMapOf<ProviderType, List<SharedLinkInfo>>()
+
     init {
         loadLinks()
-        loadServerBaseUrl()
+        loadAccountInfo()
     }
 
-    private fun loadServerBaseUrl() {
+    private fun loadAccountInfo() {
         val providers = registry.getShareLinkProviders().filter { it.isAvailable }
-        if (providers.isEmpty()) return
-        val type = providers.first().providerType
         viewModelScope.launch {
-            val config = serverConfigDao.getActiveByProvider(type)
-            if (config != null) {
-                _uiState.value = _uiState.value.copy(
-                    serverBaseUrl = config.serverUrl.trimEnd('/')
-                )
+            val baseUrls = mutableMapOf<ProviderType, String>()
+            val labels = mutableMapOf<ProviderType, String>()
+            providers.forEach { provider ->
+                val type = provider.providerType
+                val config = serverConfigDao.getActiveByProvider(type)
+                if (config != null) {
+                    baseUrls[type] = config.serverUrl.trimEnd('/')
+                    labels[type] = config.displayName.ifBlank { type.displayName }
+                } else {
+                    labels[type] = type.displayName
+                }
             }
+            _uiState.value = _uiState.value.copy(
+                serverBaseUrls = baseUrls,
+                accountLabels = labels
+            )
         }
     }
 
@@ -78,31 +97,37 @@ class SharedLinksViewModel @Inject constructor(
             _uiState.value = SharedLinksUiState(error = "No share link provider configured")
             return
         }
+        linksByProvider.clear()
         _uiState.value = _uiState.value.copy(isLoading = true)
-        val type = providers.first().providerType
-        viewModelScope.launch {
-            repository.getSharedLinks(type).collect { resource ->
-                when (resource) {
-                    is Resource.Success -> _uiState.value = _uiState.value.copy(
-                        allLinks = resource.data ?: emptyList(),
-                        isLoading = false,
-                        error = null
-                    )
-                    is Resource.Error -> _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = resource.message
-                    )
+        // Fetch links from every share-capable account and merge them, tagging
+        // each with its owning provider so the UI can attribute it correctly.
+        providers.forEach { provider ->
+            val type = provider.providerType
+            viewModelScope.launch {
+                repository.getSharedLinks(type).collect { resource ->
+                    when (resource) {
+                        is Resource.Success -> {
+                            linksByProvider[type] = resource.data ?: emptyList()
+                            _uiState.value = _uiState.value.copy(
+                                allLinks = linksByProvider.values.flatten()
+                                    .sortedByDescending { it.createdAt },
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                        is Resource.Error -> _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = resource.message
+                        )
+                    }
                 }
             }
         }
     }
 
-    fun deleteLink(linkId: String) {
-        val providers = registry.getShareLinkProviders().filter { it.isAvailable }
-        if (providers.isEmpty()) return
-        val type = providers.first().providerType
+    fun deleteLink(link: SharedLinkInfo) {
         viewModelScope.launch {
-            repository.deleteSharedLink(type, linkId).onSuccess {
+            repository.deleteSharedLink(link.providerType, link.id).onSuccess {
                 loadLinks()
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(error = e.message)
@@ -111,7 +136,7 @@ class SharedLinksViewModel @Inject constructor(
     }
 
     fun updateLink(
-        linkId: String,
+        link: SharedLinkInfo,
         description: String?,
         password: String?,
         expiresAt: Long?,
@@ -120,9 +145,8 @@ class SharedLinksViewModel @Inject constructor(
         showMetadata: Boolean,
         changeExpiration: Boolean
     ) {
-        val providers = registry.getShareLinkProviders().filter { it.isAvailable }
-        if (providers.isEmpty()) return
-        val type = providers.first().providerType
+        val type = link.providerType
+        val linkId = link.id
         _uiState.value = _uiState.value.copy(isUpdating = true)
         viewModelScope.launch {
             val updates = mutableMapOf<String, Any>(
@@ -156,7 +180,11 @@ class SharedLinksViewModel @Inject constructor(
     }
 
     fun getShareUrl(link: SharedLinkInfo): String {
-        val baseUrl = _uiState.value.serverBaseUrl
+        val baseUrl = _uiState.value.serverBaseUrls[link.providerType] ?: ""
         return link.shareUrl(baseUrl)
     }
+
+    /** Account display name for the cloud that owns this link. */
+    fun accountLabelFor(link: SharedLinkInfo): String =
+        _uiState.value.accountLabels[link.providerType] ?: link.providerType.displayName
 }

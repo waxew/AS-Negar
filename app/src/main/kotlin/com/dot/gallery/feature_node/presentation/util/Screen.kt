@@ -209,18 +209,15 @@ sealed class Screen(val route: String) {
         fun configId(id: Long) = "$route?configId=$id"
     }
 
-    data object CloudUploadSettingsScreen : Screen("cloud_upload_settings_screen")
+    data object CloudUploadSettingsScreen : Screen("cloud_upload_settings_screen") {
+        fun configId() = "$route?configId={configId}"
+        fun configId(id: Long) = "$route?configId=$id"
+    }
 
     data object CloudProviderSettingsScreen : Screen("cloud_provider_settings_screen") {
         fun configId() = "$route?configId={configId}"
         fun configId(id: Long) = "$route?configId=$id"
     }
-
-    // Phase 1 – Library Tab
-    data object CloudLibraryScreen : Screen("cloud_library_screen")
-
-    // Phase 2 – Profile
-    data object CloudProfileScreen : Screen("cloud_profile_screen")
 
     // Phase 3 – Backup
     data object CloudBackupScreen : Screen("cloud_backup_screen")
@@ -230,6 +227,16 @@ sealed class Screen(val route: String) {
 
     // Phase 3+4 – Merged Backup & Sync
     data object CloudBackupAndSyncScreen : Screen("cloud_backup_and_sync_screen")
+
+    // Multi-service backup dashboard
+    data object CloudBackupDashboardScreen : Screen("cloud_backup_dashboard_screen")
+
+    // Album × cloud fan-out hub (Destinations matrix). Optional configId scopes the
+    // screen to a single service, turning it into that account's album picker.
+    data object CloudDestinationsScreen : Screen("cloud_destinations_screen") {
+        fun configId() = "$route?configId={configId}"
+        fun configId(id: Long) = "$route?configId=$id"
+    }
 
     // Phase 4 – Sync Status
     data object SyncStatusScreen : Screen("sync_status_screen")
@@ -249,8 +256,7 @@ sealed class Screen(val route: String) {
     // Phase 9 – Shared Links
     data object SharedLinksScreen : Screen("shared_links_screen")
 
-    // Phase 10 – Places
-    data object CloudPlacesScreen : Screen("cloud_places_screen")
+    // Phase 10 – Places (uses the shared LocationsScreen)
     data object PlaceDetailScreen : Screen("place_detail_screen") {
         fun city() = "$route?city={city}&country={country}"
         fun city(city: String, country: String) = "$route?city=$city&country=$country"
@@ -268,6 +274,9 @@ sealed class Screen(val route: String) {
 
     // Phase 13 – Advanced Settings
     data object CloudAdvancedSettingsScreen : Screen("cloud_advanced_settings_screen")
+
+    // Offline & Cache
+    data object CloudOfflineModeScreen : Screen("cloud_offline_mode_screen")
 
     // Phase 16 – Memories
     data object MemoriesScreen : Screen("memories_screen")

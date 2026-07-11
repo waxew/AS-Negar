@@ -75,6 +75,9 @@ interface CloudMediaDao {
     @Query("SELECT COUNT(*) FROM cloud_media WHERE providerType = :providerType")
     suspend fun countByProvider(providerType: ProviderType): Int
 
+    @Query("SELECT COUNT(*) FROM cloud_media WHERE serverConfigId = :configId")
+    suspend fun countByConfig(configId: Long): Int
+
     @Query("SELECT COUNT(*) FROM cloud_media WHERE trashed = 0 AND archived = 0")
     suspend fun countCached(): Int
 

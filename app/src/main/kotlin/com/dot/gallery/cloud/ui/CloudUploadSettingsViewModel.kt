@@ -6,13 +6,18 @@
 package com.dot.gallery.cloud.ui
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.core.capabilities.SyncCapableProvider
+import com.dot.gallery.cloud.data.dao.CloudDeleteLocalPrefDao
+import com.dot.gallery.cloud.data.dao.CloudServerConfigDao
 import com.dot.gallery.cloud.data.dao.CloudUploadPrefDao
+import com.dot.gallery.cloud.data.entity.CloudDeleteLocalPrefEntity
+import com.dot.gallery.cloud.data.entity.CloudServerConfigEntity
 import com.dot.gallery.cloud.data.entity.CloudUploadPrefEntity
 import com.dot.gallery.cloud.sync.CloudUploadWorker
 import com.dot.gallery.feature_node.domain.model.Album
@@ -26,11 +31,13 @@ import com.dot.gallery.feature_node.presentation.util.printDebug
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -38,28 +45,66 @@ import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class CloudUploadSettingsViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: MediaRepository,
     private val uploadPrefDao: CloudUploadPrefDao,
+    private val deleteLocalPrefDao: CloudDeleteLocalPrefDao,
+    private val configDao: CloudServerConfigDao,
     private val registry: ProviderRegistry,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    /**
+     * The cloud account this album picker is scoped to. Album selections made
+     * here only affect this single account, so backup destinations are
+     * unambiguous when multiple clouds are configured.
+     */
+    private val requestedConfigId: Long = savedStateHandle.get<Long>("configId") ?: -1L
+
+    /** Resolved account id (falls back to the first active sync config when -1). */
+    private val effectiveConfigId = MutableStateFlow(requestedConfigId)
+
+    private val _accountLabel = MutableStateFlow("")
+    val accountLabel: StateFlow<String> = _accountLabel.asStateFlow()
+
+    @Volatile
+    private var cachedConfig: CloudServerConfigEntity? = null
 
     private val _localAlbums = MutableStateFlow<List<Album>>(emptyList())
     val localAlbums: StateFlow<List<Album>> = _localAlbums.asStateFlow()
 
-    val uploadPreferences: StateFlow<Map<Long, Boolean>> = uploadPrefDao.getAll()
+    val uploadPreferences: StateFlow<Map<Long, Boolean>> = effectiveConfigId
+        .flatMapLatest { id -> uploadPrefDao.getByConfig(id) }
         .map { prefs -> prefs.associate { it.albumId to it.uploadEnabled } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val deleteLocalPreferences: StateFlow<Map<Long, Boolean>> = uploadPrefDao.getAll()
-        .map { prefs -> prefs.associate { it.albumId to it.deleteLocalAfterUpload } }
+    // Delete-local is now a GLOBAL per-album setting (not per-account): a local copy is removed
+    // only once the asset is on EVERY cloud its album backs up to.
+    val deleteLocalPreferences: StateFlow<Map<Long, Boolean>> = deleteLocalPrefDao.getAll()
+        .map { prefs -> prefs.associate { it.albumId to it.enabled } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     init {
         loadLocalAlbums()
+        resolveAccount()
+    }
+
+    private fun resolveAccount() {
+        viewModelScope.launch {
+            val config = configDao.getById(requestedConfigId)
+                ?: configDao.getActive().first()
+                    .firstOrNull { it.syncEnabled }
+                ?: configDao.getActive().first().firstOrNull()
+            cachedConfig = config
+            if (config != null) {
+                effectiveConfigId.value = config.id
+                _accountLabel.value = config.displayName.ifBlank { config.providerType.displayName }
+            }
+        }
     }
 
     private fun loadLocalAlbums() {
@@ -74,11 +119,13 @@ class CloudUploadSettingsViewModel @Inject constructor(
 
     fun setAlbumUploadEnabled(albumId: Long, albumLabel: String, enabled: Boolean) {
         viewModelScope.launch {
-            val existing = uploadPreferences.value
+            val config = cachedConfig ?: return@launch
             val deleteLocal = deleteLocalPreferences.value[albumId] ?: false
             uploadPrefDao.upsert(
                 CloudUploadPrefEntity(
+                    serverConfigId = config.id,
                     albumId = albumId,
+                    providerType = config.providerType,
                     albumLabel = albumLabel,
                     uploadEnabled = enabled,
                     deleteLocalAfterUpload = deleteLocal
@@ -89,15 +136,13 @@ class CloudUploadSettingsViewModel @Inject constructor(
 
     fun setDeleteLocalEnabled(albumId: Long, albumLabel: String, enabled: Boolean) {
         viewModelScope.launch {
-            val uploadEnabled = uploadPreferences.value[albumId] ?: false
-            uploadPrefDao.upsert(
-                CloudUploadPrefEntity(
-                    albumId = albumId,
-                    albumLabel = albumLabel,
-                    uploadEnabled = uploadEnabled,
-                    deleteLocalAfterUpload = enabled
+            if (enabled) {
+                deleteLocalPrefDao.upsert(
+                    CloudDeleteLocalPrefEntity(albumId = albumId, enabled = true, albumLabel = albumLabel)
                 )
-            )
+            } else {
+                deleteLocalPrefDao.delete(albumId)
+            }
         }
     }
 
@@ -147,7 +192,14 @@ class CloudUploadSettingsViewModel @Inject constructor(
                     ).first().data ?: emptyList()
 
                     // Filter out cloud media
-                    val localMedia = allMedia.filter { !it.path.startsWith("Immich") && !it.path.startsWith("ownCloud") }
+                    val localMedia = allMedia.filter {
+                        !it.path.startsWith("Immich") &&
+                                !it.path.startsWith("ownCloud") &&
+                                !it.path.startsWith("Nextcloud") &&
+                                !it.path.startsWith("WebDAV") &&
+                                !it.path.startsWith("SMB") &&
+                                !it.path.startsWith("NFS")
+                    }
                     _dedupState.value = _dedupState.value.copy(
                         totalCount = localMedia.size,
                         message = "Computing hashes for ${localMedia.size} items…"

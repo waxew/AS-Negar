@@ -211,9 +211,14 @@ class MediaCopyWorker @AssistedInject constructor(
     private fun openCloudInputStream(cloudUri: Uri): InputStream? {
         val registry = CloudFetcherRegistryHolder.registry ?: return null
         val providerName = cloudUri.authority ?: return null
-        val remoteId = cloudUri.pathSegments.firstOrNull() ?: return null
+        // remoteId may contain slashes (SMB/NFS/WebDAV paths like "Photos/IMG.jpg"), so
+        // pathSegments.first() would truncate it to the first folder and request the directory
+        // itself (STATUS_FILE_IS_A_DIRECTORY). Take the whole path instead.
+        val remoteId = cloudUri.path?.trimStart('/')?.takeIf { it.isNotEmpty() } ?: return null
         val providerType = try { ProviderType.valueOf(providerName) } catch (_: Exception) { return null }
-        val provider = registry.get(providerType) as? RemoteMediaProvider ?: return null
+        val configId = cloudUri.getQueryParameter("cfg")?.toLongOrNull() ?: -1L
+        val provider = ((if (configId > 0L) registry.getByConfigId(configId) else null)
+            ?: registry.get(providerType)) as? RemoteMediaProvider ?: return null
         val url = provider.getOriginalUrl(remoteId)
         val authHeaders = provider.getAuthHeaders()
         val requestBuilder = Request.Builder().url(url).get()

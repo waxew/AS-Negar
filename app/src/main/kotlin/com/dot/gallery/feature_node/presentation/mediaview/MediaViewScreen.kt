@@ -6,12 +6,8 @@
 package com.dot.gallery.feature_node.presentation.mediaview
 
 import android.content.pm.ActivityInfo
-import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.graphics.createBitmap
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -19,6 +15,8 @@ import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -61,7 +59,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,20 +67,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onVisibilityChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.core.graphics.createBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoState
 import com.composables.core.BottomSheet
 import com.composables.core.SheetDetent.Companion.FullyExpanded
 import com.composables.core.rememberBottomSheetState
@@ -101,8 +96,8 @@ import com.dot.gallery.core.Settings.Misc.rememberExtendedDateHeaderFormat
 import com.dot.gallery.core.Settings.Misc.rememberShowMediaViewDateHeader
 import com.dot.gallery.core.Settings.Misc.rememberVideoAutoplay
 import com.dot.gallery.core.navigateUp
-import com.dot.gallery.core.setFollowTheme
 import com.dot.gallery.core.presentation.components.util.swipe
+import com.dot.gallery.core.setFollowTheme
 import com.dot.gallery.feature_node.domain.model.AlbumState
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
@@ -114,6 +109,11 @@ import com.dot.gallery.feature_node.domain.util.isCloud
 import com.dot.gallery.feature_node.domain.util.isImage
 import com.dot.gallery.feature_node.domain.util.isVideo
 import com.dot.gallery.feature_node.domain.util.readUriOnly
+import com.dot.gallery.feature_node.presentation.cast.FCastViewModel
+import com.dot.gallery.feature_node.presentation.cast.components.CastButton
+import com.dot.gallery.feature_node.presentation.cast.components.CastPermissionsDialog
+import com.dot.gallery.feature_node.presentation.cast.components.CastStatusBanner
+import com.dot.gallery.feature_node.presentation.cast.components.FCastDevicePickerDialog
 import com.dot.gallery.feature_node.presentation.mediaview.MediaViewViewModel.MediaViewEvent
 import com.dot.gallery.feature_node.presentation.mediaview.components.GroupMemberSelectionBar
 import com.dot.gallery.feature_node.presentation.mediaview.components.GroupMemberStrip
@@ -122,32 +122,28 @@ import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewQ
 import com.dot.gallery.feature_node.presentation.mediaview.components.MediaViewSheetDetails
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MediaPreviewComponent
 import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoFilmstrip
+import com.dot.gallery.feature_node.presentation.mediaview.components.media.MotionPhotoState
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.SubtitleBottomSheet
 import com.dot.gallery.feature_node.presentation.mediaview.components.video.VideoPlayerController
-import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
-import com.dot.gallery.feature_node.presentation.cast.FCastViewModel
-import com.dot.gallery.feature_node.presentation.cast.components.CastButton
-import com.dot.gallery.feature_node.presentation.cast.components.FCastDevicePickerDialog
-import com.dot.gallery.feature_node.presentation.cast.components.CastPermissionsDialog
-import com.dot.gallery.feature_node.presentation.cast.components.CastStatusBanner
-import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.FullBrightnessWindow
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
-import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import com.dot.gallery.feature_node.presentation.util.ProvideInsets
 import com.dot.gallery.feature_node.presentation.util.ViewScreenConstants.BOTTOM_BAR_HEIGHT
 import com.dot.gallery.feature_node.presentation.util.ViewScreenConstants.ImageOnly
 import com.dot.gallery.feature_node.presentation.util.getMediaAppBarDate
+import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import com.dot.gallery.feature_node.presentation.util.mediaSharedElement
 import com.dot.gallery.feature_node.presentation.util.printWarning
+import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
 import com.dot.gallery.feature_node.presentation.util.rememberGestureNavigationEnabled
 import com.dot.gallery.feature_node.presentation.util.rememberNavigationBarOnSides
 import com.dot.gallery.feature_node.presentation.util.rememberWindowInsetsController
 import com.dot.gallery.feature_node.presentation.util.setHdrMode
+import com.dot.gallery.feature_node.presentation.util.shareMedia
 import com.dot.gallery.feature_node.presentation.util.toggleSystemBars
 import com.dot.gallery.ui.theme.isDarkTheme
 import com.github.panpf.sketch.BitmapImage
-import com.github.panpf.sketch.request.CachePolicy
+import com.github.panpf.sketch.cache.CachePolicy
 import com.github.panpf.sketch.request.ImageRequest
 import com.github.panpf.sketch.sketch
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -159,9 +155,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.coroutines.suspendCoroutine
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -184,6 +181,7 @@ fun <T> rememberedDerivedState(
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun <T : Media> MediaViewScreenRoute(
@@ -404,6 +402,9 @@ fun <T : Media> MediaViewScreen(
     val showInfo by rememberedDerivedState { currentMedia?.trashed == 0 && !isReadOnly }
 
     var showUI by rememberSaveable { mutableStateOf(true) }
+    // True while the current cloud/remote page is downloading its full-size original for
+    // subsampling; drives the subtle horizontal loading indicator under the top-center date.
+    var subsamplingLoading by remember { mutableStateOf(false) }
     var isTopDark by remember { mutableStateOf(false) }
     var isBottomDark by remember { mutableStateOf(false) }
     val autoContrast by rememberAutoContrast()
@@ -425,8 +426,6 @@ fun <T : Media> MediaViewScreen(
         eventHandler.navigateUp()
     }
     val activity = LocalActivity.current
-    val window = LocalWindowInfo.current
-    val density = LocalDensity.current
 
     // Reset forced orientation when leaving the media view screen
     DisposableEffect(activity) {
@@ -579,7 +578,7 @@ fun <T : Media> MediaViewScreen(
         }
 
         // Wait for the image to render before capturing
-        delay(350L)
+        delay(350.milliseconds)
 
         val window = activity.window
         val captureW = 32
@@ -592,7 +591,7 @@ fun <T : Media> MediaViewScreen(
                 .toInt().coerceAtLeast(1)
             val dest = createBitmap(captureW, captureH)
             try {
-                suspendCoroutine { cont ->
+                suspendCancellableCoroutine { cont ->
                     PixelCopy.request(
                         window,
                         Rect(0, 0, screenW, screenH),
@@ -773,7 +772,15 @@ fun <T : Media> MediaViewScreen(
                                         windowInsetsController.toggleSystemBars(showUI)
                                     }
                                 },
-                                onZoomChange = { zoomed -> isVideoZoomed = zoomed }
+                                onZoomChange = { zoomed -> isVideoZoomed = zoomed },
+                                // Only the settled/current page drives the top-bar loading
+                                // indicator; neighbour pages that transiently compose during a
+                                // fling must not toggle it.
+                                onSubsamplingLoadingChange = if (index == currentPage) {
+                                    { loading -> subsamplingLoading = loading }
+                                } else {
+                                    {}
+                                }
                             ) { player, isPlaying, currentTime, totalTime, buffer, frameRate, subtitleState ->
                                 val subtitleTracks = subtitleState.subtitleTracks
                                 val onSelectSubtitle = subtitleState.onSelectSubtitle
@@ -835,7 +842,7 @@ fun <T : Media> MediaViewScreen(
                                                         scope.launch {
                                                             currentTime.longValue += 10 * 1000
                                                             player.seekTo(currentTime.longValue)
-                                                            delay(100)
+                                                            delay(100.milliseconds)
                                                             player.play()
                                                         }
                                                     },
@@ -872,7 +879,7 @@ fun <T : Media> MediaViewScreen(
                                                         scope.launch {
                                                             currentTime.longValue -= 10 * 1000
                                                             player.seekTo(currentTime.longValue)
-                                                            delay(100)
+                                                            delay(100.milliseconds)
                                                             player.play()
                                                         }
                                                     },
@@ -1000,6 +1007,7 @@ fun <T : Media> MediaViewScreen(
                 },
                 isLocked = isLocked,
                 currentDate = currentDate,
+                showLoadingIndicator = subsamplingLoading,
                 paddingValues = paddingValues,
                 currentMedia = currentMedia,
                 // Hide the pending-rotation chip while the info panel is expanded so it
@@ -1351,6 +1359,9 @@ fun <T : Media> MediaViewScreen(
                         }
                     }
 
+                    val currentCloudBackups by rememberedDerivedState(mediaState.value, currentMedia) {
+                        currentMedia?.let { mediaState.value.cloudBackups[it.id] } ?: emptyList()
+                    }
                     MediaViewSheetDetails(
                         albumsState = albumsState,
                         vaultState = vaultState,
@@ -1359,6 +1370,7 @@ fun <T : Media> MediaViewScreen(
                         restoreMedia = restoreMedia,
                         currentVault = currentVault,
                         motionPhotoState = motionPhotoState,
+                        cloudBackups = currentCloudBackups,
                     )
                 }
             }

@@ -86,6 +86,8 @@ data class MediaCellState(
     val selectedMedia: Set<Long>,
     val favoriteIconPosition: String,
     val cloudSyncStates: Map<Long, SyncState>,
+    /** Local media ids that have at least one cloud backup (shows a small backup indicator). */
+    val cloudBackedUpIds: Set<Long> = emptySet(),
 )
 
 /** Null by default: callers that don't provide it (search, picker) fall back to per-cell collection. */
@@ -337,6 +339,24 @@ fun <T : Media> MediaImage(
                     contentDescription = null
                 )
             }
+        } else if (cellState?.cloudBackedUpIds?.contains(media.id) == true) {
+            // Local media that is backed up on at least one cloud provider.
+            Icon(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(selectedSize / 1.5f)
+                    .scale(scale)
+                    .padding(6.dp)
+                    .size(10.dp)
+                    .advancedShadow(
+                        cornersRadius = 5.dp,
+                        shadowBlurRadius = 4.dp,
+                        alpha = 0.3f
+                    ),
+                imageVector = Icons.Outlined.CloudDone,
+                tint = Color.White.copy(alpha = 0.7f),
+                contentDescription = null
+            )
         }
 
         if (selectionState) {

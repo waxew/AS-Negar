@@ -39,7 +39,9 @@ fun FreeUpSpaceScreen() {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val cutoffOptions = listOf(30, 60, 90, 180, 365)
+    // "Never" (sentinel -1) is listed first and is the default so nothing is ever
+    // removed until the user explicitly opts into an age range.
+    val cutoffOptions = listOf(FreeUpSpaceViewModel.NEVER_CUTOFF, 30, 60, 90, 180, 365)
 
     val settingsList = remember(state.keepFavorites, state.cutoffDays) {
         buildList {
@@ -59,6 +61,7 @@ fun FreeUpSpaceScreen() {
             add(SettingsEntity.Header(title = context.getString(R.string.cloud_free_space_cutoff)))
             cutoffOptions.forEachIndexed { index, days ->
                 val label = when (days) {
+                    FreeUpSpaceViewModel.NEVER_CUTOFF -> context.getString(R.string.cloud_free_space_never)
                     30 -> context.getString(R.string.cloud_free_space_30d)
                     60 -> context.getString(R.string.cloud_free_space_60d)
                     90 -> context.getString(R.string.cloud_free_space_90d)

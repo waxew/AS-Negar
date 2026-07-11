@@ -13,8 +13,9 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
-import com.dot.gallery.cloud.core.ProviderType
-import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
+import com.dot.gallery.cloud.core.CloudTrace
+import com.dot.gallery.cloud.core.CloudUri
+import com.dot.gallery.cloud.core.resolveRemote
 import com.dot.gallery.cloud.image.CloudFetcherRegistryHolder
 import com.dot.gallery.cloud.image.CloudMediaFetcher
 import okhttp3.Request
@@ -53,20 +54,16 @@ class CloudDataSource private constructor(
             return fallback.open(dataSpec)
         }
 
-        // Resolve cloud:// → authenticated HTTP
-        val providerName = uri.authority
-            ?: throw IllegalArgumentException("Cloud URI missing authority: $uri")
-        val providerType = try {
-            ProviderType.valueOf(providerName)
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Unknown cloud provider: $providerName")
-        }
-        val remoteId = uri.pathSegments.firstOrNull()
-            ?: throw IllegalArgumentException("Cloud URI missing remoteId: $uri")
+        // Resolve cloud:// → authenticated HTTP via the shared slash-tolerant parser
+        // (remoteId may contain slashes, e.g. WebDAV/SMB/NFS paths like "Photos/clip.mp4").
+        val parsed = CloudUri.parse(uri.toString())
+            ?: throw IllegalArgumentException("Invalid cloud URI: $uri")
+        val providerType = parsed.providerType
+        val remoteId = parsed.remoteId
 
         val registry = CloudFetcherRegistryHolder.registry
             ?: throw IllegalStateException("ProviderRegistry not available")
-        val provider = registry.get(providerType) as? RemoteMediaProvider
+        val provider = registry.resolveRemote(providerType, parsed.configId)
             ?: throw IllegalStateException("No RemoteMediaProvider for $providerType")
 
         val url = provider.getOriginalUrl(remoteId)
@@ -83,9 +80,13 @@ class CloudDataSource private constructor(
 
         val call = client.newCall(requestBuilder.build())
         activeCall = call
-        val response = call.execute()
+        CloudTrace.d("Video[$providerType] '$remoteId' -> GET $url (pos=${dataSpec.position})")
+        val response = CloudTrace.time("Video[$providerType] '$remoteId' open") {
+            call.execute()
+        }
 
         if (!response.isSuccessful) {
+            CloudTrace.w("Video[$providerType] '$remoteId' -> HTTP ${response.code}")
             response.close()
             throw java.io.IOException("HTTP ${response.code}: ${response.message}")
         }
@@ -95,6 +96,7 @@ class CloudDataSource private constructor(
 
         inputStream = body.byteStream()
         val contentLength = body.contentLength()
+        CloudTrace.d("Video[$providerType] '$remoteId' streaming ${CloudTrace.bytes(contentLength)}")
         bytesRemaining = if (contentLength > 0) contentLength else Long.MAX_VALUE
         openedCloudStream = true
 

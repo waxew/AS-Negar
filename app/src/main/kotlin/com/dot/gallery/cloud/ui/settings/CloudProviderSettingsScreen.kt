@@ -47,6 +47,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -90,10 +91,10 @@ fun CloudProviderSettingsScreen(
 
     if (config == null) return
 
-    val connState = viewModel.getConnectionState(config.providerType)
-    val storage = storageInfoMap[config.providerType]
-    val version = serverVersions[config.providerType]
-    val syncProgress = syncProgressMap[config.providerType]
+    val connState = viewModel.getConnectionState(config.id)
+    val storage = storageInfoMap[config.id]
+    val version = serverVersions[config.id]
+    val syncProgress = syncProgressMap[config.id]
     val isSyncing = syncProgress?.isSyncing == true
 
     val settingsList = remember(config, isSyncing, connState, version) {
@@ -107,7 +108,7 @@ fun CloudProviderSettingsScreen(
                 title = if (isSyncing) context.getString(R.string.cloud_sync_now_syncing) else context.getString(R.string.cloud_sync_now),
                 summary = if (isSyncing) (syncProgress.message ?: "") else context.getString(R.string.cloud_sync_now_summary),
                 enabled = !isSyncing,
-                onClick = { viewModel.triggerSync(config.providerType) },
+                onClick = { viewModel.triggerSync(config.id) },
                 screenPosition = Position.Top
             )
         )
@@ -144,6 +145,20 @@ fun CloudProviderSettingsScreen(
             )
         }
 
+        // Backup albums for THIS account
+        items.add(
+            SettingsEntity.Preference(
+                title = context.getString(R.string.cloud_backup_albums),
+                summary = context.getString(R.string.cloud_backup_select_albums),
+                onClick = {
+                    eventHandler.navigate(
+                        Screen.CloudUploadSettingsScreen.configId(configId)
+                    )
+                },
+                screenPosition = Position.Alone
+            )
+        )
+
         // Connection section
         items.add(SettingsEntity.Header(title = context.getString(R.string.cloud_connection_header)))
         items.add(
@@ -179,7 +194,7 @@ fun CloudProviderSettingsScreen(
         )
 
         // Settings section
-        items.add(SettingsEntity.Header(title = ""))
+        items.add(SettingsEntity.Header(title = context.getString(R.string.cloud_settings_more_header)))
         items.add(
             SettingsEntity.Preference(
                 title = context.getString(R.string.cloud_notifications),
@@ -193,6 +208,14 @@ fun CloudProviderSettingsScreen(
                 title = context.getString(R.string.cloud_viewer),
                 summary = context.getString(R.string.cloud_viewer_load_preview),
                 onClick = { eventHandler.navigate(Screen.CloudViewerSettingsScreen()) },
+                screenPosition = Position.Middle
+            )
+        )
+        items.add(
+            SettingsEntity.Preference(
+                title = "Offline & cache",
+                summary = "Cache media for offline use and manage storage",
+                onClick = { eventHandler.navigate(Screen.CloudOfflineModeScreen()) },
                 screenPosition = Position.Middle
             )
         )
@@ -342,39 +365,44 @@ private fun ProviderSettingsHeader(
                 }
             }
 
-            // Server Storage section
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.cloud_profile_storage),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(8.dp))
-            SettingsStorageBar(storage = storage)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = if (storage != null) stringResource(
-                    R.string.cloud_storage_used,
-                    storage.usedFormatted,
-                    storage.totalFormatted
-                ) else "—",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Server Storage section — only shown when the provider reports usage.
+            if (storage != null) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.cloud_profile_storage),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(8.dp))
+                SettingsStorageBar(storage = storage)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(
+                        R.string.cloud_storage_used,
+                        storage.usedFormatted,
+                        storage.totalFormatted
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-            // Info rows inside the card
+            // Info rows inside the card. Server version is only shown when the
+            // provider actually reports one; the URL is always shown.
             Spacer(Modifier.height(16.dp))
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
             Spacer(Modifier.height(12.dp))
-            InfoRow(
-                label = stringResource(R.string.cloud_server_version_label),
-                value = version ?: "—"
-            )
-            Spacer(Modifier.height(8.dp))
+            if (!version.isNullOrBlank()) {
+                InfoRow(
+                    label = stringResource(R.string.cloud_server_version_label),
+                    value = version
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             InfoRow(
                 label = stringResource(R.string.cloud_server_url_label),
                 value = config.serverUrl
@@ -385,10 +413,13 @@ private fun ProviderSettingsHeader(
 
 @Composable
 private fun InfoRow(label: String, value: String) {
+    // Label keeps its intrinsic width; the value takes the remaining space and is
+    // end-aligned so long values (e.g. server URLs) wrap onto their own lines
+    // instead of overlapping the label.
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = label,
@@ -398,7 +429,9 @@ private fun InfoRow(label: String, value: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
         )
     }
 }

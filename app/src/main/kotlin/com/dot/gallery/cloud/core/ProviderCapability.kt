@@ -16,5 +16,13 @@ enum class ProviderCapability {
     REMOTE_ASSETS,
     OCR,
     ARCHIVE,
-    MEMORIES
+    MEMORIES,
+
+    /** Server-side favorites that survive across devices (not local-only). */
+    FAVORITE,
+
+    /** A recoverable trash/bin: [RemoteMediaProvider.trashAsset] soft-deletes and
+     * [RemoteMediaProvider.restoreAsset] can bring the item back. Providers that only
+     * hard-delete (WebDAV/SMB/NFS, where trashAsset == deleteAsset) do NOT declare this. */
+    TRASH
 }

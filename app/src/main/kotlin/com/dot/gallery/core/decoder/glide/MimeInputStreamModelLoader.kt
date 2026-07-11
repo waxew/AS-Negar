@@ -42,6 +42,12 @@ class MimeInputStreamModelLoader(
         override fun loadData(priority: Priority, callback: DataCallback<in MimeInputStream>) {
             try {
                 val mime = resolver.getType(uri)
+                // Diagnostic (debug builds only): log each distinct MIME seen on the content-image
+                // path once, so undecodable formats reaching the grid (e.g. RAW files MediaStore
+                // tags with a generic/unexpected MIME) can be identified.
+                if (mime != null && loggedMimes.add(mime)) {
+                    com.dot.gallery.feature_node.presentation.util.printDebug("MimeInputStream: content MIME '$mime' (e.g. $uri)")
+                }
                 stream = resolver.openInputStream(uri)
                 val s = stream
                 if (s == null) {
@@ -58,6 +64,10 @@ class MimeInputStreamModelLoader(
         override fun cancel() { /* no-op */ }
         override fun getDataClass(): Class<MimeInputStream> = MimeInputStream::class.java
         override fun getDataSource(): com.bumptech.glide.load.DataSource = com.bumptech.glide.load.DataSource.LOCAL
+
+        private companion object {
+            val loggedMimes = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+        }
     }
 
     class Factory(private val context: Context): ModelLoaderFactory<Uri, MimeInputStream> {

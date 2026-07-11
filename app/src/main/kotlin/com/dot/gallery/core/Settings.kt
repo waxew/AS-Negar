@@ -33,29 +33,35 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.dot.gallery.core.Constants.albumCellsList
 import com.dot.gallery.core.Constants.cellsList
 import com.dot.gallery.core.Constants.mosaicColumnsList
+import com.dot.gallery.core.Settings.Misc.CURRENT_SETUP_VERSION
+import com.dot.gallery.core.Settings.Misc.rememberSetupCompletedVersion
 import com.dot.gallery.core.Settings.PREFERENCE_NAME
 import com.dot.gallery.core.encryption.EncryptedDataStoreProvider
 import com.dot.gallery.core.metrics.StartupTracer
 import com.dot.gallery.core.presentation.components.FilterKind
+import com.dot.gallery.core.security.AdvancedProtectionMonitor
 import com.dot.gallery.core.util.SdkCompat
 import com.dot.gallery.core.util.rememberPreference
 import com.dot.gallery.core.util.rememberPreferenceSerializable
 import com.dot.gallery.feature_node.domain.model.SearchHistory
 import com.dot.gallery.feature_node.domain.model.SelectionSheetConfig
 import com.dot.gallery.feature_node.domain.util.OrderType
+import com.dot.gallery.feature_node.presentation.library.components.LibraryShortcutPref
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
 import com.dot.gallery.feature_node.presentation.util.Screen
 import com.dot.gallery.feature_node.presentation.util.printDebug
-import com.dot.gallery.core.security.AdvancedProtectionMonitor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -205,6 +211,22 @@ object Settings {
         @Composable
         fun rememberPinnedAlbumsAsGrid() =
             rememberPreference(key = PINNED_ALBUMS_AS_GRID, defaultValue = false)
+    }
+
+    object Library {
+        val SHORTCUTS_LAYOUT = stringPreferencesKey("library_shortcuts_layout")
+
+        /**
+         * Persisted, user-editable layout for the Library shortcut tiles
+         * (order, per-tile span and visibility). Empty by default — the screen
+         * derives a sensible default order for any shortcut not yet stored.
+         */
+        @Composable
+        fun rememberShortcutsLayout() =
+            rememberPreferenceSerializable(
+                keyString = SHORTCUTS_LAYOUT,
+                defaultValue = emptyList<LibraryShortcutPref>()
+            )
     }
 
     object Search {
@@ -520,6 +542,12 @@ object Settings {
         @Composable
         fun rememberAutoContrast() = rememberPreference(key = AUTO_CONTRAST, defaultValue = false)
 
+        private val DISABLE_SMOOTHING = booleanPreferencesKey("disable_smoothing")
+
+        @Composable
+        fun rememberDisableSmoothing() =
+            rememberPreference(key = DISABLE_SMOOTHING, defaultValue = false)
+
         private val OLD_NAVBAR = booleanPreferencesKey("old_navbar")
 
         @Composable
@@ -670,6 +698,47 @@ object Settings {
         @Composable
         fun rememberAppNameAlias() =
             rememberPreference(key = APP_NAME_ALIAS, defaultValue = ALIAS_REFRA)
+
+        private val APP_LOGO_ALIAS = stringPreferencesKey("app_logo_alias")
+
+        @Composable
+        fun rememberAppLogoAlias() =
+            rememberPreference(key = APP_LOGO_ALIAS, defaultValue = ALIAS_REFRA)
+
+        /**
+         * Version of the first-launch setup wizard the user last completed. Bump
+         * [CURRENT_SETUP_VERSION] whenever the wizard is reworked to force every existing
+         * user through it again.
+         */
+        const val CURRENT_SETUP_VERSION = 1
+
+        /**
+         * TEMPORARY: while the setup wizard is still being built out, force it to appear on
+         * every app launch regardless of whether it was completed before. Set this back to
+         * `false` once the wizard is feature-complete so the normal version-based gating
+         * (only show until [CURRENT_SETUP_VERSION] is completed) takes over.
+         */
+        const val FORCE_SETUP_WIZARD = false
+
+        private val SETUP_COMPLETED_VERSION = intPreferencesKey("setup_completed_version")
+
+        @Composable
+        fun rememberSetupCompletedVersion() =
+            rememberPreference(key = SETUP_COMPLETED_VERSION, defaultValue = 0)
+
+        /**
+         * Synchronously determine whether the setup wizard should be shown at startup.
+         * Reading the value directly (rather than via [rememberSetupCompletedVersion], which
+         * emits its default first and the stored value asynchronously) avoids briefly showing
+         * the wizard before navigating to the real start screen.
+         */
+        fun isSetupNeeded(context: Context): Boolean {
+            if (FORCE_SETUP_WIZARD) return true
+            val completed = runBlocking {
+                context.activeDataStore.data.first()[SETUP_COMPLETED_VERSION] ?: 0
+            }
+            return completed < CURRENT_SETUP_VERSION
+        }
 
         const val FAV_ICON_DISABLED = "disabled"
         const val FAV_ICON_BOTTOM_END = "bottom_end"

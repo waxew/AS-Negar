@@ -47,8 +47,28 @@ interface RemoteMediaProvider : MediaCapabilityProvider {
     suspend fun getServerVersion(): Result<String> = Result.failure(UnsupportedOperationException())
 
     fun getThumbnailUrl(remoteId: String, size: ThumbnailSize = ThumbnailSize.PREVIEW): String
+
+    /**
+     * Thumbnail URL variant that can use the server's stable numeric file id (when
+     * available) to request previews the path-based endpoints can't serve — notably
+     * video frame previews on ownCloud/Nextcloud's `core/preview` endpoint. Providers
+     * that don't need a [fileId] inherit the default and ignore it. May return an empty
+     * string when no server preview is available for the item.
+     */
+    fun getThumbnailUrl(remoteId: String, size: ThumbnailSize, fileId: String?): String =
+        getThumbnailUrl(remoteId, size)
+
     fun getOriginalUrl(remoteId: String): String
     fun getAuthHeaders(): Map<String, String>
+
+    /**
+     * Locally-decoded video poster frame as JPEG bytes, for items that have NO server-side
+     * preview (path-based stores like SMB/NFS/WebDAV return an empty [getThumbnailUrl] for
+     * videos). Implementations decode a frame from the original stream (e.g. via
+     * [android.media.MediaMetadataRetriever]). Returns null when unavailable or not a video.
+     * Content-addressable stores (e.g. Immich) serve previews over HTTP and keep the default.
+     */
+    suspend fun getVideoThumbnailBytes(remoteId: String, size: ThumbnailSize): ByteArray? = null
 
     fun configure(config: CloudServerConfig)
 }

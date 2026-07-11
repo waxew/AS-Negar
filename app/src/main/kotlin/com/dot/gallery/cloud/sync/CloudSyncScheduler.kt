@@ -30,9 +30,14 @@ class CloudSyncScheduler @Inject constructor(
         }
 
         val wifiOnly = syncConfigs.all { it.wifiOnly }
-        printDebug("CloudSyncScheduler: Scheduling sync + upload (wifiOnly=$wifiOnly)")
+        // The upload worker may run on cellular if any account enabled cellular photos/videos
+        // (or explicitly disabled wifiOnly); the worker itself then gates per-account/per-type.
+        val uploadAllowMetered = syncConfigs.any {
+            !it.wifiOnly || it.cellularPhotos || it.cellularVideos
+        }
+        printDebug("CloudSyncScheduler: Scheduling sync + upload (wifiOnly=$wifiOnly, uploadAllowMetered=$uploadAllowMetered)")
         CloudSyncWorker.schedule(workManager, wifiOnly = wifiOnly)
-        CloudUploadWorker.schedule(workManager, wifiOnly = wifiOnly)
+        CloudUploadWorker.schedule(workManager, wifiOnly = !uploadAllowMetered)
     }
 
     fun cancel() {

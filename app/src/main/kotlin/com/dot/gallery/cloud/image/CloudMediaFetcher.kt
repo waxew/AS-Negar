@@ -5,15 +5,19 @@
 
 package com.dot.gallery.cloud.image
 
+import com.dot.gallery.cloud.core.CloudTrace
+import com.dot.gallery.cloud.core.CloudUri
 import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.core.ThumbnailSize
 import com.dot.gallery.cloud.core.capabilities.PeopleCapableProvider
-import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
+import com.dot.gallery.cloud.core.resolveRemote
+import com.dot.gallery.cloud.offline.CloudMediaCache
 import com.github.panpf.sketch.ComponentRegistry
 import com.github.panpf.sketch.fetch.FetchResult
 import com.github.panpf.sketch.fetch.Fetcher
 import com.github.panpf.sketch.request.RequestContext
+import com.github.panpf.sketch.util.Size
 import com.github.panpf.sketch.source.ByteArrayDataSource
 import com.github.panpf.sketch.source.DataFrom
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +38,9 @@ class CloudMediaFetcher private constructor(
     private val providerType: ProviderType,
     private val remoteId: String,
     private val sizeParam: String,
-    private val typeParam: String? = null
+    private val typeParam: String? = null,
+    private val fileId: String? = null,
+    private val configId: Long = -1L
 ) : Fetcher {
 
     override suspend fun fetch(): Result<FetchResult> = withContext(Dispatchers.IO) {
@@ -42,7 +48,7 @@ class CloudMediaFetcher private constructor(
             val registry = CloudFetcherRegistryHolder.registry
                 ?: return@withContext Result.failure(IllegalStateException("ProviderRegistry not available"))
 
-            val provider = registry.get(providerType) as? RemoteMediaProvider
+            val provider = registry.resolveRemote(providerType, configId)
                 ?: return@withContext Result.failure(IllegalStateException("No remote provider for $providerType"))
 
             val url = when (typeParam) {
@@ -51,11 +57,28 @@ class CloudMediaFetcher private constructor(
                         ?: return@withContext Result.failure(IllegalStateException("Provider does not support people"))
                 }
                 else -> when (sizeParam) {
-                    "thumbnail" -> provider.getThumbnailUrl(remoteId, ThumbnailSize.THUMBNAIL)
-                    "preview" -> provider.getThumbnailUrl(remoteId, ThumbnailSize.PREVIEW)
+                    "thumbnail" -> provider.getThumbnailUrl(remoteId, ThumbnailSize.THUMBNAIL, fileId)
+                    "preview" -> provider.getThumbnailUrl(remoteId, ThumbnailSize.PREVIEW, fileId)
                     "original" -> provider.getOriginalUrl(remoteId)
-                    else -> provider.getThumbnailUrl(remoteId, ThumbnailSize.PREVIEW)
+                    else -> provider.getThumbnailUrl(remoteId, ThumbnailSize.PREVIEW, fileId)
                 }
+            }
+
+            // No server preview URL. For videos on path-based stores (SMB/NFS/WebDAV) we
+            // can still decode a poster frame locally from the original stream. Fall back
+            // to that; if it's unavailable, fail quietly without issuing an HTTP request so
+            // we don't spam 404s for items that can never produce a thumbnail.
+            if (url.isBlank()) {
+                if (typeParam != "person" && sizeParam != "original") {
+                    val size = if (sizeParam == "thumbnail") ThumbnailSize.THUMBNAIL else ThumbnailSize.PREVIEW
+                    val frame = provider.getVideoThumbnailBytes(remoteId, size)
+                    if (frame != null && frame.isNotEmpty()) {
+                        return@withContext Result.success(
+                            FetchResult(ByteArrayDataSource(frame, DataFrom.LOCAL), "image/jpeg")
+                        )
+                    }
+                }
+                return@withContext Result.failure(NoPreviewAvailableException(remoteId))
             }
 
             val authHeaders = provider.getAuthHeaders()
@@ -64,12 +87,21 @@ class CloudMediaFetcher private constructor(
             authHeaders.forEach { (key, value) ->
                 requestBuilder.addHeader(key, value)
             }
+            // Persistent offline cache key (handled by CloudCacheInterceptor).
+            requestBuilder.addHeader(
+                CloudMediaCache.HEADER_KEY,
+                CloudMediaCache.keyFor(providerType, configId, remoteId, sizeParam, typeParam)
+            )
 
             val client = CloudFetcherRegistryHolder.okHttpClient
                 ?: throw IllegalStateException("Cloud OkHttpClient not initialized — ProviderRegistry not ready")
 
-            val response = client.newCall(requestBuilder.build()).execute()
+            CloudTrace.d("Sketch.fetch[$providerType] $sizeParam '$remoteId' -> GET $url")
+            val response = CloudTrace.time("Sketch.fetch[$providerType] $sizeParam '$remoteId' HTTP") {
+                client.newCall(requestBuilder.build()).execute()
+            }
             if (!response.isSuccessful) {
+                CloudTrace.w("Sketch.fetch[$providerType] $sizeParam '$remoteId' -> HTTP ${response.code}")
                 return@withContext Result.failure(Exception("HTTP ${response.code}: ${response.message}"))
             }
 
@@ -77,6 +109,7 @@ class CloudMediaFetcher private constructor(
                 ?: return@withContext Result.failure(Exception("Empty response body"))
 
             val mimeType = response.header("Content-Type")
+            CloudTrace.d("Sketch.fetch[$providerType] $sizeParam '$remoteId' <- ${CloudTrace.bytes(bytes.size.toLong())} ($mimeType)")
 
             Result.success(
                 FetchResult(
@@ -85,6 +118,7 @@ class CloudMediaFetcher private constructor(
                 )
             )
         } catch (e: Exception) {
+            CloudTrace.w("Sketch.fetch[$providerType] $sizeParam '$remoteId' failed: ${e.message}")
             Result.failure(e)
         }
     }
@@ -94,32 +128,20 @@ class CloudMediaFetcher private constructor(
         override val sortWeight: Int = 0
 
         override fun create(requestContext: RequestContext): Fetcher? {
-            val uri = requestContext.request.uri
-            val uriString = uri.toString()
-            if (!uriString.startsWith("$SCHEME://")) return null
+            val parsed = CloudUri.parse(requestContext.request.uri.toString()) ?: return null
 
-            // Parse cloud://PROVIDER_TYPE/remoteId?size=xxx
-            val withoutScheme = uriString.removePrefix("$SCHEME://")
-            val authorityEnd = withoutScheme.indexOf('/')
-            if (authorityEnd == -1) return null
+            // Grid cells request a small target. For those, fetch the cheap THUMBNAIL instead of the
+            // larger PREVIEW — this is critical for network filesystems (SMB/NFS) where PREVIEW is
+            // generated by downloading the ENTIRE original on-device for every cell. Mirrors the
+            // same downgrade in CloudGlideModelLoader so Sketch- and Glide-backed grids behave alike.
+            val target = requestContext.size
+            val requestedMax = if (target == Size.Origin) 0 else maxOf(target.width, target.height)
+            val effectiveSize = parsed.effectiveSize(requestedMax)
 
-            val providerName = withoutScheme.substring(0, authorityEnd)
-            val providerType = try {
-                ProviderType.valueOf(providerName)
-            } catch (_: Exception) { return null }
-
-            val pathAndQuery = withoutScheme.substring(authorityEnd + 1)
-            val queryStart = pathAndQuery.indexOf('?')
-            val remoteId = if (queryStart == -1) pathAndQuery else pathAndQuery.substring(0, queryStart)
-            val queryParams = if (queryStart != -1) {
-                val queryString = pathAndQuery.substring(queryStart + 1)
-                queryString.split('&')
-                    .associate { p -> val (k, v) = p.split('=', limit = 2); k to v }
-            } else emptyMap()
-            val sizeParam = queryParams["size"] ?: "preview"
-            val typeParam = queryParams["type"]
-
-            return CloudMediaFetcher(providerType, remoteId, sizeParam, typeParam)
+            return CloudMediaFetcher(
+                parsed.providerType, parsed.remoteId, effectiveSize,
+                parsed.typeParam, parsed.fileId, parsed.configId
+            )
         }
 
         override fun equals(other: Any?): Boolean = other is Factory
@@ -128,26 +150,33 @@ class CloudMediaFetcher private constructor(
     }
 
     companion object {
-        const val SCHEME = "cloud"
+        const val SCHEME = CloudUri.SCHEME
 
         fun buildUri(
             providerType: ProviderType,
             remoteId: String,
-            size: ThumbnailSize = ThumbnailSize.PREVIEW
+            size: ThumbnailSize = ThumbnailSize.PREVIEW,
+            fileId: String? = null,
+            configId: Long = -1L
         ): String {
             val sizeStr = when (size) {
                 ThumbnailSize.THUMBNAIL -> "thumbnail"
                 ThumbnailSize.PREVIEW -> "preview"
             }
-            return "$SCHEME://${providerType.name}/$remoteId?size=$sizeStr"
+            val sb = StringBuilder("$SCHEME://${providerType.name}/$remoteId?size=$sizeStr")
+            if (!fileId.isNullOrBlank()) sb.append("&fileId=$fileId")
+            if (configId > 0L) sb.append("&cfg=$configId")
+            return sb.toString()
         }
 
-        fun buildOriginalUri(providerType: ProviderType, remoteId: String): String {
-            return "$SCHEME://${providerType.name}/$remoteId?size=original"
+        fun buildOriginalUri(providerType: ProviderType, remoteId: String, configId: Long = -1L): String {
+            val base = "$SCHEME://${providerType.name}/$remoteId?size=original"
+            return if (configId > 0L) "$base&cfg=$configId" else base
         }
 
-        fun buildPersonUri(providerType: ProviderType, personId: String): String {
-            return "$SCHEME://${providerType.name}/$personId?type=person"
+        fun buildPersonUri(providerType: ProviderType, personId: String, configId: Long = -1L): String {
+            val base = "$SCHEME://${providerType.name}/$personId?type=person"
+            return if (configId > 0L) "$base&cfg=$configId" else base
         }
     }
 }
@@ -162,6 +191,14 @@ object CloudFetcherRegistryHolder {
     @Volatile
     var okHttpClient: OkHttpClient? = null
 }
+
+/**
+ * Signals that a cloud item has no server-side preview (e.g. a video on a server
+ * without preview generation). Used to fail the fetch quietly, without an HTTP
+ * round-trip that would only return 404.
+ */
+class NoPreviewAvailableException(remoteId: String) :
+    Exception("No server preview available for $remoteId")
 
 fun ComponentRegistry.Builder.supportCloudMedia() {
     add(CloudMediaFetcher.Factory())

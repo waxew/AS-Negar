@@ -12,6 +12,10 @@ import kotlinx.serialization.Serializable
 enum class ProviderType(val displayName: String, val isRemote: Boolean) {
     IMMICH("Immich", isRemote = true),
     OWNCLOUD("ownCloud", isRemote = true),
+    NEXTCLOUD("Nextcloud", isRemote = true),
+    WEBDAV("WebDAV", isRemote = true),
+    SMB("SMB", isRemote = true),
+    NFS("NFS", isRemote = true),
     LOCAL_PEOPLE("On-Device Faces", isRemote = false),
     LOCAL_OCR("On-Device OCR", isRemote = false),
     LOCAL_CLIP("On-Device Search", isRemote = false);
@@ -20,6 +24,10 @@ enum class ProviderType(val displayName: String, val isRemote: Boolean) {
         get() = when (this) {
             IMMICH -> BuildConfig.IMMICH_ENABLED
             OWNCLOUD -> BuildConfig.OWNCLOUD_ENABLED
+            NEXTCLOUD -> BuildConfig.NEXTCLOUD_ENABLED
+            WEBDAV -> BuildConfig.WEBDAV_ENABLED
+            SMB -> BuildConfig.SMB_ENABLED
+            NFS -> BuildConfig.NFS_ENABLED
             else -> true
         }
 

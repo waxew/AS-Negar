@@ -48,6 +48,7 @@ import com.dot.gallery.feature_node.domain.model.editor.DrawMode
 import com.dot.gallery.feature_node.domain.model.editor.PathProperties
 import com.dot.gallery.feature_node.domain.model.editor.TextAnnotation
 import com.dot.gallery.feature_node.presentation.edit.components.markup.MarkupPainter
+import com.dot.gallery.feature_node.presentation.util.quantizeBlur
 import com.dot.gallery.feature_node.presentation.util.resizeBitmap
 import com.dot.gallery.feature_node.presentation.util.safeSystemGesturesPadding
 import com.github.panpf.zoomimage.GlideZoomAsyncImage
@@ -180,10 +181,12 @@ fun ImageViewer(
                         modifier = Modifier
                             .fillMaxSize()
                             .then(
-                                if (blurRadius > 0f) Modifier.blur(
-                                    radiusX = (blurRadius * 2f).dp,
-                                    radiusY = (blurRadius * 2f).dp
-                                ) else Modifier
+                                if (blurRadius > 0f) {
+                                    // Snap to fixed buckets so the GPU reuses a handful of blur
+                                    // shaders instead of compiling a new pipeline per slider step.
+                                    val r = (blurRadius * 2f).quantizeBlur(2f).dp
+                                    Modifier.blur(radiusX = r, radiusY = r)
+                                } else Modifier
                             ),
                         model = resizedBitmap!!,
                         contentDescription = null,

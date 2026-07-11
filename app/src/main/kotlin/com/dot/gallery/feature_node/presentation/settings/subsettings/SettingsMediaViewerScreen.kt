@@ -5,8 +5,10 @@
 
 package com.dot.gallery.feature_node.presentation.settings.subsettings
 
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -63,6 +65,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +76,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composeunstyled.LocalTextStyle
@@ -83,6 +89,7 @@ import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberDateHeaderFormat
 import com.dot.gallery.core.Settings.Misc.rememberAutoHideOnVideoPlay
 import com.dot.gallery.core.Settings.Misc.rememberDefaultImageEditor
+import com.dot.gallery.core.Settings.Misc.rememberDisableSmoothing
 import com.dot.gallery.core.Settings.Misc.rememberFullBrightnessView
 import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.Settings.Misc.rememberShowMediaViewDateHeader
@@ -110,6 +117,7 @@ private const val DETAIL_EDITOR = "editor"
 private const val DETAIL_AUTO_HIDE_VIDEO = "auto_hide_video"
 private const val DETAIL_AUTO_PLAY = "auto_play"
 private const val DETAIL_SURFACE_REBIND = "surface_rebind"
+private const val DETAIL_DISABLE_SMOOTHING = "disable_smoothing"
 
 @Composable
 fun SettingsMediaViewerScreen() {
@@ -124,6 +132,7 @@ fun SettingsMediaViewerScreen() {
     var autoHideOnVideoPlay by rememberAutoHideOnVideoPlay()
     var autoPlayVideo by rememberVideoAutoplay()
     var videoSurfaceRebind by rememberVideoSurfaceRebind()
+    var disableSmoothing by rememberDisableSmoothing()
 
     val editApps = remember(context, context::getEditImageCapableApps)
 
@@ -182,6 +191,16 @@ fun SettingsMediaViewerScreen() {
                 onOptionSelected = { defaultEditor = it },
             )
         }
+        DETAIL_DISABLE_SMOOTHING -> {
+            BackHandler { detailKey = null }
+            SwitchPreferenceDetailScreen(
+                title = stringResource(R.string.disable_smoothing_title),
+                isChecked = disableSmoothing,
+                onCheckedChange = { disableSmoothing = it },
+                description = stringResource(R.string.disable_smoothing_description),
+                preview = { checked -> SmoothingPreview(disableSmoothing = checked) },
+            )
+        }
         DETAIL_AUTO_HIDE_VIDEO -> {
             BackHandler { detailKey = null }
             SwitchPreferenceDetailScreen(
@@ -219,6 +238,8 @@ fun SettingsMediaViewerScreen() {
                 onFavButtonChange = { showFavoriteButton = it },
                 defaultEditor = defaultEditor,
                 editApps = editApps,
+                disableSmoothing = disableSmoothing,
+                onDisableSmoothingChange = { disableSmoothing = it },
                 autoHideOnVideoPlay = autoHideOnVideoPlay,
                 onAutoHideChange = { autoHideOnVideoPlay = it },
                 autoPlayVideo = autoPlayVideo,
@@ -242,6 +263,8 @@ private fun MediaViewerListScreen(
     onFavButtonChange: (Boolean) -> Unit,
     defaultEditor: String,
     editApps: List<android.content.pm.ResolveInfo>,
+    disableSmoothing: Boolean,
+    onDisableSmoothingChange: (Boolean) -> Unit,
     autoHideOnVideoPlay: Boolean,
     onAutoHideChange: (Boolean) -> Unit,
     autoPlayVideo: Boolean,
@@ -303,6 +326,16 @@ private fun MediaViewerListScreen(
             title = stringResource(R.string.default_image_editor),
             summary = editorSummary,
             onClick = { onDetailClick(DETAIL_EDITOR) },
+            screenPosition = Position.Middle
+        )
+
+        val disableSmoothingPref = rememberSwitchPreference(
+            disableSmoothing,
+            title = stringResource(R.string.disable_smoothing_title),
+            summary = stringResource(R.string.disable_smoothing_summary),
+            isChecked = disableSmoothing,
+            onCheck = onDisableSmoothingChange,
+            onClick = { onDetailClick(DETAIL_DISABLE_SMOOTHING) },
             screenPosition = Position.Bottom
         )
 
@@ -342,7 +375,8 @@ private fun MediaViewerListScreen(
 
         return remember(
             fullBrightnessViewPref, showMediaDateHeaderPref, showFavoriteButtonPref,
-            defaultEditorPref, autoHideOnVideoPlayPref, autoPlayVideoPref, videoSurfaceRebindPref
+            defaultEditorPref, disableSmoothingPref, autoHideOnVideoPlayPref, autoPlayVideoPref,
+            videoSurfaceRebindPref
         ) {
             mutableStateListOf<SettingsEntity>().apply {
                 add(viewingHeader)
@@ -352,6 +386,7 @@ private fun MediaViewerListScreen(
                     add(showFavoriteButtonPref)
                 }
                 add(defaultEditorPref)
+                add(disableSmoothingPref)
 
                 add(videoPlaybackHeader)
                 add(autoHideOnVideoPlayPref)
@@ -730,4 +765,84 @@ private fun EditorOptionCard(
             modifier = Modifier.size(24.dp)
         )
     }
+}
+
+/**
+ * Preview for the "Disable smoothing" setting. Draws a tiny pixel-art sample scaled up so the
+ * difference between nearest-neighbor (crisp, [disableSmoothing] = true) and bilinear (smoothed,
+ * [disableSmoothing] = false) filtering is clearly visible — the same effect applied in the viewer.
+ */
+@Composable
+private fun SmoothingPreview(disableSmoothing: Boolean) {
+    val sample = remember { createSmoothingSampleBitmap() }
+    val filterQuality = if (disableSmoothing) FilterQuality.None else FilterQuality.Low
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(120.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawImage(
+                image = sample,
+                srcOffset = IntOffset.Zero,
+                srcSize = IntSize(sample.width, sample.height),
+                dstOffset = IntOffset.Zero,
+                dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+                filterQuality = filterQuality
+            )
+        }
+    }
+}
+
+/**
+ * Builds a small (pixel-art) scene with a sun, sky gradient and two mountains. The curves and
+ * diagonals make the smoothing/no-smoothing difference obvious when the bitmap is scaled up.
+ */
+private fun createSmoothingSampleBitmap(): ImageBitmap {
+    val n = 20
+    val bitmap = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888)
+
+    val skyTop = 0xFF3A6EA5.toInt()
+    val skyBottom = 0xFFBFE3F2.toInt()
+    val sun = 0xFFFFD34E.toInt()
+    val mountainBack = 0xFF6D8C5A.toInt()
+    val mountainFront = 0xFF3F6034.toInt()
+
+    val sunCx = n * 0.72f
+    val sunCy = n * 0.30f
+    val sunR = n * 0.16f
+
+    for (y in 0 until n) {
+        for (x in 0 until n) {
+            var color = lerpArgb(skyTop, skyBottom, y / (n - 1f))
+
+            val dx = x - sunCx
+            val dy = y - sunCy
+            if (dx * dx + dy * dy <= sunR * sunR) {
+                color = sun
+            }
+
+            val backLine = n * 0.62f - (x - n * 0.2f) * 0.35f
+            if (y >= backLine) color = mountainBack
+
+            val frontLine = n * 0.95f - kotlin.math.abs(x - n * 0.55f) * 0.9f
+            if (y >= frontLine) color = mountainFront
+
+            bitmap.setPixel(x, y, color)
+        }
+    }
+    return bitmap.asImageBitmap()
+}
+
+private fun lerpArgb(start: Int, end: Int, fraction: Float): Int {
+    val f = fraction.coerceIn(0f, 1f)
+    val a = ((start ushr 24 and 0xFF) + (((end ushr 24 and 0xFF) - (start ushr 24 and 0xFF)) * f)).toInt()
+    val r = ((start ushr 16 and 0xFF) + (((end ushr 16 and 0xFF) - (start ushr 16 and 0xFF)) * f)).toInt()
+    val g = ((start ushr 8 and 0xFF) + (((end ushr 8 and 0xFF) - (start ushr 8 and 0xFF)) * f)).toInt()
+    val b = ((start and 0xFF) + (((end and 0xFF) - (start and 0xFF)) * f)).toInt()
+    return (a shl 24) or (r shl 16) or (g shl 8) or b
 }

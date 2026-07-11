@@ -20,6 +20,7 @@ import androidx.media3.exoplayer.SeekParameters
 import com.dot.gallery.feature_node.domain.model.SubtitleTrack
 import com.dot.gallery.feature_node.data.data_source.KeychainHolder
 import java.util.Locale
+import com.dot.gallery.cloud.core.CloudRuntimeSettings
 import com.dot.gallery.cloud.media.CloudDataSource
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.util.getUri
@@ -113,7 +114,10 @@ class VideoPlayerViewModel @AssistedInject constructor(
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build().apply {
             setSeekParameters(SeekParameters.EXACT)
-            repeatMode = Player.REPEAT_MODE_ONE
+            // Cloud videos honour the cloud "Loop videos" viewer setting; local videos keep the
+            // existing loop-forever behaviour.
+            repeatMode = if (media.isCloud && !CloudRuntimeSettings.loopVideos)
+                Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE
             // Ensure text tracks are not disabled so embedded subtitles are available
             trackSelectionParameters = trackSelectionParameters
                 .buildUpon()

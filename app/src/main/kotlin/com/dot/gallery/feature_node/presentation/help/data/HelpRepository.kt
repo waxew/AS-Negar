@@ -641,7 +641,7 @@ object HelpRepository {
             ), sinceVersion = "5.0.0"),
         HelpTip(id = "cloud_explore", title = R.string.help_tip_cloud_explore_title, subtitle = R.string.help_tip_cloud_explore_subtitle,
             icon = HelpIcon.ofVector(Icons.Outlined.Hub), category = HelpCategory.CLOUD_SYNC,
-            deepLink = Screen.CloudLibraryScreen(),
+            deepLink = Screen.CloudTimelineScreen(),
             pages = listOf(
                 TutorialPage(title = R.string.help_tip_cloud_explore_p1_title, description = R.string.help_tip_cloud_explore_p1_desc),
                 TutorialPage(title = R.string.help_tip_cloud_explore_p2_title, description = R.string.help_tip_cloud_explore_p2_desc)

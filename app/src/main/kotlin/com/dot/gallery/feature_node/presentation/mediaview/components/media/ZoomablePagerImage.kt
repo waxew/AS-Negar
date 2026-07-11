@@ -8,6 +8,8 @@ package com.dot.gallery.feature_node.presentation.mediaview.components.media
 import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,14 +25,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.dot.gallery.core.Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION
-import com.dot.gallery.core.Settings
+import com.dot.gallery.cloud.core.CloudRuntimeSettings
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.image.CloudImageSource
+import com.dot.gallery.core.Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION
+import com.dot.gallery.core.Settings
 import com.dot.gallery.core.decoder.EncryptedRegionDecoder
 import com.dot.gallery.core.decoder.FullImageRegionDecoder
 import com.dot.gallery.core.decoder.JxlRegionDecoder
@@ -59,10 +79,77 @@ import com.github.panpf.sketch.rememberAsyncImageState
 import com.github.panpf.sketch.request.ComposableImageRequest
 import com.github.panpf.sketch.resize.Precision
 import com.github.panpf.zoomimage.ZoomImage
+import com.github.panpf.zoomimage.compose.subsampling.ComposeTileImage
+import com.github.panpf.zoomimage.compose.subsampling.SubsamplingState
+import com.github.panpf.zoomimage.compose.zoom.ZoomableState
+import com.github.panpf.zoomimage.compose.zoom.mouseZoom
+import com.github.panpf.zoomimage.compose.zoom.zoomable
 import com.github.panpf.zoomimage.rememberSketchZoomState
 import com.github.panpf.zoomimage.subsampling.SubsamplingImage
+import com.github.panpf.zoomimage.util.IntSizeCompat
+import com.github.panpf.zoomimage.util.isNotEmpty
+import com.github.panpf.zoomimage.zoom.ContentScaleCompat
+import com.github.panpf.zoomimage.zoom.ScalesCalculator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+// Extended max zoom: allow zooming in until each source pixel is shown at this many screen pixels,
+// i.e. up to 5000% of the image's native (1:1) resolution. Double-tap zoom is unaffected — it still
+// toggles between the fit scale and the default dynamic mediumScale (see ExtendedZoomScalesCalculator).
+private const val EXTENDED_MAX_NATIVE_SCALE = 50f
+
+/**
+ * Keeps zoomimage's default dynamic minScale/mediumScale (so double-tap behaves normally) but raises
+ * the pinch ceiling (maxScale) to [maxNativeMultiple] times the image's native 1:1 resolution.
+ *
+ * At scale == contentOriginSize / contentSize the content is displayed at its native pixel density,
+ * so multiplying that by [maxNativeMultiple] yields "N× native". When the native size is unknown
+ * (no subsampling), the painter is already native, so 1.0 is used as the native scale.
+ */
+private class ExtendedZoomScalesCalculator(
+    private val maxNativeMultiple: Float,
+) : ScalesCalculator {
+
+    private val base = ScalesCalculator.Dynamic
+
+    @Suppress("DEPRECATION")
+    override fun calculate(
+        containerSize: IntSizeCompat,
+        contentSize: IntSizeCompat,
+        contentOriginSize: IntSizeCompat,
+        contentScale: ContentScaleCompat,
+        minScale: Float,
+        initialScale: Float,
+    ): ScalesCalculator.Result {
+        val baseResult = base.calculate(
+            containerSize = containerSize,
+            contentSize = contentSize,
+            contentOriginSize = contentOriginSize,
+            contentScale = contentScale,
+            minScale = minScale,
+            initialScale = initialScale,
+        )
+        val nativeScale = if (contentOriginSize.isNotEmpty() && contentSize.isNotEmpty()) {
+            maxOf(
+                contentOriginSize.width / contentSize.width.toFloat(),
+                contentOriginSize.height / contentSize.height.toFloat(),
+            )
+        } else {
+            1f
+        }
+        val extendedMax = maxOf(
+            baseResult.maxScale,
+            baseResult.mediumScale,
+            nativeScale * maxNativeMultiple,
+        )
+        return ScalesCalculator.Result(
+            minScale = baseResult.minScale,
+            mediumScale = baseResult.mediumScale,
+            maxScale = extendedMax,
+        )
+    }
+}
 
 @Composable
 fun <T : Media> BlurredMediaBackground(
@@ -111,7 +198,8 @@ fun <T : Media> ZoomablePagerImage(
     rotationDisabled: Boolean,
     onImageRotated: (newRotation: Int) -> Unit,
     onItemClick: () -> Unit,
-    onSwipeDown: () -> Unit
+    onSwipeDown: () -> Unit,
+    onSubsamplingLoadingChange: (Boolean) -> Unit = {}
 ) {
     val feedbackManager = rememberFeedbackManager()
     var isRotating by rememberSaveable(media) { mutableStateOf(false) }
@@ -121,6 +209,11 @@ fun <T : Media> ZoomablePagerImage(
         label = "rotationAnimation"
     )
     val zoomState = rememberSketchZoomState()
+    // Raise the maximum (pinch) zoom to 5000% of native while leaving double-tap on the normal
+    // dynamic mediumScale. See ExtendedZoomScalesCalculator.
+    LaunchedEffect(zoomState) {
+        zoomState.zoomable.setScalesCalculator(ExtendedZoomScalesCalculator(EXTENDED_MAX_NATIVE_SCALE))
+    }
     val scope = rememberCoroutineScope()
 
     val context = LocalContext.current
@@ -140,6 +233,14 @@ fun <T : Media> ZoomablePagerImage(
     val isAnimated = remember(media) {
         media.isApng || media.isJxl || (media.isAvif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
     }
+    // Pixel-perfect (nearest-neighbor) rendering for pixel art: when enabled we draw the image
+    // with FilterQuality.None so zooming shows crisp square pixels instead of a bilinear-smoothed
+    // blur. ZoomImage scales via a GPU graphicsLayer (always linearly filtered), so the setting is
+    // honored through a dedicated canvas-transform draw path (see PixelPerfectZoomImage) rather than
+    // ZoomImage. Animated images keep the default smooth path.
+    val disableSmoothing by Settings.Misc.rememberDisableSmoothing()
+    val usePixelPerfect = disableSmoothing && !isAnimated
+    val filterQuality = if (disableSmoothing) FilterQuality.None else DrawScope.DefaultFilterQuality
     // Region decoder for formats Android's BitmapRegionDecoder can't subsample (PSD/JP2/TIFF/SVG).
     // Without this they only show the screen-resolution base painter and look blurry when zoomed.
     val customRegionFactory = remember(media) {
@@ -163,7 +264,8 @@ fun <T : Media> ZoomablePagerImage(
                 setExtra(key = "mediaKeyPreviewEnc", value = media.idLessKey)
             }
         },
-        contentScale = ContentScale.Fit
+        contentScale = ContentScale.Fit,
+        filterQuality = filterQuality
     )
 
     // Full-res painter with state tracking
@@ -180,7 +282,8 @@ fun <T : Media> ZoomablePagerImage(
             }
         },
         state = fullImageState,
-        contentScale = ContentScale.Fit
+        contentScale = ContentScale.Fit,
+        filterQuality = filterQuality
     )
 
     val isFullImageLoaded by rememberedDerivedState(media) {
@@ -192,6 +295,10 @@ fun <T : Media> ZoomablePagerImage(
 
     val isCloudMedia = remember(media) { media.isCloud }
 
+    // Subsampling is set up the same way for both the smooth and pixel-perfect paths so that
+    // high-resolution images retain native detail when zoomed. The difference is only in how the
+    // tiles are drawn: PixelPerfectZoomImage draws them via a canvas transform with
+    // FilterQuality.None (nearest-neighbor) instead of the smoothed default.
     if (isEncrypted) {
         val keychainHolder = remember { KeychainHolder(context) }
         LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
@@ -208,6 +315,9 @@ fun <T : Media> ZoomablePagerImage(
         }
     } else if (isCloudMedia) {
         LaunchedEffect(media, isFullImageLoaded, zoomState.subsampling) {
+            // Respect the cloud "Load original image" viewer setting: when off, skip the
+            // full-resolution original download and keep the lightweight preview (data saver).
+            if (!CloudRuntimeSettings.loadOriginalImage) return@LaunchedEffect
             val uri = media.getUri()
             val providerName = uri.authority ?: return@LaunchedEffect
             val providerType = try { ProviderType.valueOf(providerName) } catch (_: Exception) { return@LaunchedEffect }
@@ -215,7 +325,17 @@ fun <T : Media> ZoomablePagerImage(
             // .first() would truncate it to the folder and request the directory as the original.
             val remoteId = uri.path?.trimStart('/')?.takeIf { it.isNotEmpty() } ?: return@LaunchedEffect
             val configId = uri.getQueryParameter("cfg")?.toLongOrNull() ?: -1L
-            val cloudSource = CloudImageSource(providerType, remoteId, configId)
+            // Signal that the full-size original is being fetched for subsampling so the UI can show
+            // a subtle loading indicator. try/finally guarantees the flag is cleared on success,
+            // failure, or cancellation (e.g. swiping to another page mid-download).
+            onSubsamplingLoadingChange(true)
+            val cloudSource = try {
+                CloudImageSource.create(context, providerType, remoteId, configId)
+            } catch (_: Exception) {
+                return@LaunchedEffect
+            } finally {
+                onSubsamplingLoadingChange(false)
+            }
             zoomState.setSubsamplingImage(SubsamplingImage(imageSource = cloudSource))
         }
     } else if (isJxl) {
@@ -243,34 +363,206 @@ fun <T : Media> ZoomablePagerImage(
         }
     }
 
-    ZoomImage(
-        zoomState = zoomState,
-        painter = activePainter,
-        modifier = Modifier
-            .fillMaxSize()
-            .swipe(onSwipeDown = onSwipeDown)
-            .graphicsLayer {
-                rotationZ = if (isRotating) rotationAnimation else 0f
+    val imageModifier = Modifier
+        .fillMaxSize()
+        .swipe(onSwipeDown = onSwipeDown)
+        .graphicsLayer {
+            rotationZ = if (isRotating) rotationAnimation else 0f
+        }
+        .then(modifier)
+
+    val onLongPress: () -> Unit = {
+        if (!rotationDisabled) {
+            scope.launch {
+                isRotating = true
+                feedbackManager.vibrate()
+                currentRotation += 90
+                onImageRotated(currentRotation)
+                delay(350)
+                zoomState.zoomable.rotate(currentRotation)
+                isRotating = false
             }
-            .then(modifier),
-        onTap = { onItemClick() },
-        onLongPress = {
-            if (!rotationDisabled) {
-                scope.launch {
-                    isRotating = true
-                    feedbackManager.vibrate()
-                    currentRotation += 90
-                    onImageRotated(currentRotation)
-                    delay(350)
-                    zoomState.zoomable.rotate(currentRotation)
-                    isRotating = false
+        }
+    }
+
+    if (usePixelPerfect) {
+        PixelPerfectZoomImage(
+            zoomable = zoomState.zoomable,
+            subsampling = zoomState.subsampling,
+            painter = activePainter,
+            modifier = imageModifier,
+            contentDescription = media.label,
+            onTap = { onItemClick() },
+            onLongPress = onLongPress,
+        )
+    } else {
+        ZoomImage(
+            zoomState = zoomState,
+            painter = activePainter,
+            modifier = imageModifier,
+            onTap = { onItemClick() },
+            onLongPress = { onLongPress() },
+            alignment = Alignment.Center,
+            contentDescription = media.label,
+            scrollBar = null
+        )
+    }
+}
+
+/**
+ * A drop-in replacement for [com.github.panpf.zoomimage.ZoomImage] that renders with
+ * nearest-neighbor filtering (no smoothing) so pixel art stays crisp when zoomed, **while still
+ * using subsampling** to keep native detail on high-resolution images.
+ *
+ * Why a custom composable instead of `ZoomImage`: `ZoomImage` applies its zoom via a GPU
+ * `graphicsLayer` and draws its subsampling tiles with a hardcoded, private paint. Neither can be
+ * told to skip smoothing. Here we instead reproduce the same [ZoomableState.transform] directly on
+ * the draw canvas — canvas transforms honor the per-draw [FilterQuality], exactly like the
+ * library's own Android View implementation which draws tiles with a `Matrix` + `Paint`. We reuse
+ * [ZoomableState] only for gesture handling and read [SubsamplingState]'s public tile snapshots to
+ * draw them ourselves.
+ *
+ * Coordinate spaces (mirrors `ZoomImage`):
+ * - the base [painter] is in *content* coordinates (its own pixel size); the transform maps
+ *   content -> screen.
+ * - subsampling tiles ([TileSnapshot.srcRect]) are in *origin* (full-resolution) coordinates, so
+ *   they are additionally scaled by contentSize/contentOriginSize before the same transform.
+ */
+@Composable
+private fun PixelPerfectZoomImage(
+    zoomable: ZoomableState,
+    subsampling: SubsamplingState,
+    painter: Painter,
+    modifier: Modifier,
+    contentDescription: String?,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+) {
+    zoomable.setContentScale(ContentScale.Fit)
+    zoomable.setAlignment(Alignment.Center)
+    zoomable.setLayoutDirection(LocalLayoutDirection.current)
+    val intrinsicSize = painter.intrinsicSize
+    val contentSize = remember(intrinsicSize) {
+        if (intrinsicSize.isSpecified) {
+            IntSize(intrinsicSize.width.roundToInt(), intrinsicSize.height.roundToInt())
+        } else {
+            IntSize.Zero
+        }
+    }
+    zoomable.setContentSize(contentSize)
+
+    BoxWithConstraints(modifier = modifier.mouseZoom(zoomable)) {
+        val density = LocalDensity.current
+        val containerSize = remember(density, maxWidth, maxHeight) {
+            IntSize(
+                width = with(density) { maxWidth.toPx() }.roundToInt(),
+                height = with(density) { maxHeight.toPx() }.roundToInt()
+            )
+        }
+        zoomable.setContainerSize(containerSize)
+
+        Box(
+            Modifier
+                .matchParentSize()
+                .clipToBounds()
+                .zoomable(
+                    zoomable = zoomable,
+                    userSetupContentSize = true,
+                    onLongPress = { onLongPress() },
+                    onTap = { onTap() }
+                )
+                .drawWithContent {
+                    val transform = zoomable.transform
+                    val drawSize = if (contentSize.width > 0 && contentSize.height > 0) {
+                        Size(contentSize.width.toFloat(), contentSize.height.toFloat())
+                    } else {
+                        size
+                    }
+                    withTransform({
+                        translate(transform.offsetX, transform.offsetY)
+                        scale(
+                            scaleX = transform.scaleX,
+                            scaleY = transform.scaleY,
+                            pivot = Offset(
+                                x = transform.scaleOriginX * size.width,
+                                y = transform.scaleOriginY * size.height
+                            )
+                        )
+                        rotate(
+                            degrees = transform.rotation,
+                            pivot = Offset(
+                                x = transform.rotationOriginX * size.width,
+                                y = transform.rotationOriginY * size.height
+                            )
+                        )
+                    }) {
+                        // Base image (content coords). Visible until/where tiles cover it.
+                        with(painter) {
+                            draw(size = drawSize)
+                        }
+                        // Subsampling tiles (origin coords -> content coords), drawn crisp.
+                        drawSubsamplingTiles(subsampling, zoomable)
+                    }
                 }
-            }
-        },
-        alignment = Alignment.Center,
-        contentDescription = media.label,
-        scrollBar = null
-    )
+                .semantics {
+                    if (contentDescription != null) {
+                        this.contentDescription = contentDescription
+                        this.role = Role.Image
+                    }
+                }
+        )
+    }
+}
+
+/**
+ * Draws [SubsamplingState]'s foreground/background tiles with [FilterQuality.None]. Must be called
+ * inside a [withTransform] block that already maps content coordinates to screen (see
+ * [PixelPerfectZoomImage]); this only adds the origin->content scale that the library's
+ * `firstScaleByContentSize` layer normally applies.
+ */
+private fun DrawScope.drawSubsamplingTiles(
+    subsampling: SubsamplingState,
+    zoomable: ZoomableState,
+) {
+    val foregroundTiles = subsampling.foregroundTiles
+    if (foregroundTiles.isEmpty()) return
+    val loadRect = subsampling.imageLoadRect
+    if (loadRect.width <= 0 || loadRect.height <= 0) return
+    val contentSize = zoomable.contentSize
+    val originSize = zoomable.contentOriginSize
+    if (contentSize.width <= 0 || contentSize.height <= 0) return
+    if (originSize.width <= 0 || originSize.height <= 0) return
+
+    val originToContentX = contentSize.width.toFloat() / originSize.width
+    val originToContentY = contentSize.height.toFloat() / originSize.height
+
+    fun drawTile(tile: com.github.panpf.zoomimage.subsampling.TileSnapshot) {
+        val srcRect = tile.srcRect
+        // Skip tiles outside the currently loaded area (matches the library's overlap check).
+        if (srcRect.right <= loadRect.left || srcRect.left >= loadRect.right ||
+            srcRect.bottom <= loadRect.top || srcRect.top >= loadRect.bottom
+        ) return
+        val tileImage = tile.tileImage
+        if (tileImage == null || tileImage.isRecycled) return
+        val bitmap = (tileImage as? ComposeTileImage)?.bitmap ?: return
+        val dstLeft = (srcRect.left * originToContentX).roundToInt()
+        val dstTop = (srcRect.top * originToContentY).roundToInt()
+        val dstRight = (srcRect.right * originToContentX).roundToInt()
+        val dstBottom = (srcRect.bottom * originToContentY).roundToInt()
+        drawImage(
+            image = bitmap,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(bitmap.width, bitmap.height),
+            dstOffset = IntOffset(dstLeft, dstTop),
+            dstSize = IntSize(dstRight - dstLeft, dstBottom - dstTop),
+            alpha = tile.alpha / 255f,
+            filterQuality = FilterQuality.None,
+        )
+    }
+
+    // Background tiles first (lower sample sizes), then the sharp foreground tiles on top.
+    subsampling.backgroundTiles.forEach { drawTile(it) }
+    foregroundTiles.forEach { drawTile(it) }
 }
 
 

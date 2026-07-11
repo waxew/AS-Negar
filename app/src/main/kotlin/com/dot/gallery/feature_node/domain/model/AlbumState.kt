@@ -7,6 +7,8 @@ data class AlbumState(
     val albums: List<Album> = emptyList(),
     val albumsWithBlacklisted: List<Album> = emptyList(),
     val albumsUnpinned: List<Album> = emptyList(),
+    // Cloud/remote albums, shown in their own dedicated section on the Albums screen.
+    val albumsCloud: List<Album> = emptyList(),
     val albumsPinned: List<Album> = emptyList(),
     val albumGroups: List<AlbumGroupWithAlbums> = emptyList(),
     val albumSections: List<AlbumSectionWithAlbums> = emptyList(),

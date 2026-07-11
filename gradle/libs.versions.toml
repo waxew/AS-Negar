@@ -3,7 +3,7 @@ adaptive = "1.2.0"
 agp = "9.2.1"
 aire = "0.18.1"
 avifCoderCoil = "2.2.1"
-benchmarkMacroJunit4 = "1.5.0-alpha06"
+benchmarkMacroJunit4 = "1.5.0-alpha07"
 biometric = "1.2.0-alpha05"
 appcompat = "1.7.1"
 core = "1.49.9"
@@ -16,29 +16,32 @@ hazeMaterials = "1.7.2"
 jp2forandroid = "1.0.4"
 jxlCoder = "2.6.1"
 jp2Android = "1.0.3"
+ngaTiff = "3.0.0"
 androidsvg = "1.4"
-kotlin = "2.3.21"
-kotlinCollectionsImmutable = "0.4.0"
+kotlin = "2.4.0"
+kotlinCollectionsImmutable = "0.5.1"
 nanohttpd = "2.3.1"
-okhttp = "4.12.0"
-okhttpLogging = "5.3.2"
+smbj = "0.14.0"
+nfsClient = "1.1.0"
+okhttp = "5.4.0"
+okhttpLogging = "5.4.0"
 kotlinCoroutinesVersion = "1.11.0"
 ksp = "2.3.9"
-core-ktx = "1.18.0"
+core-ktx = "1.19.0"
 junit = "4.13.2"
 androidx-test-ext-junit = "1.3.0"
 espresso-core = "3.7.0"
-maplibreNative = "13.2.0"
-lifecycle-runtime = "2.10.0"
+maplibreNative = "13.3.1"
+lifecycle-runtime = "2.11.0"
 activity-compose = "1.13.0"
-hilt = "2.59.2"
-hiltCommon = "1.3.0"
+hilt = "2.60"
+hiltCommon = "1.4.0"
 material = "1.14.0"
-material3 = "1.5.0-alpha20"
+material3 = "1.5.0-alpha23"
 media3Exoplayer = "1.10.1"
 metadataExtractor = "2.20.0"
 navigation-runtime-ktx = "2.9.8"
-onnxruntimeAndroid = "1.26.0"
+onnxruntimeAndroid = "1.27.0"
 profileinstaller = "1.4.1"
 retrofit = "3.0.0"
 retrofitKotlinxSerialization = "2.1.0"
@@ -47,17 +50,18 @@ accompanist = "0.37.3"
 datastore = "1.2.1"
 securityCrypto = "1.1.0"
 sqlcipherAndroid = "4.16.0"
-sqliteKtx = "2.6.2"
-sketch = "4.5.0-alpha03"
+sqliteKtx = "2.7.0"
+sketch = "4.6.0-alpha01"
 startupRuntime = "1.2.0"
-uiautomator = "2.3.0"
-composealpha = "1.11.2"
+uiautomator = "2.4.0"
+composealpha = "1.11.4"
 kotlinxSerializationJson = "1.11.0"
 workRuntimeKtx = "2.11.2"
-zoomimage = "1.4.0"
-lifecycleProcess = "2.10.0"
-glide-compose = "1.0.0-beta01"
-glide-ksp = "5.0.5"
+zoomimage = "1.6.0-alpha01"
+lifecycleProcess = "2.11.0"
+glide-compose = "1.0.0-beta09"
+glide-ksp = "5.0.7"
+desugarJdkLibs = "2.1.5"
 
 [libraries]
 # AndroidX
@@ -126,9 +130,14 @@ jp2forandroid = { module = "com.github.Tgo1014:JP2ForAndroid", version.ref = "jp
 jxl-coder-coil = { module = "io.github.awxkee:jxl-coder-coil", version.ref = "jxlCoder" }
 jp2-android = { module = "com.gemalto.jp2:jp2-android", version.ref = "jp2Android" }
 androidsvg = { module = "com.caverock:androidsvg-aar", version.ref = "androidsvg" }
+nga-tiff = { module = "mil.nga:tiff", version.ref = "ngaTiff" }
 maplibre-native = { module = "org.maplibre.gl:android-sdk", version.ref = "maplibreNative" }
 metadata-extractor = { module = "com.drewnoakes:metadata-extractor", version.ref = "metadataExtractor" }
 nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
+
+# Network filesystem providers (SMB / NFS) - gated behind build flags
+smbj = { module = "com.hierynomus:smbj", version.ref = "smbj" }
+nfs-client = { module = "com.emc.ecs:nfs-client", version.ref = "nfsClient" }
 
 # Cloud Providers - Networking
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
@@ -177,6 +186,9 @@ fuzzywuzzy-kotlin = { module = "com.github.jens-muenker:fuzzywuzzy-kotlin", vers
 glide-compose = { module = "com.github.bumptech.glide:compose", version.ref = "glide-compose" }
 glide-ksp = { module = "com.github.bumptech.glide:ksp", version.ref = "glide-ksp" }
 
+# Core library desugaring
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
+
 # Zoomable
 zoomimage-compose-glide = { module = "io.github.panpf.zoomimage:zoomimage-compose-glide", version.ref = "zoomimage" }
 zoomimage-compose-sketch = { module = "io.github.panpf.zoomimage:zoomimage-compose-sketch4", version.ref = "zoomimage" }
@@ -185,6 +197,8 @@ zoomimage-compose-sketch = { module = "io.github.panpf.zoomimage:zoomimage-compo
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinCoroutinesVersion" }
 
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }

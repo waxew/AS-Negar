@@ -67,7 +67,7 @@ fun BaseSettingsScreen(
             }
             itemsIndexed(
                 items = settingsList,
-                key = { index, it -> it.title + it.type.toString() }
+                key = { index, it -> "$index-${it.title}-${it.type}" }
             ) { index, it ->
                 settingsBuilder(it, index)
             }

@@ -1,5 +1,6 @@
 package com.dot.gallery.feature_node.presentation.library
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.outlined.FolderOff
 import androidx.compose.material.icons.outlined.ImageSearch
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Icon
@@ -51,11 +53,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -88,6 +95,9 @@ import com.dot.gallery.feature_node.domain.util.getUri
 import com.dot.gallery.feature_node.presentation.common.components.GridPinchZoomLayout
 import com.dot.gallery.feature_node.presentation.common.components.rememberGridPinchZoomState
 import com.dot.gallery.feature_node.presentation.library.components.LibrarySmallItem
+import com.dot.gallery.feature_node.presentation.library.components.EditableLibraryShortcutsGrid
+import com.dot.gallery.feature_node.presentation.library.components.mergeShortcutPrefs
+import com.dot.gallery.feature_node.presentation.library.components.rememberLibraryRuntimeShortcuts
 import com.dot.gallery.feature_node.presentation.library.components.MapPreviewCard
 import com.dot.gallery.feature_node.presentation.library.components.dashedBorder
 import com.dot.gallery.feature_node.presentation.mediaview.rememberedDerivedState
@@ -157,6 +167,10 @@ fun LibraryScreen(
 
     // Cloud state
     val cloudState by viewModel.cloudState.collectAsStateWithLifecycle()
+
+    // In-place shortcut editing (Quick-Settings style)
+    var shortcutsEditMode by remember { mutableStateOf(false) }
+    BackHandler(enabled = shortcutsEditMode) { shortcutsEditMode = false }
 
     Scaffold(
         modifier = Modifier.padding(
@@ -238,188 +252,30 @@ fun LibraryScreen(
             ) {
                 item(
                     span = { GridItemSpan(maxLineSpan) },
-                    key = "headerButtons"
+                    key = "libraryShortcuts"
                 ) {
-                    Column(
+                    val runtime = rememberLibraryRuntimeShortcuts(indicatorState, cloudState)
+                    var shortcutsLayout by Settings.Library.rememberShortcutsLayout()
+                    val working = remember(runtime, shortcutsLayout) {
+                        mergeShortcutPrefs(shortcutsLayout, runtime).map { it.pref }
+                    }
+                    EditableLibraryShortcutsGrid(
+                        working = working,
+                        runtime = runtime,
+                        editMode = shortcutsEditMode,
+                        onClick = { eventHandler.navigate(it) },
+                        onEnterEditMode = { shortcutsEditMode = true },
+                        onExitEditMode = { shortcutsEditMode = false },
+                        onChange = { newWorking ->
+                            val availableIds = runtime.keys.map { it.id }.toSet()
+                            val leftovers = shortcutsLayout.filter { it.id !in availableIds }
+                            shortcutsLayout = newWorking + leftovers
+                        },
                         modifier = Modifier
-                            .animateItem()
-                            .fillMaxWidth()
-                            .pinchItem(key = "headerButtons")
+                            .pinchItem(key = "libraryShortcuts")
                             .padding(horizontal = 16.dp)
-                            .padding(top = 32.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        if (SdkCompat.supportsTrash || SdkCompat.supportsFavorites) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    16.dp,
-                                    Alignment.CenterHorizontally
-                                )
-                            ) {
-                                if (SdkCompat.supportsTrash) {
-                                    LibrarySmallItem(
-                                        title = stringResource(R.string.trash),
-                                        icon = Icons.Outlined.DeleteOutline,
-                                        contentColor = MaterialTheme.colorScheme.primary,
-                                        useIndicator = true,
-                                        indicatorCounter = indicatorState.trashCount,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable {
-                                                eventHandler.navigate(Screen.TrashedScreen.route)
-                                            }
-                                    )
-                                }
-                                if (SdkCompat.supportsFavorites) {
-                                    LibrarySmallItem(
-                                        title = stringResource(R.string.favorites),
-                                        icon = Icons.Outlined.FavoriteBorder,
-                                        contentColor = MaterialTheme.colorScheme.error,
-                                        useIndicator = true,
-                                        indicatorCounter = indicatorState.favoriteCount,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable {
-                                                eventHandler.navigate(Screen.FavoriteScreen.route)
-                                            }
-                                    )
-                                }
-                            }
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(
-                                16.dp,
-                                Alignment.CenterHorizontally
-                            )
-                        ) {
-                            LibrarySmallItem(
-                                title = stringResource(R.string.vault),
-                                icon = GalleryIcons.Encrypted,
-                                contentColor = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable {
-                                        eventHandler.navigate(Screen.VaultScreen())
-                                    },
-                                contentDescription = stringResource(R.string.vault)
-                            )
-                            LibrarySmallItem(
-                                title = stringResource(R.string.ignored),
-                                icon = Icons.Outlined.VisibilityOff,
-                                contentColor = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable {
-                                        eventHandler.navigate(Screen.IgnoredScreen())
-                                    }
-                            )
-                        }
-                        val privateFolderUri by Settings.Security.rememberPrivateFolderUri()
-                        if (privateFolderUri.isNotEmpty()) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    16.dp,
-                                    Alignment.CenterHorizontally
-                                )
-                            ) {
-                                LibrarySmallItem(
-                                    title = stringResource(R.string.security_private_folder),
-                                    icon = Icons.Outlined.FolderOff,
-                                    contentColor = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable {
-                                            eventHandler.navigate(Screen.PrivateFolderScreen())
-                                        },
-                                    contentDescription = stringResource(R.string.security_private_folder)
-                                )
-                                // Empty spacer to match the two-column layout
-                                Box(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-
-                // Cloud section — shown when cloud providers are configured
-                if (cloudState.hasCloud) {
-                    item(
-                        span = { GridItemSpan(maxLineSpan) },
-                        key = "cloudSection"
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .animateItem()
-                                .fillMaxWidth()
-                                .pinchItem(key = "cloudSection")
-                                .padding(horizontal = 16.dp)
-                                .padding(top = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    16.dp,
-                                    Alignment.CenterHorizontally
-                                )
-                            ) {
-                                if (cloudState.hasArchive) {
-                                    LibrarySmallItem(
-                                        title = stringResource(R.string.cloud_archive),
-                                        icon = Icons.Outlined.Archive,
-                                        contentColor = MaterialTheme.colorScheme.secondary,
-                                        useIndicator = true,
-                                        indicatorCounter = cloudState.archivedCount,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable {
-                                                eventHandler.navigate(Screen.CloudArchiveScreen.route)
-                                            }
-                                    )
-                                }
-                                if (cloudState.hasShareLink) {
-                                    LibrarySmallItem(
-                                        title = stringResource(R.string.cloud_shared_links),
-                                        icon = Icons.Outlined.Link,
-                                        contentColor = MaterialTheme.colorScheme.tertiary,
-                                        useIndicator = true,
-                                        indicatorCounter = cloudState.sharedLinkCount,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable {
-                                                eventHandler.navigate(Screen.SharedLinksScreen.route)
-                                            }
-                                    )
-                                }
-                            }
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    16.dp,
-                                    Alignment.CenterHorizontally
-                                )
-                            ) {
-                                LibrarySmallItem(
-                                    title = stringResource(R.string.cloud_backup_and_sync),
-                                    icon = Icons.Outlined.Backup,
-                                    contentColor = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable {
-                                            eventHandler.navigate(Screen.CloudBackupAndSyncScreen.route)
-                                        }
-                                )
-                                LibrarySmallItem(
-                                    title = stringResource(R.string.cloud_accounts),
-                                    icon = Icons.Outlined.Cloud,
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable {
-                                            eventHandler.navigate(Screen.CloudAccountsScreen.route)
-                                        }
-                                )
-                            }
-                        }
-                    }
-
+                            .padding(top = 32.dp)
+                    )
                 }
 
                 // Locations section
@@ -432,11 +288,11 @@ fun LibraryScreen(
                             val latest = geoMedia.firstOrNull()
                             MapPreviewCard(
                                 modifier = Modifier
-                                    .animateItem()
                                     .pinchItem(key = "LocationsHeader")
                                     .padding(horizontal = 16.dp)
                                     .padding(top = 8.dp)
                                     .clip(RoundedCornerShape(24.dp))
+                                    .editLock(shortcutsEditMode)
                                     .clickable {
                                         eventHandler.navigate(Screen.LocationsScreen())
                                     },
@@ -448,10 +304,10 @@ fun LibraryScreen(
                         } else {
                             Column(
                                 modifier = Modifier
-                                    .animateItem()
                                     .pinchItem(key = "LocationsHeader")
                                     .padding(horizontal = 16.dp)
-                                    .padding(top = 8.dp),
+                                    .padding(top = 8.dp)
+                                    .editLock(shortcutsEditMode),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 LibrarySmallItem(
@@ -479,7 +335,8 @@ fun LibraryScreen(
                             modifier = Modifier
                                 .padding(horizontal = 16.dp)
                                 .padding(top = 8.dp)
-                                .clip(RoundedCornerShape(16.dp)),
+                                .clip(RoundedCornerShape(16.dp))
+                                .editLock(shortcutsEditMode),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(
@@ -557,10 +414,10 @@ fun LibraryScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .animateItem()
                                 .pinchItem(key = "PeopleHeader")
                                 .padding(horizontal = 16.dp)
-                                .padding(top = 8.dp),
+                                .padding(top = 8.dp)
+                                .editLock(shortcutsEditMode),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             LibrarySmallItem(
@@ -585,7 +442,8 @@ fun LibraryScreen(
                         LazyRow(
                             modifier = Modifier
                                 .padding(horizontal = 16.dp)
-                                .padding(top = 8.dp),
+                                .padding(top = 8.dp)
+                                .editLock(shortcutsEditMode),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(
@@ -639,10 +497,10 @@ fun LibraryScreen(
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .animateItem()
                                     .pinchItem(key = "CategoriesHeader")
                                     .padding(horizontal = 16.dp)
-                                    .padding(top = 8.dp),
+                                    .padding(top = 8.dp)
+                                    .editLock(shortcutsEditMode),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 LibrarySmallItem(
@@ -669,7 +527,8 @@ fun LibraryScreen(
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp)
                                     .padding(top = 8.dp)
-                                    .clip(RoundedCornerShape(16.dp)),
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .editLock(shortcutsEditMode),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 items(
@@ -789,9 +648,9 @@ fun LibraryScreen(
                         ) {
                             NoCategories(
                                 modifier = Modifier
-                                    .animateItem()
                                     .pinchItem(key = "NoCategories")
                                     .padding(16.dp)
+                                    .editLock(shortcutsEditMode)
                             ) {
                                 eventHandler.navigate(Screen.CategoriesScreen())
                             }
@@ -802,6 +661,26 @@ fun LibraryScreen(
         }
     }
 
+}
+
+/**
+ * While the library shortcuts are being edited, dim a section and swallow taps
+ * so the locations/people/categories rows below can't be clicked. Scrolling is
+ * preserved (only tap gestures are consumed).
+ */
+private fun Modifier.editLock(locked: Boolean): Modifier = composed {
+    if (!locked) this
+    else this
+        .alpha(0.35f)
+        .pointerInput(Unit) {
+            // Consume every pointer event on the Initial pass (delivered
+            // parent -> child) so descendant clickables never receive it.
+            awaitPointerEventScope {
+                while (true) {
+                    awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+                }
+            }
+        }
 }
 
 @Composable

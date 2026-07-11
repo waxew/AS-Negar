@@ -69,7 +69,7 @@ import dev.chrisbanes.haze.hazeEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloudBackupAndSyncScreen(
-    onNavigateToAlbumPicker: () -> Unit,
+    onNavigateToAlbumPicker: (configId: Long) -> Unit,
     onNavigateToBackupOptions: () -> Unit,
     onNavigateToUploadDetails: () -> Unit
 ) {
@@ -89,17 +89,39 @@ fun CloudBackupAndSyncScreen(
     ) {
         buildList {
             // === BACKUP SECTION ===
-            add(SettingsEntity.Header(title = context.getString(R.string.cloud_backup)))
-
-            add(
-                SettingsEntity.Preference(
-                    title = context.getString(R.string.cloud_backup_select_albums),
-                    summary = if (backupState.enabledAlbumCount == 0) context.getString(R.string.cloud_backup_no_albums)
-                    else context.getString(R.string.cloud_backup_albums_count, backupState.enabledAlbumCount),
-                    onClick = onNavigateToAlbumPicker,
-                    screenPosition = Position.Top
+            // Album selection is per-account: each cloud picks the local albums it
+            // backs up, so destinations are never ambiguous.
+            if (backupState.accounts.isNotEmpty()) {
+                add(SettingsEntity.Header(title = context.getString(R.string.cloud_backup_per_account)))
+                backupState.accounts.forEachIndexed { index, account ->
+                    add(
+                        SettingsEntity.Preference(
+                            title = account.accountLabel,
+                            summary = context.getString(
+                                R.string.cloud_backup_account_progress,
+                                account.backedUpCount,
+                                account.totalAssets
+                            ) + " · " + context.getString(
+                                R.string.cloud_backup_account_albums,
+                                account.enabledAlbumCount
+                            ),
+                            onClick = { onNavigateToAlbumPicker(account.configId) },
+                            screenPosition = if (index == 0) Position.Top else Position.Middle
+                        )
+                    )
+                }
+            } else {
+                add(SettingsEntity.Header(title = context.getString(R.string.cloud_backup)))
+                add(
+                    SettingsEntity.Preference(
+                        title = context.getString(R.string.cloud_backup_select_albums),
+                        summary = if (backupState.enabledAlbumCount == 0) context.getString(R.string.cloud_backup_no_albums)
+                        else context.getString(R.string.cloud_backup_albums_count, backupState.enabledAlbumCount),
+                        onClick = { onNavigateToAlbumPicker(-1L) },
+                        screenPosition = Position.Top
+                    )
                 )
-            )
+            }
             add(
                 SettingsEntity.Preference(
                     title = context.getString(R.string.cloud_backup_options),

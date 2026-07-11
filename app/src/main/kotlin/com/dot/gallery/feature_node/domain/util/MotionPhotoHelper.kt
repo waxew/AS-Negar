@@ -52,6 +52,12 @@ object MotionPhotoHelper {
     // Samsung uses a binary marker appended to the file
     private val SAMSUNG_MARKER = "MotionPhoto_Data".toByteArray(Charsets.US_ASCII)
 
+    // The Samsung marker and its trailing video live at the very end of the file. Only scan a
+    // bounded tail instead of reading the whole file into memory: a large photo (e.g. 150+ MP)
+    // can be well over 100 MB and reading it all triggers an OutOfMemoryError. Real Samsung
+    // motion-photo clips are a few MB, so this window comfortably covers them.
+    private const val SAMSUNG_TAIL_SCAN_BYTES = 16 * 1024 * 1024
+
     // ---------------------------------------------------------------------------------
 
     /**
@@ -124,18 +130,44 @@ object MotionPhotoHelper {
 
             if (xmpResult != null) return xmpResult
 
-            // Fallback: try Samsung binary marker detection
+            // Fallback: try Samsung binary marker detection. Only scan a bounded tail of the file
+            // (the marker + video are appended at EOF) to avoid loading huge photos into memory.
             printDebug("MotionPhoto: XMP detection found nothing, trying Samsung marker for $uri")
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                val bytes = stream.readBytes()
-                findSamsungMarkerOffset(bytes)?.let { offset ->
-                    printDebug("MotionPhoto: Samsung marker found at offset $offset for $uri")
-                    MotionPhotoInfo(offset)
-                }
+            val tail = readFileTail(context, uri, SAMSUNG_TAIL_SCAN_BYTES) ?: return null
+            findSamsungMarkerOffset(tail)?.let { offset ->
+                printDebug("MotionPhoto: Samsung marker found at offset $offset for $uri")
+                MotionPhotoInfo(offset)
             }
         } catch (e: Exception) {
             printWarning("MotionPhotoHelper.parseInfo failed: ${e.message}")
             null
+        }
+    }
+
+    /**
+     * Reads up to [maxBytes] from the **end** of the file at [uri] without loading the whole file
+     * into memory. Returns the tail bytes (ending at EOF) or the entire file if it is smaller than
+     * [maxBytes]. Returns `null` if the file length cannot be determined (in which case the caller
+     * should skip the scan rather than risk an OutOfMemoryError).
+     */
+    private fun readFileTail(context: Context, uri: Uri, maxBytes: Int): ByteArray? {
+        val length = try {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize }
+        } catch (e: Exception) {
+            null
+        }
+        if (length == null || length <= 0L) return null
+
+        return context.contentResolver.openInputStream(uri)?.use { stream ->
+            val skipTarget = (length - maxBytes).coerceAtLeast(0L)
+            var skipped = 0L
+            while (skipped < skipTarget) {
+                val s = stream.skip(skipTarget - skipped)
+                if (s <= 0L) break
+                skipped += s
+            }
+            if (skipped < skipTarget) return@use null
+            stream.readBytes()
         }
     }
 

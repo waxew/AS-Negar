@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dot.gallery.cloud.core.CloudAlbum
 import com.dot.gallery.cloud.core.ProviderType
-import com.dot.gallery.cloud.core.stableIdHash
+import com.dot.gallery.cloud.core.cloudAlbumId
 import com.dot.gallery.cloud.data.dao.CloudAlbumSyncDao
 import com.dot.gallery.cloud.data.entity.CloudAlbumSyncEntity
 import com.dot.gallery.cloud.data.entity.CloudMediaEntity
@@ -159,7 +159,7 @@ class CloudMediaViewModel @Inject constructor(
 
     fun findCloudAlbumByComputedId(computedId: Long): CloudAlbum? {
         return _uiState.value.albums.find {
-            (CloudAlbum.CLOUD_ALBUM_ID_BASE - stableIdHash(it.remoteId)) == computedId
+            cloudAlbumId(it.providerType, it.serverConfigId, it.remoteId) == computedId
         }
     }
 

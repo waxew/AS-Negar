@@ -38,6 +38,7 @@ fun SetupButton(
     applyHorizontalPadding: Boolean = true,
     applyBottomPadding: Boolean = true,
     applyInsets: Boolean = true,
+    applyNavigationPadding: Boolean = true,
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(24.dp),
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
@@ -59,7 +60,10 @@ fun SetupButton(
         Button(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                .maybeApply(
+                    condition = applyNavigationPadding,
+                    modifier = Modifier.navigationBarsPadding()
+                )
                 .maybeApply(
                     condition = applyInsets,
                     modifier = Modifier.padding(paddingValues = horizontalDisplayCutoutInsets)

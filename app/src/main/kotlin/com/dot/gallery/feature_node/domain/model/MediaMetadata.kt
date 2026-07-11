@@ -4,8 +4,10 @@ import android.content.ContentUris
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.location.Geocoder
+import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import androidx.exifinterface.media.ExifInterface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Exposure
 import androidx.compose.material.icons.outlined.MotionPhotosOn
@@ -34,6 +36,7 @@ import java.text.DecimalFormat
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.roundToInt
 
 @Entity(tableName = "media_metadata_core")
 data class MediaMetadataCore(
@@ -222,8 +225,16 @@ suspend fun Context.retrieveExtraMediaMetadata(
                     isolatedParser.parseImageMetadataPerFile(uri, label, media.id)
                 } else {
                     isolatedParser.parseImageMetadata(uri, label)
-                } ?: return@runCatching null
-                mediaMetadataFromImageBundle(media.id, bundle, geocoder, this@retrieveExtraMediaMetadata)
+                }
+                if (bundle != null) {
+                    mediaMetadataFromImageBundle(media.id, bundle, geocoder, this@retrieveExtraMediaMetadata)
+                } else {
+                    // The isolated parse returned nothing — either metadata-extractor can't read
+                    // this format or the isolated service is unavailable on the device. Fall back
+                    // to an in-process ExifInterface/BitmapFactory read so the properties sheet
+                    // still shows resolution, size and any embedded EXIF instead of nothing (#1002).
+                    buildFallbackImageMetadata(media.id, uri, geocoder, this@retrieveExtraMediaMetadata)
+                }
             } else if (media.isVideo) {
                 val bundle = if (usePerFileIsolation) {
                     isolatedParser.parseVideoMetadataPerFile(uri, media.id)
@@ -364,6 +375,148 @@ private fun mediaMetadataFromVideoBundle(mediaId: Long, bundle: Bundle): MediaMe
         isMotionPhoto = false
     )
 }
+
+/**
+ * In-process fallback used when the isolated metadata parser returns nothing for an image
+ * (e.g. metadata-extractor cannot read the format, or the isolated service is unavailable on the
+ * device). Reads the dimensions via [BitmapFactory] bounds and EXIF via the platform
+ * [ExifInterface] so that at least resolution, size and any embedded EXIF (date, camera, ISO,
+ * shutter, aperture, GPS) still appear instead of an empty properties sheet (#1002).
+ *
+ * This uses the same in-process [BitmapFactory]/[ContentResolver] reads that the primary path
+ * already relies on for its dimension fallback, so it does not weaken the sandbox guarantee
+ * (which only applies to the isolated primary parse).
+ */
+@Suppress("DEPRECATION")
+private suspend fun buildFallbackImageMetadata(
+    mediaId: Long,
+    uri: Uri,
+    geocoder: Geocoder?,
+    context: Context
+): MediaMetadata? {
+    val resolver = context.contentResolver
+
+    var imgW = 0
+    var imgH = 0
+    runCatching {
+        resolver.openInputStream(uri)?.use { stream ->
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeStream(stream, null, options)
+            if (options.outWidth > 0 && options.outHeight > 0) {
+                imgW = options.outWidth
+                imgH = options.outHeight
+            }
+        }
+    }
+
+    var description: String? = null
+    var dateTimeOriginal: String? = null
+    var make: String? = null
+    var model: String? = null
+    var aperture: String? = null
+    var exposureTime: String? = null
+    var iso: String? = null
+    var focalLength: Double? = null
+    var resX: Double? = null
+    var resY: Double? = null
+    var resUnit: Int? = null
+    var gpsLatitude: Double? = null
+    var gpsLongitude: Double? = null
+
+    runCatching {
+        resolver.openInputStream(uri)?.use { stream ->
+            val exif = ExifInterface(stream)
+            description = exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION)
+            dateTimeOriginal = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+                ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
+            make = exif.getAttribute(ExifInterface.TAG_MAKE)
+            model = exif.getAttribute(ExifInterface.TAG_MODEL)
+            exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0.0)
+                .takeIf { it > 0 }?.let { aperture = "f/${it.stripTrailingZero()}" }
+            exif.getAttributeDouble(ExifInterface.TAG_EXPOSURE_TIME, 0.0)
+                .takeIf { it > 0 }?.let { exposureTime = it.toExposureString() }
+            iso = exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY)
+                ?: exif.getAttribute(ExifInterface.TAG_ISO_SPEED_RATINGS)
+            focalLength = exif.getAttributeDouble(ExifInterface.TAG_FOCAL_LENGTH, 0.0)
+                .takeIf { it > 0 }
+            resX = exif.getAttributeDouble(ExifInterface.TAG_X_RESOLUTION, 0.0).takeIf { it > 0 }
+            resY = exif.getAttributeDouble(ExifInterface.TAG_Y_RESOLUTION, 0.0).takeIf { it > 0 }
+            resUnit = exif.getAttributeInt(ExifInterface.TAG_RESOLUTION_UNIT, 0).takeIf { it > 0 }
+            exif.latLong?.let {
+                gpsLatitude = it[0]
+                gpsLongitude = it[1]
+            }
+            if (imgW == 0) imgW = exif.getAttributeInt(ExifInterface.TAG_IMAGE_WIDTH, 0)
+            if (imgH == 0) imgH = exif.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, 0)
+        }
+    }.onFailure { it.printStackTrace() }
+
+    // Nothing usable could be read — behave as before and show no properties sheet.
+    val hasAnything = imgW > 0 || imgH > 0 || description != null || dateTimeOriginal != null ||
+            make != null || model != null || aperture != null || exposureTime != null ||
+            iso != null || focalLength != null || gpsLatitude != null
+    if (!hasAnything) return null
+
+    var gpsLocationName: String? = null
+    var gpsLocationCountry: String? = null
+    var gpsLocationCity: String? = null
+    val lat = gpsLatitude
+    val lon = gpsLongitude
+    if (lat != null && lon != null && geocoder != null) {
+        runCatching {
+            suspendCoroutine {
+                val address = geocoder.getFromLocation(lat, lon, 1).orEmpty().firstOrNull()
+                gpsLocationName = address?.formattedAddress
+                gpsLocationCountry = address?.countryName
+                gpsLocationCity = address?.locality
+                it.resume(Unit)
+            }
+        }
+    }
+
+    return MediaMetadata(
+        mediaId = mediaId,
+        imageDescription = description,
+        dateTimeOriginal = dateTimeOriginal,
+        manufacturerName = make,
+        modelName = model,
+        aperture = aperture,
+        exposureTime = exposureTime,
+        iso = iso,
+        focalLength = focalLength,
+        gpsLatitude = gpsLatitude,
+        gpsLongitude = gpsLongitude,
+        gpsLocationName = gpsLocationName,
+        gpsLocationNameCountry = gpsLocationCountry,
+        gpsLocationNameCity = gpsLocationCity,
+        imageWidth = imgW,
+        imageHeight = imgH,
+        imageResolutionX = resX,
+        imageResolutionY = resY,
+        resolutionUnit = resUnit,
+        durationMs = null,
+        videoWidth = null,
+        videoHeight = null,
+        frameRate = null,
+        bitRate = null,
+        isNightMode = false,
+        isPanorama = false,
+        isPhotosphere = false,
+        isLongExposure = false,
+        isMotionPhoto = false
+    )
+}
+
+/** Formats a plain double without a trailing ".0" (e.g. 2.0 -> "2", 2.2 -> "2.2"). */
+private fun Double.stripTrailingZero(): String =
+    if (this == toLong().toDouble()) toLong().toString() else toString()
+
+/**
+ * Formats an exposure time in seconds the same way the summary row expects: a "num/den sec"
+ * fraction for sub-second exposures (e.g. 0.008 -> "1/125 sec") or a plain value otherwise.
+ */
+private fun Double.toExposureString(): String =
+    if (this >= 1.0) "${stripTrailingZero()} sec" else "1/${(1.0 / this).roundToInt()} sec"
 
 fun MediaMetadata.toCore() = MediaMetadataCore(
     mediaId = mediaId,

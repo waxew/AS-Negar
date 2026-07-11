@@ -81,6 +81,27 @@ fun CloudViewerSettingsScreen() {
                     screenPosition = Position.Bottom
                 )
             )
+
+            // Recommended preset — one tap to sensible defaults.
+            add(SettingsEntity.Header(title = ""))
+            add(
+                SettingsEntity.Preference(
+                    title = context.getString(R.string.cloud_viewer_recommended),
+                    summary = context.getString(R.string.cloud_viewer_recommended_summary),
+                    onClick = {
+                        settingsVm.updateConfig {
+                            copy(
+                                loadPreviewImage = true,
+                                loadOriginalImage = false,
+                                autoPlayVideos = true,
+                                loopVideos = false,
+                                forceOriginalVideo = false
+                            )
+                        }
+                    },
+                    screenPosition = Position.Alone
+                )
+            )
         }.toMutableStateList()
     }
 

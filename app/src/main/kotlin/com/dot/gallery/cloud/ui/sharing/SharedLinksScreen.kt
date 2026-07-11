@@ -173,6 +173,8 @@ fun SharedLinksScreen() {
                     items(state.filteredLinks, key = { it.id }) { link ->
                         SharedLinkItem(
                             link = link,
+                            accountLabel = if (state.hasMultipleProviders)
+                                viewModel.accountLabelFor(link) else null,
                             onEdit = { linkToEdit = link },
                             onCopyLink = {
                                 val url = viewModel.getShareUrl(link)
@@ -208,7 +210,7 @@ fun SharedLinksScreen() {
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deleteLink(link.id)
+                        viewModel.deleteLink(link)
                         linkToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -232,7 +234,7 @@ fun SharedLinksScreen() {
             onDismiss = { linkToEdit = null },
             onConfirm = { desc, pwd, expires, download, upload, metadata, changeExp ->
                 viewModel.updateLink(
-                    linkId = link.id,
+                    link = link,
                     description = desc,
                     password = pwd,
                     expiresAt = expires,
@@ -304,6 +306,7 @@ private fun SharedLinksFilterRow(
 @Composable
 private fun SharedLinkItem(
     link: SharedLinkInfo,
+    accountLabel: String? = null,
     onEdit: () -> Unit,
     onCopyLink: () -> Unit,
     onDelete: () -> Unit
@@ -373,6 +376,21 @@ private fun SharedLinkItem(
             )
             // Badges row
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (accountLabel != null) {
+                    Text(
+                        text = accountLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(6.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
                 if (link.allowDownload) {
                     Text(
                         text = stringResource(R.string.cloud_shared_links_edit_allow_download_badge),

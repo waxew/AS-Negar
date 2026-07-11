@@ -259,14 +259,15 @@ suspend fun <T : Media> Context.resolveShareableUri(media: T): Uri = withContext
             FileProvider.getUriForFile(this@resolveShareableUri, BuildConfig.CONTENT_AUTHORITY, originalUri.toFile())
         }
     }
-    // Download cloud media to a temp file
-    val remoteId = originalUri.pathSegments.firstOrNull()
+    // Download cloud media to a temp file. remoteId may contain slashes (SMB/NFS/WebDAV paths);
+    // pathSegments.first() would truncate it to the first folder.
+    val remoteId = originalUri.path?.trimStart('/')?.takeIf { it.isNotEmpty() }
         ?: throw IllegalStateException("No remoteId in cloud URI")
     val stream = CloudMediaDownloader.downloadCloudMedia(originalUri)
         ?: throw Exception("Failed to download cloud media")
 
     val ext = media.label.substringAfterLast('.', "jpg")
-    val tempFile = File(cacheDir, "cloud_share_${remoteId.take(8)}.$ext")
+    val tempFile = File(cacheDir, "cloud_share_${remoteId.substringAfterLast('/').take(8)}.$ext")
     stream.use { input ->
         FileOutputStream(tempFile).use { output -> input.copyTo(output) }
     }

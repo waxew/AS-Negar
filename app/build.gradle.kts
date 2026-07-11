@@ -22,7 +22,8 @@ manifestConfig {
                 "android.permission.INTERNET",
                 "android.permission.ACCESS_WIFI_STATE",
                 "android.permission.ACCESS_NETWORK_STATE",
-                "android.permission.CHANGE_WIFI_MULTICAST_STATE"
+                "android.permission.CHANGE_WIFI_MULTICAST_STATE",
+                "android.permission.ACCESS_FINE_LOCATION"
             )
         )
     }
@@ -85,6 +86,10 @@ android {
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
+            buildConfigField("Boolean", "NEXTCLOUD_ENABLED", "$includeNextcloud")
+            buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
+            buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
+            buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
             buildConfigField(
                 "String",
                 "CONTENT_AUTHORITY",
@@ -111,6 +116,10 @@ android {
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
+            buildConfigField("Boolean", "NEXTCLOUD_ENABLED", "$includeNextcloud")
+            buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
+            buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
+            buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
             buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
@@ -134,6 +143,10 @@ android {
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
+            buildConfigField("Boolean", "NEXTCLOUD_ENABLED", "$includeNextcloud")
+            buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
+            buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
+            buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
         create("gplay") {
@@ -147,6 +160,10 @@ android {
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
             buildConfigField("Boolean", "IMMICH_ENABLED", "$includeImmich")
             buildConfigField("Boolean", "OWNCLOUD_ENABLED", "$includeOwncloud")
+            buildConfigField("Boolean", "NEXTCLOUD_ENABLED", "$includeNextcloud")
+            buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
+            buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
+            buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
             buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.gplay.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "false")
@@ -154,6 +171,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -198,6 +216,36 @@ android {
                 kotlin.srcDir("src/owncloud/kotlin")
             } else {
                 kotlin.srcDir("src/noowncloud/kotlin")
+            }
+            if (includeNextcloud) {
+                kotlin.srcDir("src/nextcloud/kotlin")
+            } else {
+                kotlin.srcDir("src/nonextcloud/kotlin")
+            }
+            // Shared WebDAV base + capability framework, compiled when any
+            // WebDAV-family provider (ownCloud / Nextcloud / generic) is enabled.
+            if (includeOwncloud || includeNextcloud || includeWebdav) {
+                kotlin.srcDir("src/webdav/kotlin")
+            }
+            if (includeWebdav) {
+                kotlin.srcDir("src/genericwebdav/kotlin")
+            } else {
+                kotlin.srcDir("src/nogenericwebdav/kotlin")
+            }
+            // Shared network-filesystem base (loopback bridge + scanner + thumbnailer),
+            // compiled when any net-fs provider (SMB / NFS) is enabled.
+            if (includeSmb || includeNfs) {
+                kotlin.srcDir("src/netfs/kotlin")
+            }
+            if (includeSmb) {
+                kotlin.srcDir("src/smb/kotlin")
+            } else {
+                kotlin.srcDir("src/nosmb/kotlin")
+            }
+            if (includeNfs) {
+                kotlin.srcDir("src/nfs/kotlin")
+            } else {
+                kotlin.srcDir("src/nonfs/kotlin")
             }
         }
         // For withML APK builds, include ML model assets directly
@@ -255,6 +303,7 @@ kotlin {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.lifecycle.process)
     runtimeOnly(libs.androidx.profileinstaller)
     implementation(project(":libs:cropper"))
@@ -328,6 +377,7 @@ dependencies {
     implementation(libs.avif.coder.coil)
     implementation(libs.jp2forandroid)
     implementation(libs.androidsvg)
+    implementation(libs.nga.tiff)
 
     // Sketch
     implementation(libs.sketch.compose)
@@ -401,7 +451,7 @@ dependencies {
     }
 
     implementation(libs.okhttp)
-    if (includeImmich || includeOwncloud) {
+    if (includeImmich || includeOwncloud || includeNextcloud || includeWebdav) {
         implementation(libs.okhttp.logging)
     }
 
@@ -412,10 +462,20 @@ dependencies {
         implementation(libs.retrofit.converter.gson)
     }
 
+    // Network filesystem providers (gated)
+    if (includeSmb) {
+        implementation(libs.smbj)
+    }
+    if (includeNfs) {
+        implementation(libs.nfs.client)
+    }
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.mockwebserver)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.compose.ui.tooling)
     debugRuntimeOnly(libs.compose.ui.test.manifest)
 }
@@ -469,6 +529,58 @@ val includeOwncloud: Boolean
             val properties = Properties()
             properties.load(FileInputStream(fl))
             properties.getProperty("INCLUDE_OWNCLOUD", "false").toBoolean()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+val includeNextcloud: Boolean
+    get() {
+        if (isOffline) return false
+        val fl = rootProject.file("app.properties")
+        return try {
+            val properties = Properties()
+            properties.load(FileInputStream(fl))
+            properties.getProperty("INCLUDE_NEXTCLOUD", "false").toBoolean()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+val includeWebdav: Boolean
+    get() {
+        if (isOffline) return false
+        val fl = rootProject.file("app.properties")
+        return try {
+            val properties = Properties()
+            properties.load(FileInputStream(fl))
+            properties.getProperty("INCLUDE_WEBDAV", "false").toBoolean()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+val includeSmb: Boolean
+    get() {
+        if (isOffline) return false
+        val fl = rootProject.file("app.properties")
+        return try {
+            val properties = Properties()
+            properties.load(FileInputStream(fl))
+            properties.getProperty("INCLUDE_SMB", "false").toBoolean()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+val includeNfs: Boolean
+    get() {
+        if (isOffline) return false
+        val fl = rootProject.file("app.properties")
+        return try {
+            val properties = Properties()
+            properties.load(FileInputStream(fl))
+            properties.getProperty("INCLUDE_NFS", "false").toBoolean()
         } catch (_: Exception) {
             false
         }

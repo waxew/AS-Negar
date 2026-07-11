@@ -15,6 +15,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.dot.gallery.R
+import com.dot.gallery.cloud.core.CloudRuntimeSettings
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
@@ -105,23 +106,28 @@ fun <T : Media> MediaViewQuickBottomBar(
                 }
             }
         } else {
+            // Read-only mode (cloud Advanced setting): hide all write/share actions for cloud
+            // media so it can be browsed but never modified, shared, edited or deleted.
+            val readOnly = currentMedia.isCloud && CloudRuntimeSettings.readOnlyMode
             // Share Component
-            ShareButton(
-                media = currentMedia,
-                enabled = enabled,
-                followTheme = followTheme,
-                currentVault = currentVault
-            )
-            // Copy to Clipboard
-            CopyToClipboardButton(
-                media = currentMedia,
-                enabled = enabled,
-                followTheme = followTheme,
-                currentVault = currentVault
-            )
+            if (!readOnly) {
+                ShareButton(
+                    media = currentMedia,
+                    enabled = enabled,
+                    followTheme = followTheme,
+                    currentVault = currentVault
+                )
+                // Copy to Clipboard
+                CopyToClipboardButton(
+                    media = currentMedia,
+                    enabled = enabled,
+                    followTheme = followTheme,
+                    currentVault = currentVault
+                )
+            }
             // Favorite Component
             val showFavoriteButton by rememberShowFavoriteButton()
-            if (showFavoriteButton && (currentMedia.canMakeActions && SdkCompat.supportsFavorites || currentMedia.isCloud)) {
+            if (!readOnly && showFavoriteButton && (currentMedia.canMakeActions && SdkCompat.supportsFavorites || currentMedia.isCloud)) {
                 FavoriteButton(
                     media = currentMedia,
                     enabled = enabled,
@@ -153,7 +159,7 @@ fun <T : Media> MediaViewQuickBottomBar(
                 )
             }
             // Edit
-            if (!currentMedia.isEncrypted) {
+            if (!currentMedia.isEncrypted && !readOnly) {
                 EditButton(
                     media = currentMedia,
                     enabled = enabled,
@@ -161,7 +167,7 @@ fun <T : Media> MediaViewQuickBottomBar(
                 )
             }
             // Trash Component
-            if (showDeleteButton) {
+            if (showDeleteButton && !readOnly) {
                 TrashButton(
                     media = currentMedia,
                     enabled = enabled,

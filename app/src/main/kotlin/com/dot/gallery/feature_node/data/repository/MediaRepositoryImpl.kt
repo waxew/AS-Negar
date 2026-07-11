@@ -243,10 +243,11 @@ class MediaRepositoryImpl(
     override suspend fun getBlacklistedAlbumsAsync(): List<IgnoredAlbum> =
         database.getBlacklistDao().getBlacklistedAlbumsAsync()
 
-    override fun getMediaByAlbumId(albumId: Long): Flow<Resource<List<UriMedia>>> =
+    override fun getMediaByAlbumId(albumId: Long, skipBatching: Boolean): Flow<Resource<List<UriMedia>>> =
         MediaFlow(
             contentResolver = contentResolver,
             buckedId = albumId,
+            skipBatching = skipBatching,
         ).flowData().mapAsResource()
 
     override fun getMediaByAlbumIdWithType(
@@ -1121,7 +1122,9 @@ class MediaRepositoryImpl(
     private suspend fun collectCloudMetadata(media: Media) = withContext(Dispatchers.IO) {
         val uri = media.getUri()
         val providerName = uri.authority ?: return@withContext
-        val remoteId = uri.pathSegments.firstOrNull() ?: return@withContext
+        // remoteId may contain slashes (SMB/NFS/WebDAV paths like "Photos/IMG.jpg"); pathSegments
+        // .first() would truncate it and never match the stored entity's remoteId.
+        val remoteId = uri.path?.trimStart('/')?.takeIf { it.isNotEmpty() } ?: return@withContext
         val providerType = try {
             com.dot.gallery.cloud.core.ProviderType.valueOf(providerName)
         } catch (_: Exception) { return@withContext }

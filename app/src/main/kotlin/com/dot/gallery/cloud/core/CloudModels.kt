@@ -40,10 +40,11 @@ data class CloudAlbum(
 ) {
     fun toAlbum(): Album {
         val thumbUri = if (thumbnailAssetId != null) {
-            "cloud://${providerType.name}/$thumbnailAssetId?size=thumbnail".toUri()
+            val base = "cloud://${providerType.name}/$thumbnailAssetId?size=thumbnail"
+            (if (serverConfigId > 0L) "$base&cfg=$serverConfigId" else base).toUri()
         } else Uri.EMPTY
         return Album(
-            id = CLOUD_ALBUM_ID_BASE - stableIdHash(remoteId),
+            id = cloudAlbumId(providerType, serverConfigId, remoteId),
             label = "$name (${providerType.displayName})",
             uri = thumbUri,
             pathToThumbnail = thumbUri.toString(),

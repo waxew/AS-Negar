@@ -5,26 +5,57 @@
 
 package com.dot.gallery.cloud.ui.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Router
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dot.gallery.R
+import com.dot.gallery.cloud.ui.WifiSsidPickerSheet
 import com.dot.gallery.core.Position
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
+import com.dot.gallery.feature_node.presentation.util.rememberAppBottomSheetState
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 private fun parseExternalUrls(json: String): List<String> {
@@ -49,43 +80,27 @@ fun CloudNetworkingScreen() {
     val externalUrls = remember(config?.externalUrls) {
         parseExternalUrls(config?.externalUrls ?: "[]")
     }
+    val effectiveUrl = remember(config) { settingsVm.effectiveUrl() }
+    val localActive = remember(config) { settingsVm.isLocalActive() }
 
-    var showWifiDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val wifiSheetState = rememberAppBottomSheetState()
+
     var showLocalUrlDialog by remember { mutableStateOf(false) }
     var showAddExternalDialog by remember { mutableStateOf(false) }
 
-    val settingsList = remember(autoUrlSwitch, serverUrl, wifiSsid, localUrl, externalUrls) {
+    val settingsList = remember(autoUrlSwitch, wifiSsid, localUrl, externalUrls) {
         buildList {
-            // Current server
-            add(SettingsEntity.Header(title = context.getString(R.string.cloud_net_connection)))
-            add(
-                SettingsEntity.Preference(
-                    title = context.getString(R.string.cloud_net_current_server),
-                    summary = serverUrl.ifBlank { context.getString(R.string.cloud_net_not_configured) },
-                    screenPosition = Position.Alone
-                )
-            )
-
-            // Auto URL switch
-            add(SettingsEntity.Header(title = context.getString(R.string.cloud_net_auto_url)))
-            add(
-                SettingsEntity.SwitchPreference(
-                    title = context.getString(R.string.cloud_net_auto_url),
-                    summary = context.getString(R.string.cloud_net_auto_url_summary),
-                    isChecked = autoUrlSwitch,
-                    onCheck = { settingsVm.updateConfig { copy(autoUrlSwitch = it) } },
-                    screenPosition = Position.Alone
-                )
-            )
-
             if (autoUrlSwitch) {
                 // Local network
                 add(SettingsEntity.Header(title = context.getString(R.string.cloud_net_local)))
                 add(
                     SettingsEntity.Preference(
                         title = context.getString(R.string.cloud_net_wifi_name),
-                        summary = wifiSsid.ifBlank { context.getString(R.string.cloud_net_not_configured) },
-                        onClick = { showWifiDialog = true },
+                        summary = wifiSsid.ifBlank {
+                            context.getString(R.string.cloud_net_wifi_blank_summary)
+                        },
+                        onClick = { scope.launch { wifiSheetState.show() } },
                         screenPosition = Position.Top
                     )
                 )
@@ -142,37 +157,23 @@ fun CloudNetworkingScreen() {
 
     BaseSettingsScreen(
         title = stringResource(R.string.cloud_networking),
-        settingsList = settingsList
+        settingsList = settingsList,
+        topContent = {
+            NetworkingHeroCard(
+                effectiveUrl = effectiveUrl?.ifBlank { null } ?: serverUrl,
+                localActive = localActive,
+                autoUrlSwitch = autoUrlSwitch,
+                onToggleAuto = { settingsVm.updateConfig { copy(autoUrlSwitch = it) } }
+            )
+        }
     )
 
-    // WiFi name edit dialog
-    if (showWifiDialog) {
-        var text by remember { mutableStateOf(wifiSsid) }
-        AlertDialog(
-            onDismissRequest = { showWifiDialog = false },
-            title = { Text(stringResource(R.string.cloud_net_edit_wifi)) },
-            text = {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    placeholder = { Text(stringResource(R.string.cloud_net_wifi_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    settingsVm.updateConfig { copy(localWifiSsid = text.trim()) }
-                    showWifiDialog = false
-                }) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWifiDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            }
-        )
-    }
+    // WiFi SSID picker sheet (pick connected network or manual entry; blank = disable switching)
+    WifiSsidPickerSheet(
+        state = wifiSheetState,
+        currentSsid = wifiSsid,
+        onSave = { ssid -> settingsVm.updateConfig { copy(localWifiSsid = ssid) } }
+    )
 
     // Local URL edit dialog
     if (showLocalUrlDialog) {
@@ -234,5 +235,151 @@ fun CloudNetworkingScreen() {
                 }
             }
         )
+    }
+}
+
+/**
+ * Fancy connection card shown above the networking settings DSL. It visualises which
+ * URL (local vs external) is currently in effect with two connected mode tiles, an
+ * animated "active" glow, the resolved server address, and the automatic-switching
+ * toggle — so the local/external state is obvious at a glance.
+ */
+@Composable
+private fun NetworkingHeroCard(
+    effectiveUrl: String,
+    localActive: Boolean,
+    autoUrlSwitch: Boolean,
+    onToggleAuto: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Active address headline
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (localActive) Icons.Outlined.Wifi else Icons.Outlined.Public,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.cloud_net_connection),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = effectiveUrl.ifBlank { stringResource(R.string.cloud_net_not_configured) },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        // Local <-> External mode selector
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            NetworkModeTile(
+                icon = Icons.Outlined.Router,
+                label = stringResource(R.string.cloud_net_local),
+                active = localActive,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Outlined.SwapHoriz,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            NetworkModeTile(
+                icon = Icons.Outlined.Public,
+                label = stringResource(R.string.cloud_net_external),
+                active = !localActive,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Text(
+            text = stringResource(
+                if (localActive) R.string.cloud_net_local_active
+                else R.string.cloud_net_external_active
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+        // Automatic switching toggle
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.cloud_net_auto_url),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = stringResource(R.string.cloud_net_auto_url_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Switch(checked = autoUrlSwitch, onCheckedChange = onToggleAuto)
+        }
+    }
+}
+
+@Composable
+private fun NetworkModeTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    active: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerHighest,
+        animationSpec = tween(300),
+        label = "tileContainer"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.onPrimaryContainer
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(300),
+        label = "tileContent"
+    )
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(containerColor)
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(22.dp))
+            Text(text = label, style = MaterialTheme.typography.labelLarge, color = contentColor)
+            if (active) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+        }
     }
 }

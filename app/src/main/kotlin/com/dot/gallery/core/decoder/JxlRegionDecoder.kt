@@ -33,15 +33,17 @@ import okio.buffer
  * base painter instead.
  */
 class JxlRegionDecoder(
-    override val subsamplingImage: SubsamplingImage,
+    val subsamplingImage: SubsamplingImage,
     val imageSource: ImageSource,
     private val shared: SharedFullBitmap = SharedFullBitmap(imageSource),
 ) : RegionDecoder {
 
-    override val imageInfo: ImageInfo by lazy {
+    private val cachedImageInfo: ImageInfo by lazy {
         val size = JxlCoder.getSize(shared.bytes) ?: AndroidSize(0, 0)
         ImageInfo(size.width, size.height, JXL_MIMETYPE)
     }
+
+    override fun getImageInfo(): ImageInfo = cachedImageInfo
 
     override fun prepare() {
         shared.acquire()
@@ -157,7 +159,7 @@ class JxlRegionDecoder(
             else -> null
         }
 
-        override fun create(
+        override suspend fun create(
             subsamplingImage: SubsamplingImage,
             imageSource: ImageSource,
         ): JxlRegionDecoder = JxlRegionDecoder(

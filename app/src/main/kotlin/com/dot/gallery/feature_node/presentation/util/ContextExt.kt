@@ -466,10 +466,35 @@ fun Context.restartApplication() {
     Runtime.getRuntime().exit(0)
 }
 
-fun Context.changeAppAlias(newAlias: String) {
+/**
+ * Resolve the launcher [activity-alias] short name for a given app-name + app-logo
+ * combination. The two legacy aliases (ReFra-logo) keep their original names so existing
+ * installs are not disrupted; the Gallery-logo combinations use dedicated aliases.
+ */
+fun launcherAliasFor(nameAlias: String, logoAlias: String): String {
+    val galleryLogo = logoAlias == "Gallery"
+    return when {
+        nameAlias == "Gallery" && galleryLogo -> "Launcher_Gallery_GalleryLogo"
+        nameAlias == "Gallery" -> "Launcher_Gallery"
+        galleryLogo -> "Launcher_ReFra_GalleryLogo"
+        else -> "Launcher_ReFra"
+    }
+}
+
+/**
+ * Enable the launcher alias matching the given app-name + app-logo combination and disable
+ * all others. [logoAlias] defaults to the ReFra logo for backward compatibility with callers
+ * that only toggle the app name.
+ */
+fun Context.changeAppAlias(nameAlias: String, logoAlias: String = "ReFra") {
     val namespace = "com.dot.gallery"
-    val aliases = listOf("Launcher_ReFra", "Launcher_Gallery")
-    val targetAlias = "Launcher_$newAlias"
+    val aliases = listOf(
+        "Launcher_ReFra",
+        "Launcher_Gallery",
+        "Launcher_ReFra_GalleryLogo",
+        "Launcher_Gallery_GalleryLogo"
+    )
+    val targetAlias = launcherAliasFor(nameAlias, logoAlias)
     for (alias in aliases) {
         val component = ComponentName(packageName, "$namespace.$alias")
         val newState = if (alias == targetAlias) {
@@ -483,4 +508,27 @@ fun Context.changeAppAlias(newAlias: String) {
             PackageManager.DONT_KILL_APP
         )
     }
+}
+
+/**
+ * Returns the launcher [activity-alias] short name that is currently enabled, falling back to
+ * the default manifest alias ("Launcher_ReFra") when none has been explicitly toggled.
+ */
+fun Context.currentLauncherAlias(): String {
+    val namespace = "com.dot.gallery"
+    val aliases = listOf(
+        "Launcher_ReFra",
+        "Launcher_Gallery",
+        "Launcher_ReFra_GalleryLogo",
+        "Launcher_Gallery_GalleryLogo"
+    )
+    for (alias in aliases) {
+        val component = ComponentName(packageName, "$namespace.$alias")
+        if (packageManager.getComponentEnabledSetting(component)
+            == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        ) {
+            return alias
+        }
+    }
+    return "Launcher_ReFra"
 }

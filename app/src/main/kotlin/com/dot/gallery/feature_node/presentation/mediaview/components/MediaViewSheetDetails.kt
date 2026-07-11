@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.GpsOff
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocalFireDepartment
@@ -52,6 +53,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.dot.gallery.R
+import com.dot.gallery.cloud.core.CloudUri
+import com.dot.gallery.cloud.ui.backup.CloudBackupInfoSheet
+import com.dot.gallery.cloud.ui.descriptor.ProviderBrandIcon
 import com.dot.gallery.core.Constants.Animation.enterAnimation
 import com.dot.gallery.core.Constants.Animation.exitAnimation
 import com.dot.gallery.core.LocalEventHandler
@@ -105,6 +109,7 @@ fun <T : Media> MediaViewSheetDetails(
     restoreMedia: ((Vault, T, () -> Unit) -> Unit)?,
     currentVault: Vault?,
     motionPhotoState: MotionPhotoState? = null,
+    cloudBackups: List<Media.UriMedia> = emptyList(),
 ) {
     val metadata by rememberedDerivedState(metadataState.value, currentMedia) {
         currentMedia?.id?.let { metadataState.value.metadataMap[it] }
@@ -257,6 +262,7 @@ fun <T : Media> MediaViewSheetDetails(
 
                 val dateCaption = rememberMediaDateCaption(metadata, currentMedia)
                 val metadataSheetState = rememberAppBottomSheetState()
+                val backupSheetState = rememberAppBottomSheetState()
                 val allMetadataEventHandler = LocalEventHandler.current
                 val mediaInfoList = rememberMediaInfo(
                     media = currentMedia,
@@ -485,6 +491,59 @@ fun <T : Media> MediaViewSheetDetails(
                             )
                         }
                     }
+                    if (cloudBackups.isNotEmpty()) {
+                        item(key = "cloud_backup") {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(max = 600.dp)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .then(sheetCardBackgroundModifier)
+                                    .hazeEffectScaled(
+                                        state = LocalHazeState.current,
+                                        style = sheetCardHazeStyle
+                                    )
+                                    .padding(vertical = 16.dp)
+                            ) {
+                                val backupProviders = remember(cloudBackups) {
+                                    cloudBackups
+                                        .mapNotNull { CloudUri.parse(it.uri.toString())?.providerType }
+                                        .distinct()
+                                }
+                                MediaInfoRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                    label = stringResource(R.string.cloud_backed_up_title),
+                                    content = stringResource(R.string.cloud_backed_up_tap_hint),
+                                    icon = Icons.Outlined.CloudDone,
+                                    iconBackgroundModifier = Modifier
+                                        .then(iconBackgroundModifier)
+                                        .hazeEffectScaled(
+                                            state = LocalHazeState.current,
+                                            style = iconBackgroundHazeStyle
+                                        ),
+                                    trailingContent = {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            backupProviders.forEach { providerType ->
+                                                ProviderBrandIcon(
+                                                    providerType = providerType,
+                                                    modifier = Modifier.size(22.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        scope.launch { backupSheetState.show() }
+                                    }
+                                )
+                            }
+                        }
+                    }
                     item(key = "media_info") {
                         Column(
                             modifier = Modifier
@@ -624,6 +683,13 @@ fun <T : Media> MediaViewSheetDetails(
                         state = metadataSheetState,
                         media = currentMedia,
                         metadata = metadata
+                    )
+                }
+
+                if (cloudBackups.isNotEmpty()) {
+                    CloudBackupInfoSheet(
+                        sheetState = backupSheetState,
+                        backups = cloudBackups
                     )
                 }
 

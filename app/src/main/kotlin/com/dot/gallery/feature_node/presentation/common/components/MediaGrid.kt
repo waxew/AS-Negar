@@ -286,8 +286,9 @@ private fun <T : Media> GridPinchZoomScope.MediaGridContentWithHeaders(
 
         val favoriteIconPosition by rememberFavoriteIconPosition()
         val cloudSyncStates by LocalMediaDistributor.current.cloudSyncStates.collectAsStateWithLifecycle()
-        val cellState = remember(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates) {
-            MediaCellState(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates)
+        val cloudBackedUpIds by rememberedDerivedState(mediaState.value) { mediaState.value.cloudBackups.keys }
+        val cellState = remember(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates, cloudBackedUpIds) {
+            MediaCellState(isSelectionActive, selectedMedia.value, favoriteIconPosition, cloudSyncStates, cloudBackedUpIds)
         }
         CompositionLocalProvider(LocalMediaCellState provides cellState) {
         LazyVerticalGrid(

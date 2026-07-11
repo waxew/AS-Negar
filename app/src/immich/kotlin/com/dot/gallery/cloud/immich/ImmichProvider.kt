@@ -59,6 +59,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
+import com.dot.gallery.cloud.network.LanBindingSocketFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
@@ -95,6 +96,10 @@ class ImmichProvider @Inject constructor(
     private var baseUrl: String = ""
     private var apiService: ImmichApiService? = null
 
+    // Binds LAN-destined sockets to Wi-Fi so a local server is reachable even when that Wi-Fi
+    // has no internet (Android would otherwise route via mobile data and time out).
+    private val lanSocketFactory = LanBindingSocketFactory(context)
+
     override val isAvailable: Boolean
         get() = currentConfig != null && _connectionState.value == ConnectionState.CONNECTED
 
@@ -129,7 +134,9 @@ class ImmichProvider @Inject constructor(
         ProviderCapability.SMART_SEARCH,
         ProviderCapability.SHARE_LINK,
         ProviderCapability.ARCHIVE,
-        ProviderCapability.MEMORIES
+        ProviderCapability.MEMORIES,
+        ProviderCapability.FAVORITE,
+        ProviderCapability.TRASH
     )
 
     override fun configure(config: CloudServerConfig) {
@@ -144,12 +151,21 @@ class ImmichProvider @Inject constructor(
         val url = if (serverUrl.endsWith("/")) serverUrl else "$serverUrl/"
 
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            // Never use Level.BODY: several Immich endpoints (thumbnails, original
+            // asset download, person avatars) return binary ResponseBody, and BODY
+            // logging dumps those raw bytes to logcat as unreadable garbage. HEADERS
+            // keeps request/response lines + headers for debugging without the payload.
+            level = if (BuildConfig.ALLOW_INSECURE_TLS) {
+                HttpLoggingInterceptor.Level.HEADERS
+            } else {
+                HttpLoggingInterceptor.Level.BASIC
+            }
         }
 
         val clientBuilder = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
+            .socketFactory(lanSocketFactory)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
@@ -185,6 +201,7 @@ class ImmichProvider @Inject constructor(
         }
         val clientBuilder = OkHttpClient.Builder()
             .addInterceptor(tempInterceptor)
+            .socketFactory(lanSocketFactory)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
         if (BuildConfig.ALLOW_INSECURE_TLS) {
@@ -201,7 +218,25 @@ class ImmichProvider @Inject constructor(
     override suspend fun testConnection(config: CloudServerConfig): Result<CloudServerInfo> {
         return try {
             val tempUrl = config.serverUrl.trimEnd('/')
-            val tempApi = createIsolatedApiService(tempUrl, apiKey = config.apiKey)
+            // Immich's server endpoints require authentication. With an API key the
+            // interceptor supplies it directly, but for username/password we must log in
+            // first to obtain an access token — otherwise getServerAbout() returns 401.
+            var token: String? = null
+            if (config.apiKey.isNullOrBlank() &&
+                !config.username.isNullOrBlank() && !config.password.isNullOrBlank()
+            ) {
+                val loginApi = createIsolatedApiService(tempUrl)
+                val loginResponse = loginApi.login(
+                    ImmichLoginDto(email = config.username, password = config.password)
+                )
+                if (!loginResponse.isSuccessful) {
+                    val errorBody = runCatching { loginResponse.errorBody()?.string() }.getOrNull()
+                    val detail = errorBody?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
+                    return Result.failure(Exception("Login failed: ${loginResponse.code()}$detail"))
+                }
+                token = loginResponse.body()?.accessToken
+            }
+            val tempApi = createIsolatedApiService(tempUrl, apiKey = config.apiKey, token = token)
             val response = tempApi.getServerAbout()
             if (response.isSuccessful) {
                 val about = response.body()!!
@@ -262,7 +297,10 @@ class ImmichProvider @Inject constructor(
                     )
                 } else {
                     _connectionState.value = ConnectionState.ERROR
-                    Result.failure(Exception("Login failed: ${loginResponse.code()}"))
+                    val errorBody = runCatching { loginResponse.errorBody()?.string() }.getOrNull()
+                    printDebug("ImmichProvider: Login failed ${loginResponse.code()} — body=$errorBody")
+                    val detail = errorBody?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
+                    Result.failure(Exception("Login failed: ${loginResponse.code()}$detail"))
                 }
             } else {
                 Result.failure(Exception("No credentials provided"))
@@ -554,7 +592,7 @@ class ImmichProvider @Inject constructor(
                         id = dto.id,
                         name = dto.name,
                         providerType = ProviderType.IMMICH,
-                        thumbnailUrl = CloudMediaFetcher.buildPersonUri(ProviderType.IMMICH, dto.id),
+                        thumbnailUrl = CloudMediaFetcher.buildPersonUri(ProviderType.IMMICH, dto.id, currentConfig?.id ?: -1L),
                         assetCount = 0,
                         birthDate = dto.birthDate
                     )

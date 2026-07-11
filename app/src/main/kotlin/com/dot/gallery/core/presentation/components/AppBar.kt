@@ -68,12 +68,12 @@ import com.dot.gallery.core.Settings.Misc.rememberAllowBlur
 import com.dot.gallery.core.Settings.Misc.rememberAutoHideNavBar
 import com.dot.gallery.core.Settings.Misc.rememberOldNavbar
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
+import com.dot.gallery.feature_node.presentation.util.hazeEffectScaled
 import com.dot.gallery.feature_node.presentation.util.NavigationItem
 import com.dot.gallery.feature_node.presentation.util.Screen
 import com.dot.gallery.feature_node.presentation.util.rememberBottomBarInset
 import com.dot.gallery.ui.core.icons.Albums
 import dev.chrisbanes.haze.LocalHazeStyle
-import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun rememberNavigationItems(): List<NavigationItem> {
@@ -242,7 +242,7 @@ fun GalleryNavBar(
             .height(64.dp)
             .clip(RoundedCornerShape(100))
             .then(backgroundModifier)
-            .hazeEffect(
+            .hazeEffectScaled(
                 state = LocalHazeState.current,
                 style = LocalHazeStyle.current
             ),

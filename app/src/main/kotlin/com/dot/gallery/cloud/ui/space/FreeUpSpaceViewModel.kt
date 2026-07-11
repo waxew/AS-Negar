@@ -7,6 +7,7 @@ package com.dot.gallery.cloud.ui.space
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.dot.gallery.R
 import androidx.lifecycle.viewModelScope
 import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.core.capabilities.SyncCapableProvider
@@ -36,7 +37,9 @@ data class FreeUpSpaceUiState(
     val backedUpItems: List<Media.UriMedia> = emptyList(),
     val deletedCount: Int = 0,
     val keepFavorites: Boolean = true,
-    val cutoffDays: Int = 30,
+    // -1 = "Never": automatic/age-based removal is disabled. This is the default so
+    // nothing is ever removed unless the user explicitly picks a time range.
+    val cutoffDays: Int = FreeUpSpaceViewModel.NEVER_CUTOFF,
     val message: String = "",
     val error: String? = null
 )
@@ -51,6 +54,11 @@ class FreeUpSpaceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FreeUpSpaceUiState())
     val uiState: StateFlow<FreeUpSpaceUiState> = _uiState.asStateFlow()
 
+    companion object {
+        /** Sentinel cutoff meaning "never remove based on age". */
+        const val NEVER_CUTOFF = -1
+    }
+
     fun setKeepFavorites(keep: Boolean) {
         _uiState.value = _uiState.value.copy(keepFavorites = keep)
     }
@@ -63,6 +71,15 @@ class FreeUpSpaceViewModel @Inject constructor(
         val syncProvider = registry.getSyncProviders().firstOrNull()
         if (syncProvider == null) {
             _uiState.value = _uiState.value.copy(error = "No sync provider")
+            return
+        }
+
+        // "Never" disables removal entirely — surface a clear message and do nothing.
+        if (_uiState.value.cutoffDays == NEVER_CUTOFF) {
+            _uiState.value = _uiState.value.copy(
+                backedUpItems = emptyList(),
+                message = context.getString(R.string.cloud_free_space_never_summary)
+            )
             return
         }
 

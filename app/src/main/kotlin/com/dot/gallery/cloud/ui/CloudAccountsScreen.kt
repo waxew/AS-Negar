@@ -16,6 +16,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,7 +28,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +48,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,15 +58,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dot.gallery.R
 import com.dot.gallery.cloud.core.CloudStorageInfo
 import com.dot.gallery.cloud.core.ConnectionState
+import com.dot.gallery.cloud.core.ProviderCapability
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.data.entity.CloudServerConfigEntity
+import com.dot.gallery.cloud.ui.descriptor.ProviderBrandIcon
+import com.dot.gallery.cloud.ui.descriptor.ProviderCategory
+import com.dot.gallery.cloud.ui.descriptor.ProviderUiDescriptors
 import com.dot.gallery.core.LocalEventHandler
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.navigate
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
 import com.dot.gallery.feature_node.presentation.util.Screen
+import com.dot.gallery.feature_node.presentation.util.connectivityState
+import com.dot.gallery.feature_node.presentation.util.isOnLocalNetwork
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalCoroutinesApi::class)
 @Composable
 fun CloudAccountsScreen(
     viewModel: CloudAccountsViewModel = hiltViewModel()
@@ -88,16 +98,32 @@ fun CloudAccountsScreen(
 
     val emptySettingsList = remember { mutableStateListOf<SettingsEntity>() }
 
+    val networkState = connectivityState()
+    val context = LocalContext.current
+    val hasLanProviders = remember(configs) {
+        configs.any { ProviderUiDescriptors.forType(it.providerType).isLanOnly }
+    }
+    val onLocalNetwork = remember(networkState.value) { context.isOnLocalNetwork() }
+
     BaseSettingsScreen(
         title = stringResource(R.string.settings_cloud_accounts),
         topContent = {
+            if (hasLanProviders && !onLocalNetwork) {
+                LanOfflineBanner()
+            }
             // Connected server cards
             configs.forEach { config ->
-                val storage = storageInfoMap[config.providerType]
-                val connState = viewModel.getConnectionState(config.providerType)
-                val syncProgress = syncProgressMap[config.providerType]
-                val syncedCount = assetCounts[config.providerType] ?: 0
-                val version = serverVersions[config.providerType]
+                val storage = storageInfoMap[config.id]
+                val connState = viewModel.getConnectionState(config.id)
+                val syncProgress = syncProgressMap[config.id]
+                val syncedCount = assetCounts[config.id] ?: 0
+                val version = serverVersions[config.id]
+                val capabilities = remember(config.providerType) {
+                    viewModel.capabilitiesOf(config.providerType)
+                }
+                val isLanOnly = remember(config.providerType) {
+                    ProviderUiDescriptors.forType(config.providerType).isLanOnly
+                }
                 ServerCard(
                     config = config,
                     connState = connState,
@@ -105,30 +131,74 @@ fun CloudAccountsScreen(
                     syncProgress = syncProgress,
                     syncedCount = syncedCount,
                     version = version,
+                    capabilities = capabilities,
+                    isLanOnly = isLanOnly,
                     onSettings = {
                         eventHandler.navigate(
                             Screen.CloudProviderSettingsScreen.configId(config.id)
                         )
                     },
-                    onSync = { viewModel.triggerSync(config.providerType) }
+                    onSync = { viewModel.triggerSync(config.id) }
                 )
             }
-            // Placeholder cards for unconfigured remote providers
-            remoteProviderTypes.filterNot { it in configuredTypes }.forEach { providerType ->
-                UnconnectedProviderCard(
-                    providerType = providerType,
-                    onAdd = {
-                        eventHandler.navigate(
-                            Screen.CloudAddServerScreen.providerType(providerType.name)
-                        )
-                    }
+            // Placeholder cards for unconfigured remote providers, grouped by the category
+            // declared in each ProviderUiDescriptor (standalone, ownCloud variants, network shares).
+            val unconfigured = remoteProviderTypes.filterNot { it in configuredTypes }
+            val byCategory = remember(unconfigured) {
+                unconfigured.groupBy { ProviderUiDescriptors.forType(it).category }
+            }
+            val addProvider: (ProviderType) -> Unit = { providerType ->
+                eventHandler.navigate(
+                    Screen.CloudAddServerScreen.providerType(providerType.name)
                 )
             }
+
+            byCategory[ProviderCategory.STANDALONE].orEmpty().forEach { providerType ->
+                UnconnectedProviderCard(providerType = providerType, onAdd = { addProvider(providerType) })
+            }
+
+            ProviderCategorySection(
+                title = stringResource(R.string.cloud_owncloud_variants),
+                types = byCategory[ProviderCategory.OWNCLOUD_VARIANT].orEmpty(),
+                onAdd = addProvider
+            )
+
+            ProviderCategorySection(
+                title = stringResource(R.string.cloud_network_shares),
+                types = byCategory[ProviderCategory.NETWORK_SHARE].orEmpty(),
+                onAdd = addProvider
+            )
         },
         settingsList = emptySettingsList,
     )
 }
 
+@Composable
+private fun ProviderCategorySection(
+    title: String,
+    types: List<ProviderType>,
+    onAdd: (ProviderType) -> Unit
+) {
+    if (types.isEmpty()) return
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp)
+            .padding(top = 8.dp, bottom = 12.dp)
+    )
+    types.forEach { providerType ->
+        UnconnectedProviderCard(
+            providerType = providerType,
+            onAdd = { onAdd(providerType) }
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ServerCard(
     config: CloudServerConfigEntity,
@@ -137,6 +207,8 @@ private fun ServerCard(
     syncProgress: CloudAccountsViewModel.SyncProgress?,
     syncedCount: Int,
     version: String?,
+    capabilities: Set<ProviderCapability>,
+    isLanOnly: Boolean,
     onSettings: () -> Unit,
     onSync: () -> Unit
 ) {
@@ -211,9 +283,8 @@ private fun ServerCard(
                     .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Cloud,
-                    contentDescription = null,
+                ProviderBrandIcon(
+                    providerType = config.providerType,
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -258,6 +329,29 @@ private fun ServerCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            // Capability chips (+ LAN-only chip for network shares)
+            if (isLanOnly || capabilities.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (isLanOnly) {
+                        CapabilityChip(
+                            label = stringResource(R.string.cloud_lan_only),
+                            highlighted = true
+                        )
+                    }
+                    capabilities
+                        .mapNotNull { capabilityLabelRes(it) }
+                        .sorted()
+                        .forEach { labelRes ->
+                            CapabilityChip(label = stringResource(labelRes))
+                        }
+                }
+            }
 
             // Sync progress message
             AnimatedVisibility(visible = isSyncing && syncProgress?.message?.isNotEmpty() == true) {
@@ -383,9 +477,8 @@ private fun UnconnectedProviderCard(
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Cloud,
-                    contentDescription = null,
+                ProviderBrandIcon(
+                    providerType = providerType,
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -420,6 +513,70 @@ private fun UnconnectedProviderCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LanOfflineBanner() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.WifiOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onErrorContainer
+        )
+        Text(
+            text = stringResource(R.string.cloud_lan_offline_warning),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+    }
+}
+
+private fun capabilityLabelRes(capability: ProviderCapability): Int? = when (capability) {
+    ProviderCapability.REMOTE_ASSETS -> R.string.cloud_cap_remote_assets
+    ProviderCapability.REMOTE_ALBUMS -> R.string.cloud_cap_remote_albums
+    ProviderCapability.SYNC -> R.string.cloud_cap_sync
+    ProviderCapability.SHARE_LINK -> R.string.cloud_cap_share_link
+    ProviderCapability.PEOPLE -> R.string.cloud_cap_people
+    ProviderCapability.MAP -> R.string.cloud_cap_map
+    ProviderCapability.SMART_SEARCH -> R.string.cloud_cap_smart_search
+    ProviderCapability.TEXT_SEARCH -> R.string.cloud_cap_text_search
+    ProviderCapability.OCR -> R.string.cloud_cap_ocr
+    ProviderCapability.ARCHIVE -> R.string.cloud_cap_archive
+    ProviderCapability.MEMORIES -> R.string.cloud_cap_memories
+    // Selection-only capabilities, not surfaced as account chips.
+    ProviderCapability.FAVORITE -> null
+    ProviderCapability.TRASH -> null
+}
+
+@Composable
+private fun CapabilityChip(label: String, highlighted: Boolean = false) {
+    val container = if (highlighted) MaterialTheme.colorScheme.tertiaryContainer
+    else MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+    val content = if (highlighted) MaterialTheme.colorScheme.onTertiaryContainer
+    else MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(container)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = content,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

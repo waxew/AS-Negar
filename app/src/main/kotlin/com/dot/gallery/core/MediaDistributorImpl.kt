@@ -42,9 +42,12 @@ import com.dot.gallery.feature_node.data.data_source.ScannedMediaDao
 import com.dot.gallery.cloud.core.CloudAlbum
 import com.dot.gallery.cloud.core.ConnectionState
 import com.dot.gallery.cloud.core.SyncState
+import com.dot.gallery.cloud.core.cloudAlbumId
+import com.dot.gallery.cloud.core.cloudMediaId
 import com.dot.gallery.cloud.core.stableIdHash
 import com.dot.gallery.cloud.data.entity.CloudMediaEntity
 import com.dot.gallery.cloud.data.repository.CloudRepository
+import com.dot.gallery.cloud.sync.CloudUploadWorker
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.EventHandler
 import com.dot.gallery.feature_node.domain.util.MediaOrder
@@ -75,7 +78,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -310,8 +312,9 @@ class MediaDistributorImpl @Inject constructor(
     // Eagerly load cached cloud media so the timeline can merge them.
     // The one-shot Room query runs on IO and typically completes before
     // the slower MediaStore query.
-    // distinctUntilChangedBy avoids redundant combine passes when the
-    // reactive Room Flow re-emits the same data as the one-shot query.
+    // distinctUntilChanged() (structural) instead of size-only: an in-place mutation that keeps
+    // the count constant (e.g. a favorite/archive toggle, or an asset swapped for another) changes
+    // content but not size, so a size-only guard would drop the update and leave the timeline stale.
     private val _cloudCachedMedia: StateFlow<List<Media.UriMedia>> = flow {
         emit(withContext(Dispatchers.IO) {
             cloudRepository.getCachedMediaAsync().map { it.toUriMedia() }
@@ -319,7 +322,7 @@ class MediaDistributorImpl @Inject constructor(
         emitAll(cloudRepository.getCachedMedia().map { entities ->
             entities.map { it.toUriMedia() }
         })
-    }.distinctUntilChangedBy { it.size }
+    }.distinctUntilChanged()
      .stateIn(appScope, SharingStarted.Eagerly, emptyList())
 
     private val _cloudCachedFavorites: StateFlow<List<Media.UriMedia>> = flow {
@@ -329,7 +332,7 @@ class MediaDistributorImpl @Inject constructor(
         emitAll(cloudRepository.getCachedFavorites().map { entities ->
             entities.map { it.toUriMedia() }
         })
-    }.distinctUntilChangedBy { it.size }
+    }.distinctUntilChanged()
      .stateIn(appScope, SharingStarted.Eagerly, emptyList())
 
     private val _cloudCachedTrashed: StateFlow<List<Media.UriMedia>> = flow {
@@ -339,12 +342,12 @@ class MediaDistributorImpl @Inject constructor(
         emitAll(cloudRepository.getCachedTrashed().map { entities ->
             entities.map { it.toUriMedia() }
         })
-    }.distinctUntilChangedBy { it.size }
+    }.distinctUntilChanged()
      .stateIn(appScope, SharingStarted.Eagerly, emptyList())
 
     override val cloudSyncStates: StateFlow<Map<Long, SyncState>> =
         cloudRepository.getCachedMedia().map { entities ->
-            entities.associate { stableIdHash(it.remoteId) to it.syncState }
+            entities.associate { cloudMediaId(it.providerType, it.serverConfigId, it.remoteId) to it.syncState }
         }.stateIn(appScope, SharingStarted.Eagerly, emptyMap())
 
     init {
@@ -358,6 +361,22 @@ class MediaDistributorImpl @Inject constructor(
                 }
             }
         }
+        // Re-fetch cloud albums + membership when a backup run finishes, so newly uploaded
+        // media surfaces as a fresh remote album/thumbnail without needing an app restart.
+        // (Uploaded rows already reach the timeline reactively via _cloudCachedMedia; the
+        // remote album list is a network fetch that only happens in refreshCloudData.)
+        appScope.launch {
+            var wasRunning = false
+            workManager.getWorkInfosByTagFlow(CloudUploadWorker.TAG_BACKUP).collect { infos ->
+                val running = infos.any {
+                    it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED
+                }
+                if (!running && wasRunning && cloudRepository.hasConfiguredProviders) {
+                    refreshCloudData()
+                }
+                wasRunning = running
+            }
+        }
     }
 
     private suspend fun refreshCloudData() {
@@ -369,17 +388,44 @@ class MediaDistributorImpl @Inject constructor(
                 }
             }
         } catch (_: Exception) { }
-        // Collect all asset IDs that belong to at least one cloud album
+        // Collect all asset IDs that belong to at least one cloud album, and — for
+        // providers that don't populate album metadata from a cheap directory listing
+        // (e.g. SMB/NFS/WebDAV report thumbnailAssetId == null and assetCount == 0) —
+        // enrich each album from its member list so it gets a working thumbnail and a
+        // real item count.
         try {
             val albums = _cloudAlbumsFlow.value
             val memberIds = HashSet<String>()
+            val enriched = ArrayList<CloudAlbum>(albums.size)
+            var didEnrich = false
             for (album in albums) {
                 val resource = cloudRepository.getAlbumMedia(album.providerType, album.remoteId).first()
-                if (resource is Resource.Success) {
-                    resource.data?.forEach { memberIds.add(it.remoteId) }
+                val media = if (resource is Resource.Success) resource.data ?: emptyList() else emptyList()
+                media.forEach { memberIds.add(it.remoteId) }
+                var updated = album
+                if (updated.thumbnailAssetId == null) {
+                    // Cover with the album's NEWEST asset (max timestamp), not whatever the
+                    // directory scan happens to return first — otherwise the thumbnail is an
+                    // arbitrary/old item and never tracks freshly uploaded media.
+                    media.maxByOrNull { it.timestamp }?.remoteId
+                        ?.let { updated = updated.copy(thumbnailAssetId = it) }
                 }
+                if (updated.assetCount == 0 && media.isNotEmpty()) {
+                    updated = updated.copy(assetCount = media.size)
+                }
+                // Drop empty albums — folders with no media (e.g. ownCloud's default
+                // "Documents"/"Learn more about ownCloud" folders) shouldn't clutter the
+                // album list. Providers that report a cheap assetCount (Immich) keep their
+                // albums even if the media fetch failed transiently (assetCount > 0).
+                if (updated.assetCount == 0 && media.isEmpty()) {
+                    didEnrich = true // list shrank; publish the filtered result
+                    continue
+                }
+                if (updated !== album) didEnrich = true
+                enriched.add(updated)
             }
             _cloudAlbumMemberRemoteIds.value = memberIds
+            if (didEnrich) _cloudAlbumsFlow.value = enriched
         } catch (_: Exception) { }
         // Fetch trashed items into cache so the trash screen has cloud data
         try {
@@ -392,12 +438,20 @@ class MediaDistributorImpl @Inject constructor(
         // Check unsorted virtual albums
         if (isUnsortedCloudAlbumId(albumId)) return true
         return _cloudAlbumsFlow.value.any {
-            (CloudAlbum.CLOUD_ALBUM_ID_BASE - stableIdHash(it.remoteId)) == albumId
+            cloudAlbumId(it.providerType, it.serverConfigId, it.remoteId) == albumId
         }
     }
 
     private fun isUnsortedCloudAlbumId(albumId: Long): Boolean {
-        return com.dot.gallery.cloud.core.ProviderType.remoteTypes().any { providerType ->
+        return unsortedAlbumProviderType(albumId) != null
+    }
+
+    /**
+     * Resolve which provider an "unsorted" virtual cloud album id belongs to.
+     * Returns null when [albumId] is not an unsorted-cloud-album id.
+     */
+    private fun unsortedAlbumProviderType(albumId: Long): com.dot.gallery.cloud.core.ProviderType? {
+        return com.dot.gallery.cloud.core.ProviderType.remoteTypes().firstOrNull { providerType ->
             (CloudAlbum.CLOUD_ALBUM_ID_BASE - stableIdHash(UNSORTED_ALBUM_SENTINEL + providerType.name)) == albumId
         }
     }
@@ -420,7 +474,10 @@ class MediaDistributorImpl @Inject constructor(
                 com.dot.gallery.cloud.core.ProviderType.valueOf(providerName)
             } catch (_: Exception) { return@mapNotNull null }
             val unsortedMedia = providerMedia.filter { media ->
-                val remoteId = media.getUri().pathSegments.firstOrNull()
+                // remoteId may contain slashes (SMB/NFS/WebDAV paths like "Photos/IMG.jpg");
+                // pathSegments.first() would truncate it to the first folder and never match the
+                // full remoteIds in memberIds — making every item look "unsorted". Use the whole path.
+                val remoteId = media.getUri().path?.trimStart('/')?.takeIf { it.isNotEmpty() }
                 remoteId != null && remoteId !in memberIds
             }
             if (unsortedMedia.isEmpty()) return@mapNotNull null
@@ -625,11 +682,18 @@ class MediaDistributorImpl @Inject constructor(
                 }
                 .mapTo(HashSet()) { it.id }
 
-            val unpinnedUngrouped = mergedData.filter { album ->
+            val unpinnedUngroupedAll = mergedData.filter { album ->
                 !album.isPinned && album.id !in groupedMergedIds &&
                     (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
                      else album.id !in collectionAlbumIds)
             }
+            // Cloud albums live in their own dedicated section — keep them out of the
+            // local unpinned list and out of section classification.
+            val cloudAlbumList = unpinnedUngroupedAll
+                .filter { it.relativePath.startsWith("cloud/") }
+                .sortedBy { it.label }
+            val unpinnedUngrouped = unpinnedUngroupedAll
+                .filterNot { it.relativePath.startsWith("cloud/") }
 
             val albumSections = if (areSectionsEnabled && sections.isNotEmpty()) {
                 val manualOverrides = sectionMembers.associate { it.albumId to it.sectionId }
@@ -652,6 +716,7 @@ class MediaDistributorImpl @Inject constructor(
                 albums = mergedData,
                 albumsWithBlacklisted = data,
                 albumsUnpinned = if (areSectionsEnabled && sections.isNotEmpty()) emptyList() else unpinnedUngrouped,
+                albumsCloud = cloudAlbumList,
                 albumsPinned = mergedData.filter { album ->
                     album.isPinned &&
                         (if (album.isMerged) album.mergedAlbumIds.none { it in collectionAlbumIds }
@@ -693,7 +758,7 @@ class MediaDistributorImpl @Inject constructor(
         _cloudAlbumsFlow
             .map { albums ->
                 albums.find {
-                    (CloudAlbum.CLOUD_ALBUM_ID_BASE - stableIdHash(it.remoteId)) == albumId
+                    cloudAlbumId(it.providerType, it.serverConfigId, it.remoteId) == albumId
                 }
             }
             .distinctUntilChanged()
@@ -752,8 +817,13 @@ class MediaDistributorImpl @Inject constructor(
             dateFormatsFlow,
             albumMediaSortFlow
         ) { cachedMedia, memberIds, settings, dateFormats, albumSort ->
+            // Scope to the provider this unsorted album belongs to — otherwise opening one
+            // provider's "unsorted" album would show the merged cloud media of every provider.
+            val providerName = unsortedAlbumProviderType(albumId)?.name
             val unsortedMedia = cachedMedia.filter { media ->
-                val remoteId = media.getUri().pathSegments.firstOrNull()
+                if (providerName != null && media.getUri().authority != providerName) return@filter false
+                // Full path: remoteId may contain slashes (see the _unsortedCloudAlbumsFlow filter).
+                val remoteId = media.getUri().path?.trimStart('/')?.takeIf { it.isNotEmpty() }
                 remoteId != null && remoteId !in memberIds
             }
             val (defaultDateFormat, extendedDateFormat, weeklyDateFormat) = dateFormats
@@ -921,33 +991,35 @@ class MediaDistributorImpl @Inject constructor(
                 if (isMainTimeline) {
                     removeAll { media -> media.albumID in lockedAlbumIds }
                 }
-                if (isMainTimeline || isFavorites || isTrash) {
-                    addAll(cloudMedia)
-                }
             }
-            // Pre-compute cloud→local group key overrides so cloud items
-            // are grouped with their local counterparts by the standard groupBy.
-            val cloudOverrides = if (
-                shouldGroupSimilar &&
-                MediaGroupType.CLOUD_LOCAL in groupTypes &&
-                cloudMedia.isNotEmpty()
-            ) {
-                val localByBasename = HashMap<String, String>(data.size)
-                for (m in data) {
-                    if (!m.isCloud) {
-                        localByBasename.putIfAbsent(m.cloudGroupKey, m.groupKey)
+            // Merge cloud media into the unified timeline. When CLOUD_LOCAL is enabled a cloud
+            // copy that matches a local item (by base filename) is NOT added as its own tile;
+            // instead it is recorded as a backup of the local item, surfaced via a small grid
+            // indicator and the viewer's backup sheet. Cloud-only items still get their tile.
+            // When the setting is off, cloud and local items are shown side by side (no skip).
+            val cloudBackups: Map<Long, List<Media.UriMedia>>
+            if ((isMainTimeline || isFavorites || isTrash) && cloudMedia.isNotEmpty()) {
+                if (MediaGroupType.CLOUD_LOCAL in groupTypes) {
+                    val localByBasename = HashMap<String, Long>(data.size)
+                    for (m in data) {
+                        if (!m.isCloud) localByBasename.putIfAbsent(m.cloudGroupKey, m.id)
                     }
-                }
-                val overrides = HashMap<Long, String>(cloudMedia.size)
-                for (c in cloudMedia) {
-                    val localKey = localByBasename[c.cloudGroupKey]
-                    if (localKey != null) {
-                        overrides[c.id] = localKey
+                    val backups = HashMap<Long, MutableList<Media.UriMedia>>()
+                    for (c in cloudMedia) {
+                        val localId = localByBasename[c.cloudGroupKey]
+                        if (localId != null) {
+                            backups.getOrPut(localId) { ArrayList(1) }.add(c)
+                        } else {
+                            data.add(c)
+                        }
                     }
+                    cloudBackups = backups
+                } else {
+                    data.addAll(cloudMedia)
+                    cloudBackups = emptyMap()
                 }
-                overrides
             } else {
-                emptyMap()
+                cloudBackups = emptyMap()
             }
             val mapSpan = StartupTracer.begin("$tag.mapMediaToItem(${data.size} items)")
             val state = mapMediaToItem(
@@ -958,7 +1030,7 @@ class MediaDistributorImpl @Inject constructor(
                 groupByYear = settings?.groupTimelineByYear == true,
                 groupSimilarMedia = shouldGroupSimilar,
                 enabledGroupTypes = groupTypes,
-                cloudGroupKeyOverrides = cloudOverrides,
+                cloudBackups = cloudBackups,
                 defaultDateFormat = defaultDateFormat,
                 extendedDateFormat = extendedDateFormat,
                 weeklyDateFormat = weeklyDateFormat

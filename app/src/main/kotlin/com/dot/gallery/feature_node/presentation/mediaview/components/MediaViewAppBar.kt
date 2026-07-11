@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.outlined.MotionPhotosPaused
 import androidx.compose.material.icons.outlined.ScreenRotationAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -73,6 +75,9 @@ fun MediaViewAppBar(
     isLocked: Boolean,
     currentMedia: Media?,
     currentDate: AnnotatedString,
+    // While true, a subtle indeterminate horizontal indicator is shown directly under the
+    // top-center date (e.g. while a cloud/remote full-size original downloads for subsampling).
+    showLoadingIndicator: Boolean = false,
     paddingValues: PaddingValues,
     showRotationHelper: State<Boolean>,
     // 1f = fully visible, 0f = fully hidden. Driven by info-sheet expansion progress so the
@@ -182,19 +187,37 @@ fun MediaViewAppBar(
                     enter = enterAnimation,
                     exit = exitAnimation
                 ) {
-                    Text(
-                        text = currentDate,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = contentColor,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .combinedClickable(
-                                onLongClick = { onLock() },
-                                onClick = { /* no-op */ },
-                                interactionSource = null,
-                                indication = null
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = currentDate,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = contentColor,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .combinedClickable(
+                                    onLongClick = { onLock() },
+                                    onClick = { /* no-op */ },
+                                    interactionSource = null,
+                                    indication = null
+                                )
+                        )
+                        this@Column.AnimatedVisibility(
+                            visible = showLoadingIndicator,
+                            enter = enterAnimation,
+                            exit = exitAnimation
+                        ) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .width(64.dp)
+                                    .height(2.dp),
+                                color = contentColor.copy(alpha = 0.7f),
+                                trackColor = contentColor.copy(alpha = 0.15f),
                             )
-                    )
+                        }
+                    }
                 }
 
                 Row(

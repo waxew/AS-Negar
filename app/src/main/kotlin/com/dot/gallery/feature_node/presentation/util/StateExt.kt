@@ -193,6 +193,7 @@ suspend fun <T : Media> mapMediaToItem(
     groupSimilarMedia: Boolean = false,
     enabledGroupTypes: Set<MediaGroupType> = MediaGroupType.entries.toSet(),
     cloudGroupKeyOverrides: Map<Long, String> = emptyMap(),
+    cloudBackups: Map<Long, List<Media.UriMedia>> = emptyMap(),
     defaultDateFormat: String,
     extendedDateFormat: String,
     weeklyDateFormat: String
@@ -332,6 +333,7 @@ suspend fun <T : Media> mapMediaToItem(
         mappedMedia = mappedData,
         mappedMediaWithMonthly = if (withMonthHeader) mappedDataWithMonthly else emptyList(),
         mappedMediaWithYearly = if (withMonthHeader) mappedDataWithYearly else emptyList(),
+        cloudBackups = cloudBackups,
         dateHeader = data.dateHeader(albumId)
     )
 }

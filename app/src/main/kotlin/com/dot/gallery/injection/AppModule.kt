@@ -28,6 +28,10 @@ import com.dot.gallery.core.MediaSelectorImpl
 import com.dot.gallery.feature_node.data.data_source.InternalDatabase
 import com.dot.gallery.feature_node.data.data_source.KeychainHolder
 import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_12_13
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_33_34
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_35_36
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_36_37
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_37_38
 import com.dot.gallery.feature_node.data.repository.MediaRepositoryImpl
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
 import com.dot.gallery.feature_node.domain.util.EventHandler
@@ -67,7 +71,7 @@ object AppModule {
             // fall back to plaintext database silently.
             StartupTracer.trace("AppModule.provideDatabase.fallbackPlaintext") {
                 Room.databaseBuilder(app, InternalDatabase::class.java, InternalDatabase.NAME)
-                    .addMigrations(MIGRATION_12_13)
+                    .addMigrations(MIGRATION_12_13, MIGRATION_33_34, MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38)
                     .fallbackToDestructiveMigrationOnDowngrade(true)
                     .fallbackToDestructiveMigration(false)
                     .build()

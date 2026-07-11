@@ -64,6 +64,9 @@ interface CloudRepository {
     // Search
     suspend fun search(query: String): Result<List<CloudMediaEntity>>
 
+    // Delete a single remote asset from a specific account and drop it from the local cache.
+    suspend fun deleteAsset(type: ProviderType, configId: Long, remoteId: String): Result<Unit>
+
     // Archive
     suspend fun toggleArchive(type: ProviderType, remoteId: String, archived: Boolean): Result<Unit>
     fun getRemoteArchived(type: ProviderType): Flow<Resource<List<CloudMediaEntity>>>

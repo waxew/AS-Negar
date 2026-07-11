@@ -24,9 +24,23 @@ interface CloudUploadPrefDao {
     @Query("SELECT * FROM cloud_upload_pref WHERE uploadEnabled = 1")
     suspend fun getEnabledList(): List<CloudUploadPrefEntity>
 
+    // === Per-account (server config) scoped queries ===
+
+    @Query("SELECT * FROM cloud_upload_pref WHERE serverConfigId = :configId")
+    fun getByConfig(configId: Long): Flow<List<CloudUploadPrefEntity>>
+
+    @Query("SELECT * FROM cloud_upload_pref WHERE serverConfigId = :configId AND uploadEnabled = 1")
+    fun getEnabledByConfig(configId: Long): Flow<List<CloudUploadPrefEntity>>
+
+    @Query("SELECT * FROM cloud_upload_pref WHERE serverConfigId = :configId AND uploadEnabled = 1")
+    suspend fun getEnabledByConfigList(configId: Long): List<CloudUploadPrefEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CloudUploadPrefEntity)
 
-    @Query("DELETE FROM cloud_upload_pref WHERE albumId = :albumId")
-    suspend fun delete(albumId: Long)
+    @Query("DELETE FROM cloud_upload_pref WHERE serverConfigId = :configId AND albumId = :albumId")
+    suspend fun delete(configId: Long, albumId: Long)
+
+    @Query("DELETE FROM cloud_upload_pref WHERE serverConfigId = :configId")
+    suspend fun deleteByConfig(configId: Long)
 }

@@ -15,4 +15,13 @@ interface SyncCapableProvider : MediaCapabilityProvider {
     suspend fun downloadAsset(remoteId: String): Result<Uri>
     suspend fun getChangedSince(timestamp: Long): Result<List<CloudMediaEntity>>
     suspend fun bulkUploadCheck(hashes: List<String>): Result<Map<String, Boolean>>
+
+    /**
+     * Whether [localMedia] is already present at its deterministic upload target.
+     * Path-based stores (SMB/NFS/WebDAV) have no server-side content hash, so
+     * [bulkUploadCheck] can't dedupe for them; they answer here by checking the
+     * target path + size instead. Content-addressable stores (e.g. Immich) keep
+     * the default `false` and rely on [bulkUploadCheck].
+     */
+    suspend fun remoteExists(localMedia: Media, targetPath: String? = null): Boolean = false
 }

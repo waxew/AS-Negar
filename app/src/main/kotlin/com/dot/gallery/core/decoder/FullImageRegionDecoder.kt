@@ -32,7 +32,7 @@ import okio.buffer
  * Configure one via the [forPsd]/[forJp2]/[forTiff]/[forSvg] factory builders.
  */
 class FullImageRegionDecoder(
-    override val subsamplingImage: SubsamplingImage,
+    val subsamplingImage: SubsamplingImage,
     val imageSource: ImageSource,
     private val mimeType: String,
     private val decodeFull: (ByteArray) -> Bitmap?,
@@ -40,10 +40,12 @@ class FullImageRegionDecoder(
     private val shared: SharedFullBitmap = SharedFullBitmap(imageSource, decodeFull),
 ) : RegionDecoder {
 
-    override val imageInfo: ImageInfo by lazy {
+    private val cachedImageInfo: ImageInfo by lazy {
         val size = sizeOf(shared.bytes) ?: AndroidSize(0, 0)
         ImageInfo(size.width, size.height, mimeType)
     }
+
+    override fun getImageInfo(): ImageInfo = cachedImageInfo
 
     override fun prepare() {
         shared.acquire()
@@ -153,7 +155,7 @@ class FullImageRegionDecoder(
         override fun checkSupport(mimeType: String): Boolean? =
             if (mimeType in supportedMimeTypes) true else null
 
-        override fun create(
+        override suspend fun create(
             subsamplingImage: SubsamplingImage,
             imageSource: ImageSource,
         ): FullImageRegionDecoder = FullImageRegionDecoder(

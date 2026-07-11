@@ -14,6 +14,10 @@ import androidx.room.Room
 import com.dot.gallery.core.metrics.StartupTracer
 import com.dot.gallery.feature_node.data.data_source.InternalDatabase
 import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_12_13
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_33_34
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_35_36
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_36_37
+import com.dot.gallery.feature_node.data.data_source.migration.MIGRATION_37_38
 import com.dot.gallery.feature_node.presentation.util.printDebug
 import com.dot.gallery.feature_node.presentation.util.printWarning
 import net.zetetic.database.sqlcipher.SQLiteDatabase
@@ -88,7 +92,7 @@ object EncryptedDatabaseFactory {
                 InternalDatabase.NAME
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_12_13)
+                .addMigrations(MIGRATION_12_13, MIGRATION_33_34, MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38)
                 .fallbackToDestructiveMigrationOnDowngrade(true)
                 .fallbackToDestructiveMigration(false)
                 .build()

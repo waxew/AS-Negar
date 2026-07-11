@@ -8,8 +8,11 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.dot.gallery.BuildConfig
-import com.dot.gallery.cloud.core.stableIdHash
+import com.dot.gallery.cloud.core.ThumbnailSize
+import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
+import com.dot.gallery.cloud.core.cloudMediaId
 import com.dot.gallery.cloud.data.dao.CloudMediaDao
+import com.dot.gallery.cloud.image.CloudFetcherRegistryHolder
 import com.dot.gallery.core.ml.ModelManager
 import com.dot.gallery.feature_node.domain.model.ImageEmbedding
 import com.dot.gallery.feature_node.domain.repository.MediaRepository
@@ -61,7 +64,7 @@ class SearchIndexerUpdaterWorker @AssistedInject constructor(
         // Collect cloud media that needs indexing
         val cloudEntities = cloudMediaDao.getAllCachedAsync()
         val cloudToBeIndexed = cloudEntities.filter { entity ->
-            stableIdHash(entity.remoteId) !in indexedIds
+            cloudMediaId(entity.providerType, entity.serverConfigId, entity.remoteId) !in indexedIds
         }
 
         val totalLocal = toBeIndexed.size
@@ -84,6 +87,7 @@ class SearchIndexerUpdaterWorker @AssistedInject constructor(
                 val request = ImageRequest(appContext, mediaItem.getUri().toString()) {
                     colorSpace(BitmapColorSpace(ColorSpace.Named.SRGB))
                     size(224, 224)
+                    setExtra("realMimeType", mediaItem.mimeType)
                 }
                 val result = appContext.sketch.execute(request)
                 val bitmap = result.image?.asBitmapOrNull()
@@ -110,6 +114,20 @@ class SearchIndexerUpdaterWorker @AssistedInject constructor(
                 val globalIndex = totalLocal + index
                 val pct = if (totalItems <= 1) 100f else ((globalIndex.toFloat() / (totalItems - 1).toFloat()) * 100f)
                 setProgress(workDataOf("progress" to pct))
+                // Skip items that have no server-side preview (e.g. videos on a
+                // server without preview generation). Resolving the URL up front lets
+                // us avoid a doomed Sketch request that would only 404 and spam logs.
+                val provider = CloudFetcherRegistryHolder.registry?.get(entity.providerType) as? RemoteMediaProvider
+                val previewUrl = provider?.getThumbnailUrl(
+                    entity.remoteId,
+                    ThumbnailSize.PREVIEW,
+                    entity.fileId.ifBlank { null }
+                )
+                if (previewUrl != null && previewUrl.isBlank()) {
+                    printInfo("Skipping cloud media without server preview: ${entity.remoteId} (${entity.providerType})")
+                    yield()
+                    return@fastForEachIndexed
+                }
                 val cloudMedia = entity.toUriMedia()
                 val request = ImageRequest(appContext, cloudMedia.getUri().toString()) {
                     colorSpace(BitmapColorSpace(ColorSpace.Named.SRGB))

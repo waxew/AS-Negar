@@ -77,7 +77,7 @@ interface MediaRepository {
 
     suspend fun getBlacklistedAlbumsAsync(): List<IgnoredAlbum>
 
-    fun getMediaByAlbumId(albumId: Long): Flow<Resource<List<UriMedia>>>
+    fun getMediaByAlbumId(albumId: Long, skipBatching: Boolean = false): Flow<Resource<List<UriMedia>>>
 
     fun getMediaByAlbumIdWithType(
         albumId: Long,

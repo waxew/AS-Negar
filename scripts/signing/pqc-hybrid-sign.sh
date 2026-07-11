@@ -42,11 +42,13 @@ fi
 
 for apk in "${APKS[@]}"; do
   echo "==> Signing $apk"
+  # Use apksigner's env: form so passwords are NOT placed on the process
+  # argv (where they'd be visible to `ps`); they're read from the environment.
   "$APKSIGNER" sign \
     --ks "$NEW_KEYSTORE" \
     --ks-key-alias "$NEW_ALIAS" \
-    --ks-pass "pass:$NEW_STORE_PASSWORD" \
-    --key-pass "pass:$NEW_KEY_PASSWORD" \
+    --ks-pass "env:NEW_STORE_PASSWORD" \
+    --key-pass "env:NEW_KEY_PASSWORD" \
     --lineage "$LINEAGE" \
     "${PQC_SIGNER_ARGS[@]}" \
     "$apk"

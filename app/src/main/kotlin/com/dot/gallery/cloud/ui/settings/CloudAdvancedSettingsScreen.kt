@@ -22,13 +22,12 @@ import com.dot.gallery.feature_node.presentation.settings.components.BaseSetting
 fun CloudAdvancedSettingsScreen() {
     val settingsVm = hiltViewModel<CloudSettingsViewModel>()
     val config by settingsVm.config.collectAsStateWithLifecycle()
+    val cacheClearing by settingsVm.cacheClearing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val troubleshooting = config?.verboseLogging ?: false
-    val syncRemoteDeletions = config?.syncRemoteDeletions ?: false
-    val preferRemoteImages = config?.preferRemoteImages ?: false
     val readOnlyMode = config?.readOnlyMode ?: false
 
-    val settingsList = remember(troubleshooting, syncRemoteDeletions, preferRemoteImages, readOnlyMode) {
+    val settingsList = remember(troubleshooting, readOnlyMode, cacheClearing) {
         buildList {
             // Troubleshooting section
             add(SettingsEntity.Header(title = context.getString(R.string.cloud_adv_troubleshooting)))
@@ -42,36 +41,15 @@ fun CloudAdvancedSettingsScreen() {
                 )
             )
 
-            // Sync section
-            add(SettingsEntity.Header(title = context.getString(R.string.cloud_adv_sync)))
-            add(
-                SettingsEntity.SwitchPreference(
-                    title = context.getString(R.string.cloud_adv_sync_deletions),
-                    summary = context.getString(R.string.cloud_adv_sync_deletions_summary),
-                    isChecked = syncRemoteDeletions,
-                    onCheck = { settingsVm.updateConfig { copy(syncRemoteDeletions = it) } },
-                    screenPosition = Position.Alone
-                )
-            )
-
             // Display section
             add(SettingsEntity.Header(title = context.getString(R.string.cloud_adv_display)))
-            add(
-                SettingsEntity.SwitchPreference(
-                    title = context.getString(R.string.cloud_adv_prefer_remote),
-                    summary = context.getString(R.string.cloud_adv_prefer_remote_summary),
-                    isChecked = preferRemoteImages,
-                    onCheck = { settingsVm.updateConfig { copy(preferRemoteImages = it) } },
-                    screenPosition = Position.Top
-                )
-            )
             add(
                 SettingsEntity.SwitchPreference(
                     title = context.getString(R.string.cloud_adv_readonly),
                     summary = context.getString(R.string.cloud_adv_readonly_summary),
                     isChecked = readOnlyMode,
                     onCheck = { settingsVm.updateConfig { copy(readOnlyMode = it) } },
-                    screenPosition = Position.Bottom
+                    screenPosition = Position.Alone
                 )
             )
 
@@ -79,8 +57,10 @@ fun CloudAdvancedSettingsScreen() {
             add(SettingsEntity.Header(title = context.getString(R.string.cloud_adv_cache)))
             add(
                 SettingsEntity.Preference(
-                    title = context.getString(R.string.cloud_adv_clear_cache),
-                    onClick = { /* Clear image cache */ },
+                    title = if (cacheClearing) context.getString(R.string.cloud_adv_clearing_cache)
+                    else context.getString(R.string.cloud_adv_clear_cache),
+                    enabled = !cacheClearing,
+                    onClick = { settingsVm.clearImageCache() },
                     screenPosition = Position.Alone
                 )
             )

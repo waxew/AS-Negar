@@ -1,266 +1,148 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2026 IacobIacob01
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.dot.gallery.feature_node.presentation.setup
 
-import android.Manifest
-import android.app.Activity
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
-import android.widget.Toast
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FileOpen
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.PermMedia
-import androidx.compose.material.icons.rounded.SignalWifi4Bar
-import androidx.compose.material.icons.rounded.VideoFile
-import com.dot.gallery.core.presentation.components.SetupButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.dot.gallery.BuildConfig
-import com.dot.gallery.R
-import com.dot.gallery.core.Constants
-import com.dot.gallery.core.Settings.Misc.rememberIsMediaManager
-import com.dot.gallery.core.presentation.components.SetupWizard
-import com.dot.gallery.feature_node.presentation.common.components.OptionItem
-import com.dot.gallery.feature_node.presentation.common.components.OptionLayout
-import com.dot.gallery.feature_node.presentation.util.RepeatOnResume
-import com.dot.gallery.feature_node.presentation.util.isManageFilesAllowed
-import com.dot.gallery.feature_node.presentation.util.launchManageFiles
-import com.dot.gallery.feature_node.presentation.util.launchManageMedia
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.rememberPermissionState
+import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.core.Settings
+import com.dot.gallery.core.Settings.Misc.rememberAppLogoAlias
+import com.dot.gallery.core.Settings.Misc.rememberAppNameAlias
+import com.dot.gallery.core.Settings.Misc.rememberSetupCompletedVersion
+import com.dot.gallery.feature_node.presentation.setup.components.LocalSetupAnimatedVisibilityScope
+import com.dot.gallery.feature_node.presentation.setup.components.LocalSetupSharedTransitionScope
+import com.dot.gallery.feature_node.presentation.setup.components.SetupAnimatedBackground
+import com.dot.gallery.feature_node.presentation.setup.pages.SetupAiModelsPage
+import com.dot.gallery.feature_node.presentation.setup.pages.SetupCloudPage
+import com.dot.gallery.feature_node.presentation.setup.pages.SetupLooksFeelPage
+import com.dot.gallery.feature_node.presentation.setup.pages.SetupPermissionsPage
+import com.dot.gallery.feature_node.presentation.setup.pages.SetupTipsPage
+import com.dot.gallery.feature_node.presentation.setup.pages.SetupWelcomePage
+import com.dot.gallery.feature_node.presentation.util.changeAppAlias
+import com.dot.gallery.feature_node.presentation.util.currentLauncherAlias
+import com.dot.gallery.feature_node.presentation.util.launcherAliasFor
+import com.dot.gallery.feature_node.presentation.util.restartApplication
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalPermissionsApi::class)
+private enum class SetupPage { WELCOME, PERMISSIONS, LOOKS, CLOUD, AI_MODELS, TIPS }
+
+/**
+ * First-launch / out-of-the-box setup wizard. Pages adapt to the build variant:
+ * the Cloud page is omitted in offline builds (or when no remote provider is bundled),
+ * and the AI Models page is omitted in offline builds unless models are bundled (WithML).
+ * Completing the wizard records [Settings.Misc.CURRENT_SETUP_VERSION] so it is only shown
+ * again when the wizard itself is reworked.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SetupScreen(
-    onPermissionGranted: () -> Unit = {},
-) {
-    val scope = rememberCoroutineScope()
+fun SetupScreen(onComplete: () -> Unit = {}) {
+    val activity = LocalActivity.current
     val context = LocalContext.current
-    val resources = LocalResources.current
-    var firstLaunch by remember { mutableStateOf(true) }
-    var permissionGranted by remember { mutableStateOf(false) }
-    val mediaPermissions = rememberMultiplePermissionsState(Constants.PERMISSIONS) {
-        firstLaunch = false
-        permissionGranted = it.all { item -> item.value }
-    }
-    val appName = "${stringResource(id = R.string.app_name)} v${BuildConfig.VERSION_NAME}"
-    LaunchedEffect(permissionGranted) {
-        if (permissionGranted) {
-            onPermissionGranted()
-        } else if (!firstLaunch) Toast.makeText(
-            context,
-            resources.getString(R.string.some_permissions_are_not_granted), Toast.LENGTH_LONG
-        )
-            .show()
+    val scope = rememberCoroutineScope()
+    var setupCompletedVersion by rememberSetupCompletedVersion()
+    val appNameAlias by rememberAppNameAlias()
+    val appLogoAlias by rememberAppLogoAlias()
+
+    val pages = remember {
+        buildList {
+            add(SetupPage.WELCOME)
+            add(SetupPage.PERMISSIONS)
+            add(SetupPage.LOOKS)
+            if (!BuildConfig.OFFLINE_MODE && ProviderType.hasAnyRemoteProvider()) add(SetupPage.CLOUD)
+            if (!BuildConfig.OFFLINE_MODE || BuildConfig.ML_MODELS_BUNDLED) add(SetupPage.AI_MODELS)
+            add(SetupPage.TIPS)
+        }
     }
 
-    SetupWizard(
-        painter = painterResource(R.drawable.ic_launcher_foreground_monochrome),
-        title = stringResource(id = R.string.welcome),
-        subtitle = appName,
-        contentPadding = 0.dp,
-        bottomBar = {
-            SetupButton(
-                onClick = { (context as Activity).finish() },
-                modifier = Modifier.weight(1f),
-                applyHorizontalPadding = false,
-                applyBottomPadding = false,
-                applyInsets = false,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                text = stringResource(id = R.string.action_cancel)
-            )
+    var index by rememberSaveable { mutableIntStateOf(0) }
+    val safeIndex = index.coerceIn(0, pages.lastIndex)
+    val totalSteps = pages.size - 1
 
-            SetupButton(
-                onClick = {
-                    scope.launch {
-                        mediaPermissions.launchMultiplePermissionRequest()
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                applyHorizontalPadding = false,
-                applyBottomPadding = false,
-                applyInsets = false,
-                text = stringResource(R.string.get_started)
-            )
-        },
-        content = {
-            Text(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .padding(horizontal = 16.dp),
-                text = stringResource(R.string.required)
-            )
-            val options = remember(context) {
-                context.requiredPermissionsList.map { (icon, title, summary) ->
-                    OptionItem(
-                        icon = icon,
-                        text = title,
-                        summary = summary,
-                        enabled = true,
-                        onClick = { }
-                    )
-                }.toMutableStateList()
+    val goNext: () -> Unit = { if (safeIndex < pages.lastIndex) index = safeIndex + 1 }
+    val goBack: () -> Unit = {
+        if (safeIndex > 0) index = safeIndex - 1 else activity?.finish()
+        Unit
+    }
+    val finish: () -> Unit = {
+        setupCompletedVersion = Settings.Misc.CURRENT_SETUP_VERSION
+        // Apply the remembered app name + logo now that setup is complete. Restart the app
+        // (so the launcher reflects the change immediately) only when it actually differs
+        // from what is currently applied; otherwise continue normally.
+        if (context.currentLauncherAlias() != launcherAliasFor(appNameAlias, appLogoAlias)) {
+            context.changeAppAlias(appNameAlias, appLogoAlias)
+            // Give DataStore a moment to persist the completed-setup flag before the
+            // process is killed and relaunched, otherwise setup could show again.
+            scope.launch {
+                delay(300)
+                context.restartApplication()
             }
-            OptionLayout(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(0.8f),
-                optionList = options
-            )
+        } else {
+            onComplete()
+        }
+    }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                var useMediaManager by rememberIsMediaManager()
-                var isStorageManager by remember { mutableStateOf(Environment.isExternalStorageManager()) }
-                RepeatOnResume {
-                    isStorageManager = Environment.isExternalStorageManager()
-                    useMediaManager = MediaStore.canManageMedia(context)
-                }
+    BackHandler(enabled = true) { goBack() }
 
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    text = stringResource(R.string.optional)
-                )
-                val grantedString = stringResource(R.string.granted)
-                val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
-                val onSecondaryContainer = MaterialTheme.colorScheme.onSecondaryContainer
-                val optionsList = remember(useMediaManager, isStorageManager) {
-                    mutableStateListOf(
-                        OptionItem(
-                            icon = Icons.Rounded.PermMedia,
-                            text = resources.getString(R.string.permission_manage_media_title),
-                            summary = if (!useMediaManager) resources.getString(R.string.permission_manage_media_summary) else grantedString,
-                            enabled = !useMediaManager,
-                            onClick = {
-                                scope.launch {
-                                    context.launchManageMedia()
-                                }
-                            },
-                            containerColor = secondaryContainer,
-                            contentColor = onSecondaryContainer
-                        ),
-                        OptionItem(
-                            icon = Icons.Rounded.FileOpen,
-                            text = resources.getString(R.string.permission_manage_files_title),
-                            summary = if (!isStorageManager && isManageFilesAllowed) resources.getString(
-                                R.string.permission_manage_files_summary
-                            ) else grantedString,
-                            enabled = !isStorageManager && isManageFilesAllowed,
-                            onClick = {
-                                scope.launch {
-                                    context.launchManageFiles()
-                                }
-                            },
-                            containerColor = secondaryContainer,
-                            contentColor = onSecondaryContainer
-                        )
+    // A single SharedTransitionLayout wraps the pager so common chrome (back button, progress
+    // indicator, action button) morphs between pages, with one continuous animated background
+    // drawn behind it to avoid the per-page restart/flicker.
+    SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+        SetupAnimatedBackground()
+
+        AnimatedContent(
+            targetState = safeIndex,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
+                val forward = targetState >= initialState
+                val dir = if (forward) 1 else -1
+                (slideInHorizontally(tween(350)) { full -> dir * full } + fadeIn(tween(350)))
+                    .togetherWith(
+                        slideOutHorizontally(tween(350)) { full -> -dir * full } + fadeOut(tween(350))
                     )
+                    .using(SizeTransform(clip = false))
+            },
+            label = "setup-pages"
+        ) { idx ->
+            CompositionLocalProvider(
+                LocalSetupSharedTransitionScope provides this@SharedTransitionLayout,
+                LocalSetupAnimatedVisibilityScope provides this@AnimatedContent
+            ) {
+                val stepNumber = idx
+                when (pages[idx]) {
+                    SetupPage.WELCOME -> SetupWelcomePage(onNext = goNext)
+                    SetupPage.PERMISSIONS -> SetupPermissionsPage(stepNumber, totalSteps, goBack, goNext)
+                    SetupPage.LOOKS -> SetupLooksFeelPage(stepNumber, totalSteps, goBack, goNext)
+                    SetupPage.CLOUD -> SetupCloudPage(stepNumber, totalSteps, goBack, goNext, onSkip = goNext)
+                    SetupPage.AI_MODELS -> SetupAiModelsPage(stepNumber, totalSteps, goBack, goNext, onSkip = goNext)
+                    SetupPage.TIPS -> SetupTipsPage(stepNumber, totalSteps, goBack, onFinish = finish)
                 }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    var isGranted by rememberSaveable(context) {
-                        mutableStateOf(
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.POST_NOTIFICATIONS
-                            ) == PackageManager.PERMISSION_GRANTED
-                        )
-                    }
-                    val notificationPermission = rememberPermissionState(
-                        permission = Manifest.permission.POST_NOTIFICATIONS,
-                        onPermissionResult = { isGranted = it }
-                    )
-                    LaunchedEffect(
-                        useMediaManager, isStorageManager, isGranted
-                    ) {
-                        optionsList.removeIf { item -> item.icon == Icons.Rounded.Notifications }
-                        optionsList.add(
-                            0,
-                            OptionItem(
-                                icon = Icons.Rounded.Notifications,
-                                text = resources.getString(R.string.post_notifications),
-                                summary = if (!isGranted) resources.getString(R.string.post_notifications_summary) else grantedString,
-                                enabled = !isGranted,
-                                onClick = {
-                                    scope.launch {
-                                        notificationPermission.launchPermissionRequest()
-                                    }
-                                },
-                                containerColor = secondaryContainer,
-                                contentColor = onSecondaryContainer
-                            ),
-                        )
-                    }
-                }
-
-                OptionLayout(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .alpha(0.8f),
-                    optionList = optionsList
-                )
             }
         }
-    )
+    }
 }
-
-private val Context.requiredPermissionsList: Array<Triple<ImageVector, String, String>>
-    get() {
-        val list = mutableListOf(
-            Triple(
-                Icons.Rounded.Image,
-                getString(R.string.read_media_images),
-                getString(R.string.read_media_images_summary)
-            ),
-            Triple(
-                Icons.Rounded.VideoFile,
-                getString(R.string.read_media_videos),
-                getString(R.string.read_media_videos_summary)
-            ),
-            Triple(
-                Icons.Rounded.LocationOn,
-                getString(R.string.access_media_location),
-                getString(R.string.access_media_location_summary)
-            ),
-        )
-        if (BuildConfig.MAPS_ENABLED) {
-            list.add(
-                Triple(
-                    Icons.Rounded.SignalWifi4Bar,
-                    getString(R.string.internet),
-                    getString(R.string.internet_summary)
-                )
-            )
-        }
-        return list.toTypedArray()
-    }

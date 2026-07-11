@@ -19,6 +19,7 @@ import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.core.ProviderType
 import com.dot.gallery.cloud.core.capabilities.RemoteMediaProvider
 import com.dot.gallery.cloud.core.capabilities.SyncCapableProvider
+import com.dot.gallery.cloud.data.dao.CloudMediaDao
 import com.dot.gallery.cloud.data.dao.CloudServerConfigDao
 import com.dot.gallery.cloud.data.dao.SyncStateDao
 import com.dot.gallery.cloud.data.entity.SyncStateEntity
@@ -34,7 +35,8 @@ class CloudSyncWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val registry: ProviderRegistry,
     private val configDao: CloudServerConfigDao,
-    private val syncStateDao: SyncStateDao
+    private val syncStateDao: SyncStateDao,
+    private val cloudMediaDao: CloudMediaDao
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -44,10 +46,13 @@ class CloudSyncWorker @AssistedInject constructor(
             for (config in configs) {
                 if (!config.isActive || !config.syncEnabled) continue
 
-                val provider = registry.get(config.providerType) as? RemoteMediaProvider ?: continue
+                // Resolve the provider for THIS specific account (configId), not the first
+                // instance of its type — otherwise two accounts of the same provider type
+                // (e.g. two Immich servers) would both sync against whichever registered first.
+                val provider = registry.getByConfigId(config.id) as? RemoteMediaProvider ?: continue
                 if (!provider.isAvailable) continue
 
-                printDebug("CloudSyncWorker: Syncing ${config.providerType.displayName}...")
+                printDebug("CloudSyncWorker: Syncing ${config.providerType.displayName} #${config.id}...")
 
                 val syncProvider = provider as? SyncCapableProvider
                 if (syncProvider != null) {
@@ -57,9 +62,15 @@ class CloudSyncWorker @AssistedInject constructor(
 
                     val changedResult = syncProvider.getChangedSince(lastSync)
                     changedResult.onSuccess { changed ->
-                        printDebug("CloudSyncWorker: ${changed.size} changes for ${config.providerType.displayName}")
+                        printDebug("CloudSyncWorker: ${changed.size} changes for ${config.providerType.displayName} #${config.id}")
+                        // Persist the delta into Room so the unified timeline reflects remote
+                        // changes. Previously the changed set was fetched then discarded, which
+                        // made the periodic worker a no-op beyond advancing the timestamp.
+                        if (changed.isNotEmpty()) {
+                            cloudMediaDao.insertAll(changed)
+                        }
                     }.onFailure { e ->
-                        printDebug("CloudSyncWorker: Sync failed for ${config.providerType.displayName}: ${e.message}")
+                        printDebug("CloudSyncWorker: Sync failed for ${config.providerType.displayName} #${config.id}: ${e.message}")
                     }
                 }
 

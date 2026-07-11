@@ -146,7 +146,10 @@ class MediaUriFlow(
             val modifiedTimestamp = it.getLong(indexCache[i++])
             val duration = it.tryGetString(indexCache[i++])
             val size = it.getLong(indexCache[i++])
-            val mimeType = it.tryGetString(indexCache[i++]).orEmpty()
+            val mimeType = MediaQuery.normalizeImageMimeType(
+                path,
+                it.tryGetString(indexCache[i++]).orEmpty()
+            )
             // IS_FAVORITE and IS_TRASHED are only available on API 30+
             val isFavorite = if (SdkCompat.supportsFavorites) it.getInt(indexCache[i++]) else 0
             val isTrashed = if (SdkCompat.supportsTrash) it.getInt(indexCache[i]) else 0

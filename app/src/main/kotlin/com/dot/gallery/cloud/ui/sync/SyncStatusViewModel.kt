@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -79,19 +80,28 @@ class SyncStatusViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoading = true, lastSyncError = null)
         viewModelScope.launch {
             try {
-                repository.getAllRemoteAssets(0, 200).collect { resource ->
+                // Page through ALL remote assets instead of only the first 200 — a single fixed
+                // page silently truncated larger libraries. Stop when a page comes back empty.
+                var page = 0
+                while (page < MAX_SYNC_PAGES) {
+                    val resource = repository.getAllRemoteAssets(page, SYNC_PAGE_SIZE).first()
                     when (resource) {
                         is com.dot.gallery.core.Resource.Success -> {
-                            loadSyncStatus()
+                            val items = resource.data ?: emptyList()
+                            if (items.isEmpty()) break
+                            if (items.size < SYNC_PAGE_SIZE) { page++; break }
                         }
                         is com.dot.gallery.core.Resource.Error -> {
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
                                 lastSyncError = resource.message
                             )
+                            return@launch
                         }
                     }
+                    page++
                 }
+                loadSyncStatus()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -99,5 +109,10 @@ class SyncStatusViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    companion object {
+        private const val SYNC_PAGE_SIZE = 200
+        private const val MAX_SYNC_PAGES = 500
     }
 }

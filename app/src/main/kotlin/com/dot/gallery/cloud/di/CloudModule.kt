@@ -5,16 +5,19 @@
 
 package com.dot.gallery.cloud.di
 
-import com.dot.gallery.cloud.core.MediaCapabilityProvider
+import com.dot.gallery.cloud.core.ProviderInstanceFactory
 import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.data.dao.CloudAlbumSyncDao
+import com.dot.gallery.cloud.data.dao.CloudDeleteLocalPrefDao
 import com.dot.gallery.cloud.data.dao.CloudMediaDao
+import com.dot.gallery.cloud.data.dao.CloudOfflinePinDao
 import com.dot.gallery.cloud.data.dao.CloudServerConfigDao
 import com.dot.gallery.cloud.data.dao.CloudUploadPrefDao
 import com.dot.gallery.cloud.data.dao.PersonDao
 import com.dot.gallery.cloud.data.dao.SyncStateDao
 import com.dot.gallery.cloud.data.repository.CloudRepository
 import com.dot.gallery.cloud.data.repository.CloudRepositoryImpl
+import com.dot.gallery.cloud.network.ServerUrlResolver
 import com.dot.gallery.feature_node.data.data_source.InternalDatabase
 import dagger.Module
 import dagger.Provides
@@ -28,7 +31,7 @@ import javax.inject.Singleton
 abstract class CloudModule {
 
     @Multibinds
-    abstract fun bindProviderSet(): Set<MediaCapabilityProvider>
+    abstract fun bindProviderFactorySet(): Set<ProviderInstanceFactory>
 
     companion object {
         @Provides
@@ -63,9 +66,20 @@ abstract class CloudModule {
 
         @Provides
         @Singleton
+        fun provideCloudDeleteLocalPrefDao(database: InternalDatabase): CloudDeleteLocalPrefDao =
+            database.getCloudDeleteLocalPrefDao()
+
+        @Provides
+        @Singleton
+        fun provideCloudOfflinePinDao(database: InternalDatabase): CloudOfflinePinDao =
+            database.getCloudOfflinePinDao()
+
+        @Provides
+        @Singleton
         fun provideCloudRepository(
             registry: ProviderRegistry,
-            cloudMediaDao: CloudMediaDao
-        ): CloudRepository = CloudRepositoryImpl(registry, cloudMediaDao)
+            cloudMediaDao: CloudMediaDao,
+            urlResolver: ServerUrlResolver
+        ): CloudRepository = CloudRepositoryImpl(registry, cloudMediaDao, urlResolver)
     }
 }

@@ -98,7 +98,7 @@ class AlbumsViewModel @Inject constructor(
                     cloudMediaDao.delete(entity.remoteId, providerType)
                 }
             } else {
-                val response = repository.getMediaByAlbumId(album.id).firstOrNull()
+                val response = repository.getMediaByAlbumId(album.id, skipBatching = true).firstOrNull()
                 val data = response?.data ?: emptyList()
                 repository.trashMedia(result, data, true)
             }
@@ -245,7 +245,7 @@ class AlbumsViewModel @Inject constructor(
             )
             repository.addAlbumsToCollection(collectionId, albumIds)
             for (albumId in albumIds) {
-                repository.getMediaByAlbumId(albumId)
+                repository.getMediaByAlbumId(albumId, skipBatching = true)
                     .firstOrNull()
                     ?.data
                     ?.map { it.id }
@@ -349,7 +349,7 @@ class AlbumsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             repository.addAlbumsToCollection(collectionId, albumIds)
             for (albumId in albumIds) {
-                repository.getMediaByAlbumId(albumId)
+                repository.getMediaByAlbumId(albumId, skipBatching = true)
                     .firstOrNull()
                     ?.data
                     ?.map { it.id }

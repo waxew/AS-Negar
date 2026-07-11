@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountTree
@@ -72,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dot.gallery.R
+import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.cloud.ui.descriptor.ProviderBrandIcon
 import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.presentation.components.LocalMediaImageRenderer
 import com.dot.gallery.feature_node.domain.model.Album
@@ -156,19 +159,11 @@ fun AlbumComponent(
                 )
             }
             if (album.relativePath.startsWith("cloud/")) {
-                Icon(
+                CloudProviderBadge(
+                    album = album,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
-                        .size(18.dp)
-                        .advancedShadow(
-                            cornersRadius = 9.dp,
-                            shadowBlurRadius = 6.dp,
-                            alpha = 0.3f
-                        ),
-                    imageVector = Icons.Outlined.Cloud,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f)
                 )
             }
         }
@@ -198,6 +193,41 @@ fun AlbumComponent(
             )
         }
 
+    }
+}
+
+/**
+ * Small overlay badge shown on a cloud album's thumbnail, carrying the provider's
+ * brand logo (falling back to a generic cloud glyph) over a subtle dark scrim.
+ */
+@Composable
+private fun CloudProviderBadge(album: Album, modifier: Modifier = Modifier) {
+    val providerType = remember(album.relativePath) {
+        try {
+            ProviderType.valueOf(album.relativePath.removePrefix("cloud/").substringBefore("/"))
+        } catch (_: Exception) { null }
+    }
+    Box(
+        modifier = modifier
+            .size(26.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.4f)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (providerType != null) {
+            ProviderBrandIcon(
+                providerType = providerType,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Outlined.Cloud,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }
 
@@ -280,19 +310,11 @@ fun AlbumRowComponent(
                 )
             }
             if (album.relativePath.startsWith("cloud/")) {
-                Icon(
+                CloudProviderBadge(
+                    album = album,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(8.dp)
-                        .size(18.dp)
-                        .advancedShadow(
-                            cornersRadius = 9.dp,
-                            shadowBlurRadius = 6.dp,
-                            alpha = 0.3f
-                        ),
-                    imageVector = Icons.Outlined.Cloud,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f)
                 )
             }
         }

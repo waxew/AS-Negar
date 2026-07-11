@@ -40,6 +40,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Restore
@@ -93,6 +94,7 @@ import com.dot.gallery.core.Settings.Misc.rememberShowFavoriteButton
 import com.dot.gallery.core.Settings.Misc.rememberShowSelectionTitles
 import com.dot.gallery.core.Settings.Misc.rememberTrashEnabled
 import com.dot.gallery.core.util.SdkCompat
+import com.dot.gallery.cloud.ui.CloudSelectionViewModel
 import com.dot.gallery.feature_node.domain.model.ActionCondition
 import com.dot.gallery.feature_node.domain.model.Media
 import com.dot.gallery.feature_node.domain.model.MediaMetadataState
@@ -229,6 +231,19 @@ fun <T : Media> BoxScope.SelectionSheet(
     }
     val showFavoriteButton by rememberShowFavoriteButton()
     val trashEnabled = rememberTrashEnabled()
+
+    // Cloud/remote albums: when the whole selection is remote media, the local
+    // actions (copy/move/vault/edit/rotate/local-trash) don't apply. We swap the
+    // bottom bar for provider-aware remote actions instead. All provider resolution
+    // and capability logic lives in CloudSelectionViewModel; the sheet only reads the
+    // resolved flags to decide which buttons to render.
+    val cloudSelectionViewModel = hiltViewModel<CloudSelectionViewModel>()
+    val cloudTrashConfirmState = rememberAppBottomSheetState()
+    val cloudDeleteConfirmState = rememberAppBottomSheetState()
+    val selectedSnapshot = selectedMedia.toList()
+    val isCloudSelection = cloudSelectionViewModel.isCloudSelection(selectedSnapshot)
+    val cloudSupportsFavorite = isCloudSelection && cloudSelectionViewModel.supportsFavorite(selectedSnapshot)
+    val cloudSupportsTrash = isCloudSelection && cloudSelectionViewModel.supportsTrash(selectedSnapshot)
 
     AnimatedVisibility(
         modifier = modifier,
@@ -430,7 +445,70 @@ fun <T : Media> BoxScope.SelectionSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                sanitizedConfig.bottomActions.forEach { action ->
+                if (isCloudSelection) {
+                    // Share — resolveShareableUri downloads/caches the full-size original,
+                    // then shares it via a FileProvider content URI.
+                    SelectionBarColumn(
+                        imageVector = SelectionAction.SHARE.icon,
+                        tabletMode = tabletMode,
+                        title = stringResource(SelectionAction.SHARE.labelRes)
+                    ) {
+                        scope.launch {
+                            context.shareMediaWithVaultSupport(selectedMedia)
+                        }
+                    }
+                    // Favorite — only when every selected item's provider supports server favorites.
+                    if (cloudSupportsFavorite && showFavoriteButton) {
+                        SelectionBarColumn(
+                            imageVector = SelectionAction.FAVORITE.icon,
+                            tabletMode = tabletMode,
+                            title = stringResource(SelectionAction.FAVORITE.labelRes)
+                        ) {
+                            scope.launch { cloudSelectionViewModel.toggleFavorite(result, selectedMedia) }
+                        }
+                    }
+                    // Download to device.
+                    run {
+                        val downloadingText = context.getString(R.string.downloading)
+                        val completeText = context.getString(R.string.download_complete)
+                        val failedText = context.getString(R.string.download_failed)
+                        SelectionBarColumn(
+                            imageVector = SelectionAction.DOWNLOAD.icon,
+                            tabletMode = tabletMode,
+                            title = stringResource(SelectionAction.DOWNLOAD.labelRes)
+                        ) {
+                            scope.launch {
+                                Toast.makeText(context, downloadingText, Toast.LENGTH_SHORT).show()
+                                val dl = cloudSelectionViewModel.download(selectedMedia)
+                                val count = dl.getOrDefault(0)
+                                Toast.makeText(
+                                    context,
+                                    if (count > 0) completeText else failedText,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                selector.clearSelection()
+                            }
+                        }
+                    }
+                    // Trash — recoverable, only when the provider has a real bin (e.g. Immich).
+                    if (cloudSupportsTrash) {
+                        SelectionBarColumn(
+                            imageVector = SelectionAction.TRASH.icon,
+                            tabletMode = tabletMode,
+                            title = stringResource(R.string.trash)
+                        ) {
+                            scope.launch { cloudTrashConfirmState.show() }
+                        }
+                    }
+                    // Delete — permanent hard delete on the server, available everywhere.
+                    SelectionBarColumn(
+                        imageVector = Icons.Outlined.DeleteForever,
+                        tabletMode = tabletMode,
+                        title = stringResource(R.string.cloud_delete)
+                    ) {
+                        scope.launch { cloudDeleteConfirmState.show() }
+                    }
+                } else sanitizedConfig.bottomActions.forEach { action ->
                     val isVisible = isActionVisible(action, collectionId, showFavoriteButton, isInVault)
                     if (isVisible) {
                         when (action) {
@@ -791,6 +869,33 @@ fun <T : Media> BoxScope.SelectionSheet(
                         Toast.makeText(context, privateFolderMoveFailedText, Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        }
+    )
+
+    // Cloud/remote confirmations — trash is recoverable, delete is permanent.
+    ConfirmationSheet(
+        state = cloudTrashConfirmState,
+        title = stringResource(R.string.cloud_media_trash_confirm_title),
+        summary = stringResource(R.string.cloud_media_trash_confirm_summary),
+        onConfirm = {
+            val toTrash = selectedMedia.toList()
+            scope.launch {
+                cloudSelectionViewModel.trash(result, toTrash)
+                selector.clearSelection()
+            }
+        }
+    )
+
+    ConfirmationSheet(
+        state = cloudDeleteConfirmState,
+        title = stringResource(R.string.cloud_media_delete_confirm_title),
+        summary = stringResource(R.string.cloud_media_delete_confirm_summary),
+        onConfirm = {
+            val toDelete = selectedMedia.toList()
+            scope.launch {
+                cloudSelectionViewModel.delete(result, toDelete)
+                selector.clearSelection()
             }
         }
     )

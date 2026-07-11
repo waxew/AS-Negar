@@ -49,7 +49,9 @@ class MediaHandlerImpl @Inject constructor(
         if (!media.isCloud) return null
         val uri = media.getUri()
         val providerName = uri.authority ?: return null
-        val remoteId = uri.pathSegments.firstOrNull() ?: return null
+        // remoteId may contain slashes (SMB/NFS/WebDAV paths like "Photos/IMG.jpg"); pathSegments
+        // .first() would truncate it to the first folder.
+        val remoteId = uri.path?.trimStart('/')?.takeIf { it.isNotEmpty() } ?: return null
         return providerName to remoteId
     }
 

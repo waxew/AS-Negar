@@ -165,8 +165,8 @@ data class ImmichServerStorageDto(
 )
 
 data class ImmichLoginDto(
-    val email: String = "",
-    val password: String = ""
+    @SerializedName("email") val email: String = "",
+    @SerializedName("password") val password: String = ""
 )
 
 data class ImmichLoginResponseDto(

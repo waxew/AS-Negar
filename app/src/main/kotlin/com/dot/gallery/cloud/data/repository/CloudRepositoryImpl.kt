@@ -10,11 +10,13 @@ import com.dot.gallery.cloud.core.CloudAlbum
 import com.dot.gallery.cloud.core.CloudMapMarker
 import com.dot.gallery.cloud.core.CloudServerConfig
 import com.dot.gallery.cloud.core.CloudServerInfo
+import com.dot.gallery.cloud.core.CloudTrace
 import com.dot.gallery.cloud.core.ConnectionState
 import com.dot.gallery.cloud.core.MemoryInfo
 import com.dot.gallery.cloud.core.PersonInfo
 import com.dot.gallery.cloud.core.ProviderRegistry
 import com.dot.gallery.cloud.core.ProviderType
+import com.dot.gallery.cloud.core.resolveRemote
 import com.dot.gallery.cloud.core.SharedLinkInfo
 import com.dot.gallery.cloud.core.capabilities.MapCapableProvider
 import com.dot.gallery.cloud.core.capabilities.MemoriesCapableProvider
@@ -25,6 +27,7 @@ import com.dot.gallery.cloud.core.capabilities.SmartSearchCapableProvider
 import com.dot.gallery.cloud.core.capabilities.SyncCapableProvider
 import com.dot.gallery.cloud.data.dao.CloudMediaDao
 import com.dot.gallery.cloud.data.entity.CloudMediaEntity
+import com.dot.gallery.cloud.network.ServerUrlResolver
 import com.dot.gallery.core.Resource
 import com.dot.gallery.feature_node.domain.model.Media
 import kotlinx.coroutines.flow.Flow
@@ -38,13 +41,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CloudRepositoryImpl @Inject constructor(
     private val registry: ProviderRegistry,
-    private val cloudMediaDao: CloudMediaDao
+    private val cloudMediaDao: CloudMediaDao,
+    private val urlResolver: ServerUrlResolver
 ) : CloudRepository {
 
     private val _connectionStates = MutableStateFlow<Map<ProviderType, ConnectionState>>(emptyMap())
@@ -71,8 +76,9 @@ class CloudRepositoryImpl @Inject constructor(
     override suspend fun connect(type: ProviderType, config: CloudServerConfig): Result<Unit> {
         val provider = registry.get(type) as? RemoteMediaProvider
             ?: return Result.failure(Exception("Provider $type not available"))
-        provider.configure(config)
-        val authResult = provider.authenticate(config)
+        val resolved = urlResolver.resolve(config)
+        provider.configure(resolved)
+        val authResult = provider.authenticate(resolved)
         return authResult.map {
             updateConnectionState(type, provider.connectionState.value)
         }
@@ -94,8 +100,11 @@ class CloudRepositoryImpl @Inject constructor(
     override fun getAllRemoteAssets(page: Int, pageSize: Int): Flow<Resource<List<CloudMediaEntity>>> {
         val providers = registry.getRemoteProviders().filter { it.isAvailable }
         if (providers.isEmpty()) return flowOf(Resource.Success(emptyList()))
+        CloudTrace.d("Repo.getAllRemoteAssets page=$page size=$pageSize from ${providers.size} provider(s)")
         val flows = providers.map { it.getRemoteAssets(page, pageSize) }
-        return combineResources(flows)
+        return combineResources(flows).onEach {
+            CloudTrace.d("Repo.getAllRemoteAssets page=$page -> ${if (it is Resource.Error) "ERROR ${it.message}" else "${it.data?.size ?: 0} items"}")
+        }
     }
 
     override fun getRemoteAssets(
@@ -105,7 +114,10 @@ class CloudRepositoryImpl @Inject constructor(
     ): Flow<Resource<List<CloudMediaEntity>>> {
         val provider = registry.get(type) as? RemoteMediaProvider
             ?: return flowOf(Resource.Error("Provider not available"))
-        return provider.getRemoteAssets(page, pageSize)
+        CloudTrace.d("Repo.getRemoteAssets[$type] page=$page size=$pageSize")
+        return provider.getRemoteAssets(page, pageSize).onEach {
+            CloudTrace.d("Repo.getRemoteAssets[$type] page=$page -> ${if (it is Resource.Error) "ERROR ${it.message}" else "${it.data?.size ?: 0} items"}")
+        }
     }
 
     override fun getRemoteFavorites(): Flow<Resource<List<CloudMediaEntity>>> {
@@ -125,8 +137,11 @@ class CloudRepositoryImpl @Inject constructor(
     override fun getAllRemoteAlbums(): Flow<Resource<List<CloudAlbum>>> {
         val providers = registry.getRemoteProviders().filter { it.isAvailable }
         if (providers.isEmpty()) return flowOf(Resource.Success(emptyList()))
+        CloudTrace.d("Repo.getAllRemoteAlbums from ${providers.size} provider(s)")
         val flows = providers.map { it.getRemoteAlbums() }
-        return combineResources(flows)
+        return combineResources(flows).onEach {
+            CloudTrace.d("Repo.getAllRemoteAlbums -> ${if (it is Resource.Error) "ERROR ${it.message}" else "${it.data?.size ?: 0} albums"}")
+        }
     }
 
     override fun getAlbumMedia(
@@ -135,7 +150,10 @@ class CloudRepositoryImpl @Inject constructor(
     ): Flow<Resource<List<CloudMediaEntity>>> {
         val provider = registry.get(type) as? RemoteMediaProvider
             ?: return flowOf(Resource.Error("Provider not available"))
-        return provider.getRemoteAlbumMedia(albumId)
+        CloudTrace.d("Repo.getAlbumMedia[$type] '$albumId'")
+        return provider.getRemoteAlbumMedia(albumId).onEach {
+            CloudTrace.d("Repo.getAlbumMedia[$type] '$albumId' -> ${if (it is Resource.Error) "ERROR ${it.message}" else "${it.data?.size ?: 0} items"}")
+        }
     }
 
     // === People ===
@@ -224,6 +242,23 @@ class CloudRepositoryImpl @Inject constructor(
             provider.search(query).onSuccess { allResults.addAll(it) }
         }
         return Result.success(allResults)
+    }
+
+    // === Delete ===
+
+    override suspend fun deleteAsset(
+        type: ProviderType,
+        configId: Long,
+        remoteId: String
+    ): Result<Unit> {
+        val provider = registry.resolveRemote(type, configId)
+            ?: return Result.failure(Exception("Provider $type not available"))
+        val result = provider.deleteAsset(remoteId)
+        if (result.isSuccess) {
+            // Drop from the local cache so the timeline/backup sheet update reactively.
+            cloudMediaDao.delete(remoteId, type)
+        }
+        return result
     }
 
     // === Archive ===

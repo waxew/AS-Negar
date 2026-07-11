@@ -32,6 +32,7 @@ import okio.buffer
 private const val PSD_MIMETYPE = "image/vnd.adobe.photoshop"
 private const val JP2_MIMETYPE = "image/jp2"
 private const val TIFF_MIMETYPE = "image/tiff"
+private const val RAW_MIMETYPE = "image/x-raw"
 
 fun ComponentRegistry.Builder.supportPsdDecoder(): ComponentRegistry.Builder = apply {
     add(SketchPsdDecoder.Factory())
@@ -43,6 +44,21 @@ fun ComponentRegistry.Builder.supportJp2Decoder(): ComponentRegistry.Builder = a
 
 fun ComponentRegistry.Builder.supportTiffDecoder(): ComponentRegistry.Builder = apply {
     add(SketchTiffDecoder.Factory())
+}
+
+fun ComponentRegistry.Builder.supportRawDecoder(): ComponentRegistry.Builder = apply {
+    add(SketchRawDecoder.Factory())
+}
+
+/**
+ * Camera-RAW MIME detection, mirroring [com.dot.gallery.feature_node.domain.util.isRaw]
+ * (`image/x-*` / `image/vnd.*`). Excludes PSD (own decoder) and BMP variants (natively decodable).
+ */
+private fun isCameraRawMime(mime: String): Boolean {
+    val m = mime.lowercase()
+    if (m == PSD_MIMETYPE) return false
+    if (m == "image/x-ms-bmp" || m == "image/x-bmp" || m == "image/x-windows-bmp") return false
+    return m.startsWith("image/x-") || m.startsWith("image/vnd.")
 }
 
 private fun DataSource.peekHeader(count: Int): Pair<ByteArray, Int> {
@@ -184,5 +200,49 @@ class SketchTiffDecoder(
         val bytes = dataSource.openSource().buffer().use { it.readByteArray() }
         val size = TiffImageDecoder.getSize(bytes)
         return ImageInfo(size?.width ?: 0, size?.height ?: 0, TIFF_MIMETYPE)
+    }
+}
+
+/**
+ * Decodes camera-RAW files (CR2/NEF/ARW/DNG/ORF/PEF/RW2/SRW/…) by extracting their largest
+ * embedded JPEG preview via [TiffImageDecoder.decodePreview]. Android has no native decoder for
+ * these, so without this Sketch reports "Invalid image size -1x-1" for every RAW asset (timeline
+ * grid, viewer, and the ML search indexer). Gated on the RAW MIME (`realMimeType` extra when set,
+ * otherwise the fetcher's resolved MIME) so it never hijacks formats handled elsewhere.
+ */
+class SketchRawDecoder(
+    private val requestContext: RequestContext,
+    private val dataSource: DataSource,
+) : Decoder {
+
+    class Factory : Decoder.Factory {
+        override val key: String get() = "RawDecoder"
+        override val sortWeight: Int = 0
+
+        override fun create(requestContext: RequestContext, fetchResult: FetchResult): Decoder? {
+            val realMime = requestContext.request.extras?.get("realMimeType") as String?
+            val mime = realMime ?: fetchResult.mimeType ?: return null
+            return if (isCameraRawMime(mime)) {
+                SketchRawDecoder(requestContext, fetchResult.dataSource)
+            } else null
+        }
+
+        override fun equals(other: Any?): Boolean = this === other || other is Factory
+        override fun hashCode(): Int = this@Factory::class.hashCode()
+        override fun toString(): String = key
+    }
+
+    override suspend fun decode(): ImageData {
+        val bytes = dataSource.openSource().buffer().use { it.readByteArray() }
+        val (w, h) = requestContext.targetDims()
+        val bitmap = TiffImageDecoder.decodePreview(bytes, w, h)
+            ?: throw IllegalStateException("Unable to decode RAW preview")
+        return dataSource.toImageData(bitmap, RAW_MIMETYPE, requestContext)
+    }
+
+    override suspend fun getImageInfo(): ImageInfo {
+        val bytes = dataSource.openSource().buffer().use { it.readByteArray() }
+        val size = TiffImageDecoder.getSize(bytes)
+        return ImageInfo(size?.width ?: 0, size?.height ?: 0, RAW_MIMETYPE)
     }
 }

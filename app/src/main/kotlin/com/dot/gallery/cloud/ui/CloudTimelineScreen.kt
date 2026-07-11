@@ -190,7 +190,9 @@ private fun CloudMediaThumbnail(
 ) {
     val cloudUri = CloudMediaFetcher.buildUri(
         providerType = item.providerType,
-        remoteId = item.remoteId
+        remoteId = item.remoteId,
+        fileId = item.fileId,
+        configId = item.serverConfigId
     )
 
     Box(
