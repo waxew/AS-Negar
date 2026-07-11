@@ -85,15 +85,18 @@ class OfflineModeManager @Inject constructor(
 
     private fun registerConnectivity() {
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return
-        // Seed initial state.
-        cm.activeNetwork?.let { updateFromCapabilities(cm.getNetworkCapabilities(it)) }
-            ?: run { _connected.value = false }
+        // Seed initial state. Guarded because private/work profiles may lack
+        // ACCESS_NETWORK_STATE, in which case these calls throw SecurityException.
+        runCatching {
+            cm.activeNetwork?.let { updateFromCapabilities(cm.getNetworkCapabilities(it)) }
+                ?: run { _connected.value = false }
+        }.onFailure { printDebug("OfflineModeManager: connectivity seed failed: ${it.message}") }
         recomputeSnapshots()
 
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 _connected.value = true
-                updateFromCapabilities(cm.getNetworkCapabilities(network))
+                runCatching { updateFromCapabilities(cm.getNetworkCapabilities(network)) }
                 recomputeSnapshots()
             }
 

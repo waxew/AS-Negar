@@ -39,11 +39,16 @@ class LanBindingSocketFactory(
     private fun localNetwork(): Network? {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             ?: return null
-        @Suppress("DEPRECATION")
-        return cm.allNetworks.firstOrNull { network ->
-            val caps = cm.getNetworkCapabilities(network) ?: return@firstOrNull false
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        return try {
+            @Suppress("DEPRECATION")
+            cm.allNetworks.firstOrNull { network ->
+                val caps = cm.getNetworkCapabilities(network) ?: return@firstOrNull false
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+            }
+        } catch (_: SecurityException) {
+            // ACCESS_NETWORK_STATE unavailable; leave the socket on the default network.
+            null
         }
     }
 

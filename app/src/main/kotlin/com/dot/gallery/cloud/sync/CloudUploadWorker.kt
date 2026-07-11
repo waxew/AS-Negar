@@ -104,8 +104,10 @@ class CloudUploadWorker @AssistedInject constructor(
 
             // Current network/charging state used to honour the per-account Backup Options:
             // "Use cellular data for photos/videos" and "Require charging".
-            val isMetered = (applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE)
-                    as? ConnectivityManager)?.isActiveNetworkMetered ?: false
+            val isMetered = runCatching {
+                (applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE)
+                        as? ConnectivityManager)?.isActiveNetworkMetered ?: false
+            }.getOrDefault(false)
             val isCharging = (applicationContext.getSystemService(Context.BATTERY_SERVICE)
                     as? BatteryManager)?.isCharging ?: false
 

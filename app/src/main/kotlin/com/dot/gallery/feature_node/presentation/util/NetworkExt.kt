@@ -117,11 +117,16 @@ sealed class ConnectionState {
  */
 fun Context.isOnLocalNetwork(): Boolean {
     val connectivityManager =
-        getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    val network = connectivityManager.activeNetwork ?: return false
-    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+    return try {
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+    } catch (_: SecurityException) {
+        // ACCESS_NETWORK_STATE unavailable (offline variant / restricted profile).
+        false
+    }
 }
 
 /**
