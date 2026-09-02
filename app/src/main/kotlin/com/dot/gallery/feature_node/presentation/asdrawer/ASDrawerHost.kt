@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.dot.gallery.BuildConfig
 import com.dot.gallery.core.branding.ASBrand
 import com.dot.gallery.feature_node.presentation.util.Screen
@@ -93,7 +94,8 @@ private enum class ASInfoDialog {
  * میزبان منوی همبرگری مشترک AS Team.
  *
  * Drawer با LayoutDirection راست‌به‌چپ ساخته می‌شود تا از سمت راست باز شود؛
- * محتوای اصلی برنامه مجدداً LTR می‌شود تا رفتار صفحات upstream تغییر نکند.
+ * محتوای اصلی بعد از آن به جهت واقعی دستگاه برمی‌گردد تا فارسی/انگلیسی هر دو
+ * رفتار صحیح خود را حفظ کنند.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,22 +104,28 @@ fun ASDrawerHost(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
+    val originalLayoutDirection = LocalLayoutDirection.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val drawerEnabled = currentRoute == Screen.TimelineScreen.route ||
+        currentRoute == Screen.AlbumsScreen.route ||
+        currentRoute == Screen.LibraryScreen.route
     var activeDialog by remember { mutableStateOf<ASInfoDialog?>(null) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = true,
+            gesturesEnabled = drawerEnabled,
             drawerContent = {
                 ASDrawerSheet(
                     onDestinationSelected = { destination ->
                         scope.launch { drawerState.close() }
                         when (destination) {
-                            ASDrawerDestination.HOME -> navigateHome(navController)
                             ASDrawerDestination.SETTINGS -> navigateSettings(navController)
                             ASDrawerDestination.SHARE -> shareApp(context)
+                            ASDrawerDestination.HOME -> navigateHome(navController)
                             ASDrawerDestination.ABOUT -> activeDialog = ASInfoDialog.ABOUT
                             ASDrawerDestination.CONTACT -> activeDialog = ASInfoDialog.CONTACT
                         }
@@ -125,20 +133,22 @@ fun ASDrawerHost(
                 )
             }
         ) {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            CompositionLocalProvider(LocalLayoutDirection provides originalLayoutDirection) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     content()
-                    IconButton(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .statusBarsPadding()
-                            .padding(top = 4.dp, end = 8.dp),
-                        onClick = { scope.launch { drawerState.open() } }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Menu,
-                            contentDescription = "باز کردن منوی نگار"
-                        )
+                    if (drawerEnabled) {
+                        IconButton(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .statusBarsPadding()
+                                .padding(top = 4.dp, end = 8.dp),
+                            onClick = { scope.launch { drawerState.open() } }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Menu,
+                                contentDescription = "باز کردن منوی نگار"
+                            )
+                        }
                     }
                 }
             }
@@ -175,11 +185,7 @@ private fun ASDrawerSheet(
             Spacer(modifier = Modifier.height(12.dp))
             Divider()
 
-            ASDrawerItem(
-                title = "خانه",
-                icon = Icons.Outlined.Home,
-                onClick = { onDestinationSelected(ASDrawerDestination.HOME) }
-            )
+            // استاندارد مشترک AS Team: Settings در index 0 و Share در index 1.
             ASDrawerItem(
                 title = "تنظیمات",
                 icon = Icons.Outlined.Settings,
@@ -189,6 +195,11 @@ private fun ASDrawerSheet(
                 title = "اشتراک‌گذاری برنامه",
                 icon = Icons.Outlined.Share,
                 onClick = { onDestinationSelected(ASDrawerDestination.SHARE) }
+            )
+            ASDrawerItem(
+                title = "خانه",
+                icon = Icons.Outlined.Home,
+                onClick = { onDestinationSelected(ASDrawerDestination.HOME) }
             )
             ASDrawerItem(
                 title = "درباره نرم‌افزار",
