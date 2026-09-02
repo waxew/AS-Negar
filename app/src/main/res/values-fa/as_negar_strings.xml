@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">نگار</string>
+    <string name="app_name_gallery">نگار</string>
+    <string name="nav_albums">آلبوم‌ها</string>
+    <string name="nav_timeline">تصاویر</string>
+    <string name="favorites">برگزیده‌ها</string>
+    <string name="trash">سطل زباله</string>
+    <string name="share">اشتراک‌گذاری</string>
+    <string name="settings_title">تنظیمات</string>
+    <string name="settings_general">عمومی</string>
+    <string name="change_app_name">نام برنامه</string>
+    <string name="change_app_name_summary">نامی را که در صفحه اصلی گوشی نمایش داده می‌شود تغییر دهید</string>
+    <string name="app_dev_name">AS Team Group</string>
+</resources>

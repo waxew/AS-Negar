@@ -45,7 +45,7 @@ apkVersioning {
     flavorVersionCodes.set(abiVersionCodes)
     versionCodeMultiplier.set(10)
     outputFileName.set("{appName}-{versionName}-{versionCode}{suffix}-{ml}-{abi}-{buildType}")
-    variables.put("appName", "ReFra")
+    variables.put("appName", "AS-Negar")
     val offlineSuffix = if (isOffline) "-offline" else ""
     variables.put("suffix", offlineSuffix)
 }
@@ -147,7 +147,7 @@ android {
     ndkVersion = pinnedNdkVersion
 
     defaultConfig {
-        applicationId = "com.dot.gallery"
+        applicationId = "com.asteam.negar"
         minSdk = 29
         targetSdk = 37
         versionCode = 51300
@@ -158,7 +158,7 @@ android {
             useSupportLibrary = true
         }
         val offlinePrefix = if (isOffline) "-offline" else ""
-        base.archivesName.set("ReFra-${versionName}-$versionCode$offlinePrefix")
+        base.archivesName.set("AS-Negar-${versionName}-$versionCode$offlinePrefix")
 
         externalNativeBuild {
             cmake {
@@ -191,7 +191,7 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appProvider"] = "com.dot.gallery.debug.media_provider"
+            manifestPlaceholders["appProvider"] = "com.asteam.negar.debug.media_provider"
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
@@ -204,14 +204,14 @@ android {
             buildConfigField(
                 "String",
                 "CONTENT_AUTHORITY",
-                "\"com.dot.gallery.debug.media_provider\""
+                "\"com.asteam.negar.debug.media_provider\""
             )
             buildConfigField("Boolean", "ENABLE_INDEXING", "false")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
         getByName("release") {
             manifestPlaceholders += mapOf(
-                "appProvider" to "com.dot.gallery.media_provider"
+                "appProvider" to "com.asteam.negar.media_provider"
             )
             isMinifyEnabled = true
             isShrinkResources = true
@@ -231,7 +231,7 @@ android {
             buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
             buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
             buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
-            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.media_provider\"")
+            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.asteam.negar.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
@@ -242,11 +242,11 @@ android {
             isShrinkResources = false
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
-            manifestPlaceholders["appProvider"] = "com.dot.staging.debug.media_provider"
+            manifestPlaceholders["appProvider"] = "com.asteam.negar.staging.media_provider"
             buildConfigField(
                 "String",
                 "CONTENT_AUTHORITY",
-                "\"com.dot.staging.debug.media_provider\""
+                "\"com.asteam.negar.staging.media_provider\""
             )
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
@@ -265,7 +265,7 @@ android {
             matchingFallbacks += "release"
             applicationIdSuffix = ".gplay"
             ndk.debugSymbolLevel = "FULL"
-            manifestPlaceholders["appProvider"] = "com.dot.gallery.gplay.media_provider"
+            manifestPlaceholders["appProvider"] = "com.asteam.negar.gplay.media_provider"
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "false")
             buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
@@ -275,7 +275,7 @@ android {
             buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
             buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
             buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
-            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.gplay.media_provider\"")
+            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.asteam.negar.gplay.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "false")
         }
