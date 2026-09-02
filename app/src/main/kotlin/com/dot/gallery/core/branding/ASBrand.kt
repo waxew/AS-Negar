@@ -8,8 +8,8 @@ package com.dot.gallery.core.branding
 /**
  * هویت مرکزی نگار.
  *
- * مقادیر برند در یک نقطه نگهداری می‌شوند تا Drawer، About، Share و بخش‌های
- * بعدی برنامه از نام‌ها و اطلاعات تماس یکسان استفاده کنند.
+ * مقادیر برند در یک نقطه نگهداری می‌شوند تا Drawer، About، Share، Update و
+ * بخش‌های بعدی برنامه از نام‌ها و اطلاعات تماس یکسان استفاده کنند.
  */
 object ASBrand {
     const val APP_NAME = "AS-Negar"
@@ -18,6 +18,8 @@ object ASBrand {
     const val SUPPORT_EMAIL = "AS.Developers.Support@Gmail.Com"
     const val APPLICATION_ID = "com.asteam.negar"
     const val REPOSITORY_URL = "https://github.com/waxew/AS-Negar"
+    const val RELEASES_URL = "https://github.com/waxew/AS-Negar/releases"
+    const val LATEST_RELEASE_API_URL = "https://api.github.com/repos/waxew/AS-Negar/releases/latest"
 
     const val ABOUT_TEXT_FA =
         "نگار، گالری هوشمند AS Team برای مدیریت، مشاهده، دسته‌بندی و ویرایش عکس‌ها و ویدئوها است."
