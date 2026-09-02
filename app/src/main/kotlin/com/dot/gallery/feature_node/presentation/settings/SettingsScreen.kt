@@ -31,10 +31,10 @@ import com.dot.gallery.core.Position
 import com.dot.gallery.core.Settings
 import com.dot.gallery.core.SettingsEntity
 import com.dot.gallery.core.navigate
+import com.dot.gallery.feature_node.presentation.settings.components.ASSettingsAppHeader
+import com.dot.gallery.feature_node.presentation.settings.components.ASSettingsAppHeaderCompact
 import com.dot.gallery.feature_node.presentation.settings.components.BaseSettingsScreen
 import com.dot.gallery.feature_node.presentation.settings.components.CustomCircleIcon
-import com.dot.gallery.feature_node.presentation.settings.components.SettingsAppHeader
-import com.dot.gallery.feature_node.presentation.settings.components.SettingsAppHeaderCompact
 import com.dot.gallery.feature_node.presentation.settings.components.SettingsItem
 import com.dot.gallery.feature_node.presentation.settings.components.rememberPreference
 import com.dot.gallery.cloud.core.ProviderType
@@ -194,10 +194,10 @@ fun SettingsScreen() {
     BaseSettingsScreen(
         title = stringResource(R.string.settings_title),
         topContent = if (!bannerDismissed) {
-            { SettingsAppHeader(onDismiss = { bannerDismissed = true }) }
+            { ASSettingsAppHeader(onDismiss = { bannerDismissed = true }) }
         } else null,
         bottomContent = if (bannerDismissed) {
-            { SettingsAppHeaderCompact(onRestore = { bannerDismissed = false }) }
+            { ASSettingsAppHeaderCompact(onRestore = { bannerDismissed = false }) }
         } else null,
         settingsList = rememberDashboardSettings(),
         settingsBuilder = { setting, index, modifier ->
