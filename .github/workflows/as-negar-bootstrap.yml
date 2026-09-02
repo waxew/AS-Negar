@@ -30,7 +30,7 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Apply AS-Negar application identity
+      - name: Apply AS-Negar branding baseline
         shell: bash
         run: |
           python3 <<'PY'
@@ -57,10 +57,24 @@ jobs:
 
           strings_file = Path('app/src/main/res/values/strings.xml')
           strings = strings_file.read_text(encoding='utf-8')
-          strings = strings.replace('<string name="app_name">ReFra</string>', '<string name="app_name">AS-Negar</string>')
-          strings = strings.replace('<string name="app_name_gallery">Gallery</string>', '<string name="app_name_gallery">Negar</string>')
-          strings = strings.replace('<string name="app_dev_name">IacobIonut01</string>', '<string name="app_dev_name">AS Team Group</string>')
-          strings = strings.replace('https://github.com/IacobIonut01/Gallery', 'https://github.com/waxew/AS-Negar')
+          string_replacements = {
+              '<string name="app_name">ReFra</string>': '<string name="app_name">AS-Negar</string>',
+              '<string name="app_name_gallery">Gallery</string>': '<string name="app_name_gallery">Negar</string>',
+              '<string name="app_dev_name">IacobIonut01</string>': '<string name="app_dev_name">AS Team Group</string>',
+              'https://github.com/IacobIonut01/Gallery': 'https://github.com/waxew/AS-Negar',
+              'Choose whether maps follow ReFra’s appearance or always use bright or dark map colors.': 'Choose whether maps follow AS-Negar’s appearance or always use bright or dark map colors.',
+              'ReFra verifies a separate lossless sanitized file first.': 'AS-Negar verifies a separate lossless sanitized file first.',
+              'This action will make your content accessible again in the ReFra.': 'This action will make your content accessible again in AS-Negar.',
+              'Created with ReFra %1$s': 'Created with AS-Negar %1$s',
+              'Switch between the ReFra and classic Gallery launcher icon': 'Switch between the AS-Negar and classic launcher icon',
+              'ReFra only uses what it needs to show and manage your media.': 'AS-Negar only uses what it needs to show and manage your media.',
+              'before ReFra can connect to it directly.': 'before AS-Negar can connect to it directly.',
+              'Allows ReFra to read GPS data embedded in photos and videos': 'Allows AS-Negar to read GPS data embedded in photos and videos',
+              'Discover the latest Gallery features': 'Discover the latest AS-Negar features',
+              'Make the most of Gallery': 'Make the most of AS-Negar',
+          }
+          for old, new in string_replacements.items():
+              strings = strings.replace(old, new)
           strings_file.write_text(strings, encoding='utf-8')
 
           fa_dir = Path('app/src/main/res/values-fa')
@@ -78,22 +92,40 @@ jobs:
               <string name="settings_general">عمومی</string>
               <string name="change_app_name">نام برنامه</string>
               <string name="change_app_name_summary">نامی را که در صفحه اصلی گوشی نمایش داده می‌شود تغییر دهید</string>
+              <string name="change_app_logo">آیکون برنامه</string>
+              <string name="change_app_logo_summary">آیکون نمایش‌داده‌شده برای نگار را انتخاب کنید</string>
+              <string name="help_title">راهنما و نکته‌ها</string>
+              <string name="help_summary">آموزش‌ها، نکته‌ها و تازه‌های برنامه</string>
+              <string name="help_whats_new">تازه‌ها</string>
+              <string name="help_whats_new_subtitle">جدیدترین قابلیت‌های نگار را ببینید</string>
+              <string name="help_get_started">شروع کار</string>
+              <string name="help_make_most">استفاده بهتر از نگار</string>
+              <string name="help_explore_tips">نکته‌های بیشتر</string>
+              <string name="help_done">تمام</string>
+              <string name="help_open_settings">باز کردن تنظیمات</string>
+              <string name="help_latest">جدیدترین</string>
+              <string name="setup_continue">ادامه</string>
+              <string name="setup_permissions_title">مجوزها</string>
+              <string name="setup_permissions_subtitle">نگار فقط از مجوزهایی استفاده می‌کند که برای نمایش و مدیریت رسانه لازم هستند.</string>
+              <string name="map_appearance_title">ظاهر نقشه</string>
+              <string name="map_appearance_description">انتخاب کنید نقشه از ظاهر نگار پیروی کند یا همیشه روشن/تیره باشد.</string>
+              <string name="backup_made_with_version">ساخته‌شده با نگار %1$s</string>
               <string name="app_dev_name">AS Team Group</string>
           </resources>
           ''', encoding='utf-8')
           PY
 
-      - name: Persist AS-Negar identity migration
+      - name: Persist AS-Negar branding migration
         shell: bash
         run: |
           if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
-            echo "AS-Negar identity is already current."
+            echo "AS-Negar branding is already current."
             exit 0
           fi
           git config user.name "AS Team Automation"
           git config user.email "AS.Developers.Support@Gmail.Com"
           git add app/build.gradle.kts app/src/main/res/values/strings.xml app/src/main/res/values-fa/as_negar_strings.xml
-          git commit -m "feat: establish AS-Negar Android identity"
+          git commit -m "feat: sync AS-Negar branding baseline"
           git push origin HEAD:main
 
       - name: Verify AS-Negar identity
@@ -102,6 +134,8 @@ jobs:
           grep -q 'variables.put("appName", "AS-Negar")' app/build.gradle.kts
           grep -q 'com.asteam.negar.media_provider' app/build.gradle.kts
           grep -q '<string name="app_name">AS-Negar</string>' app/src/main/res/values/strings.xml
+          grep -q 'Created with AS-Negar %1$s' app/src/main/res/values/strings.xml
+          grep -q 'Discover the latest AS-Negar features' app/src/main/res/values/strings.xml
 
       - name: Compile debug Kotlin
         run: ./gradlew :app:compileArm64-v8aNoMLDebugKotlin --stacktrace --no-daemon
