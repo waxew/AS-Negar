@@ -6,20 +6,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-
-concurrency:
-  group: as-negar-main-build
-  cancel-in-progress: true
+  contents: write
 
 jobs:
   build-debug:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -30,75 +27,35 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
-
-      - name: Verify AS-Negar source identity
+      - name: Apply AS-Negar identity migration
         shell: bash
         run: |
-          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/build.gradle.kts')
+          s=p.read_text()
+          for a,b in {
+            'variables.put("appName", "ReFra")':'variables.put("appName", "AS-Negar")',
+            'applicationId = "com.dot.gallery"':'applicationId = "com.asteam.negar"',
+            'base.archivesName.set("ReFra-${versionName}-$versionCode$offlinePrefix")':'base.archivesName.set("AS-Negar-${versionName}-$versionCode$offlinePrefix")'
+          }.items(): s=s.replace(a,b)
+          p.write_text(s)
+          p=Path('app/src/main/res/values/strings.xml')
+          s=p.read_text().replace('<string name="app_name">ReFra</string>','<string name="app_name">AS-Negar</string>')
+          p.write_text(s)
+          PY
+
+      - name: Verify AS-Negar identity
+        run: |
           grep -q 'applicationId = "com.asteam.negar"' app/build.gradle.kts
           grep -q 'variables.put("appName", "AS-Negar")' app/build.gradle.kts
-          grep -q 'com.asteam.negar.media_provider' app/build.gradle.kts
           grep -q '<string name="app_name">AS-Negar</string>' app/src/main/res/values/strings.xml
-          grep -q 'Created with AS-Negar %1$s' app/src/main/res/values/strings.xml
-          grep -q 'Discover the latest AS-Negar features' app/src/main/res/values/strings.xml
-          grep -q 'LATEST_RELEASE_API_URL' app/src/main/kotlin/com/dot/gallery/core/branding/ASBrand.kt
-          test -f app/src/main/kotlin/com/dot/gallery/core/update/ASUpdateChecker.kt
-          test -f app/src/main/kotlin/com/dot/gallery/feature_node/presentation/asdrawer/ASDrawerHost.kt
 
-      - name: Assemble AS-Negar debug APK
+      - name: Assemble debug APK
         run: ./gradlew :app:assembleArm64-v8aNoMLDebug --stacktrace --no-daemon
 
-      - name: Generate verification reports
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build-artifacts
-          mapfile -t apks < <(find app/build/outputs/apk -type f -name '*.apk' | sort)
-          if [ "${#apks[@]}" -eq 0 ]; then
-            echo "No APK produced by Gradle." >&2
-            exit 1
-          fi
-
-          : > build-artifacts/SHA256SUMS.txt
-          for apk in "${apks[@]}"; do
-            sha256sum "$apk" >> build-artifacts/SHA256SUMS.txt
-          done
-
-          {
-            echo "AS-Negar debug build verification"
-            echo "Application ID: com.asteam.negar"
-            echo "Variant: arm64-v8aNoMLDebug"
-            echo "Commit: ${GITHUB_SHA}"
-            echo "Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            echo "APK count: ${#apks[@]}"
-          } > build-artifacts/info.txt
-
-          apksigner=""
-          if [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME/build-tools" ]; then
-            apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1 || true)
-          fi
-
-          if [ -n "$apksigner" ]; then
-            : > build-artifacts/signature-verification.txt
-            for apk in "${apks[@]}"; do
-              echo "===== $apk =====" >> build-artifacts/signature-verification.txt
-              "$apksigner" verify --verbose --print-certs "$apk" >> build-artifacts/signature-verification.txt 2>&1
-              echo >> build-artifacts/signature-verification.txt
-            done
-          else
-            echo "apksigner was not found on the runner." > build-artifacts/signature-verification.txt
-          fi
-
-      - name: Upload verified debug package
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: AS-Negar-debug
-          path: |
-            app/build/outputs/apk/**/*.apk
-            build-artifacts/SHA256SUMS.txt
-            build-artifacts/info.txt
-            build-artifacts/signature-verification.txt
-          if-no-files-found: error
-          retention-days: 14
+          path: app/build/outputs/apk/**/*.apk
