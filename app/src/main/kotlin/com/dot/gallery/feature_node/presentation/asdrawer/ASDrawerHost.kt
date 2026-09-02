@@ -17,7 +17,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,7 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -213,6 +212,10 @@ private fun ASDrawerSheet(
     }
 }
 
+/**
+ * Header مشترک AS Team. تصویر انتخاب‌شده با OpenDocument انتخاب می‌شود تا
+ * اجازه خواندن URI قابل نگهداری باشد و انتخاب کاربر بعد از اجرای مجدد حفظ شود.
+ */
 @Composable
 private fun ASProfileHeader() {
     val context = LocalContext.current
@@ -255,10 +258,11 @@ private fun ASProfileHeader() {
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            if (profileBitmap != null) {
+            val bitmap = profileBitmap
+            if (bitmap != null) {
                 Image(
                     modifier = Modifier.fillMaxSize(),
-                    bitmap = profileBitmap!!,
+                    bitmap = bitmap,
                     contentDescription = "تصویر پروفایل",
                     contentScale = ContentScale.Crop,
                 )
@@ -293,21 +297,24 @@ private fun ASProfileHeader() {
     }
 }
 
+/** Decode the persisted profile URI off the main thread. */
 @Composable
-private fun rememberProfileBitmap(uri: Uri?) = produceState<ImageBitmap?>(
-    initialValue = null,
-    key1 = uri,
-) {
-    value = if (uri == null) {
-        null
-    } else {
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val context = kotlinx.coroutines.currentCoroutineContext()
-                context
-                uri
-            }
+private fun rememberProfileBitmap(uri: Uri?): State<ImageBitmap?> {
+    val context = LocalContext.current
+    return produceState<ImageBitmap?>(
+        initialValue = null,
+        key1 = uri,
+    ) {
+        value = if (uri == null) {
             null
+        } else {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        BitmapFactory.decodeStream(input)?.asImageBitmap()
+                    }
+                }.getOrNull()
+            }
         }
     }
 }
@@ -339,9 +346,6 @@ private fun navigateHome(navController: NavHostController) {
     navController.navigate(Screen.TimelineScreen.route) {
         launchSingleTop = true
         restoreState = true
-        popUpTo(navController.graph.startDestinationId) {
-            saveState = true
-        }
     }
 }
 
