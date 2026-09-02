@@ -6,17 +6,20 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: as-negar-main-build
+  cancel-in-progress: true
 
 jobs:
   build-debug:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -30,123 +33,72 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Apply AS-Negar branding baseline
+      - name: Verify AS-Negar source identity
         shell: bash
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          build_file = Path('app/build.gradle.kts')
-          build = build_file.read_text(encoding='utf-8')
-          replacements = {
-              'variables.put("appName", "ReFra")': 'variables.put("appName", "AS-Negar")',
-              'applicationId = "com.dot.gallery"': 'applicationId = "com.asteam.negar"',
-              'base.archivesName.set("ReFra-${versionName}-$versionCode$offlinePrefix")': 'base.archivesName.set("AS-Negar-${versionName}-$versionCode$offlinePrefix")',
-              'manifestPlaceholders["appProvider"] = "com.dot.gallery.debug.media_provider"': 'manifestPlaceholders["appProvider"] = "com.asteam.negar.debug.media_provider"',
-              '"\\\"com.dot.gallery.debug.media_provider\\\""': '"\\\"com.asteam.negar.debug.media_provider\\\""',
-              '"appProvider" to "com.dot.gallery.media_provider"': '"appProvider" to "com.asteam.negar.media_provider"',
-              '"\\\"com.dot.gallery.media_provider\\\""': '"\\\"com.asteam.negar.media_provider\\\""',
-              'manifestPlaceholders["appProvider"] = "com.dot.staging.debug.media_provider"': 'manifestPlaceholders["appProvider"] = "com.asteam.negar.staging.media_provider"',
-              '"\\\"com.dot.staging.debug.media_provider\\\""': '"\\\"com.asteam.negar.staging.media_provider\\\""',
-              'manifestPlaceholders["appProvider"] = "com.dot.gallery.gplay.media_provider"': 'manifestPlaceholders["appProvider"] = "com.asteam.negar.gplay.media_provider"',
-              '"\\\"com.dot.gallery.gplay.media_provider\\\""': '"\\\"com.asteam.negar.gplay.media_provider\\\""',
-          }
-          for old, new in replacements.items():
-              build = build.replace(old, new)
-          build_file.write_text(build, encoding='utf-8')
-
-          strings_file = Path('app/src/main/res/values/strings.xml')
-          strings = strings_file.read_text(encoding='utf-8')
-          string_replacements = {
-              '<string name="app_name">ReFra</string>': '<string name="app_name">AS-Negar</string>',
-              '<string name="app_name_gallery">Gallery</string>': '<string name="app_name_gallery">Negar</string>',
-              '<string name="app_dev_name">IacobIonut01</string>': '<string name="app_dev_name">AS Team Group</string>',
-              'https://github.com/IacobIonut01/Gallery': 'https://github.com/waxew/AS-Negar',
-              'Choose whether maps follow ReFra’s appearance or always use bright or dark map colors.': 'Choose whether maps follow AS-Negar’s appearance or always use bright or dark map colors.',
-              'ReFra verifies a separate lossless sanitized file first.': 'AS-Negar verifies a separate lossless sanitized file first.',
-              'This action will make your content accessible again in the ReFra.': 'This action will make your content accessible again in AS-Negar.',
-              'Created with ReFra %1$s': 'Created with AS-Negar %1$s',
-              'Switch between the ReFra and classic Gallery launcher icon': 'Switch between the AS-Negar and classic launcher icon',
-              'ReFra only uses what it needs to show and manage your media.': 'AS-Negar only uses what it needs to show and manage your media.',
-              'before ReFra can connect to it directly.': 'before AS-Negar can connect to it directly.',
-              'Allows ReFra to read GPS data embedded in photos and videos': 'Allows AS-Negar to read GPS data embedded in photos and videos',
-              'Discover the latest Gallery features': 'Discover the latest AS-Negar features',
-              'Make the most of Gallery': 'Make the most of AS-Negar',
-          }
-          for old, new in string_replacements.items():
-              strings = strings.replace(old, new)
-          strings_file.write_text(strings, encoding='utf-8')
-
-          fa_dir = Path('app/src/main/res/values-fa')
-          fa_dir.mkdir(parents=True, exist_ok=True)
-          fa_dir.joinpath('as_negar_strings.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <string name="app_name">نگار</string>
-              <string name="app_name_gallery">نگار</string>
-              <string name="nav_albums">آلبوم‌ها</string>
-              <string name="nav_timeline">تصاویر</string>
-              <string name="favorites">برگزیده‌ها</string>
-              <string name="trash">سطل زباله</string>
-              <string name="share">اشتراک‌گذاری</string>
-              <string name="settings_title">تنظیمات</string>
-              <string name="settings_general">عمومی</string>
-              <string name="change_app_name">نام برنامه</string>
-              <string name="change_app_name_summary">نامی را که در صفحه اصلی گوشی نمایش داده می‌شود تغییر دهید</string>
-              <string name="change_app_logo">آیکون برنامه</string>
-              <string name="change_app_logo_summary">آیکون نمایش‌داده‌شده برای نگار را انتخاب کنید</string>
-              <string name="help_title">راهنما و نکته‌ها</string>
-              <string name="help_summary">آموزش‌ها، نکته‌ها و تازه‌های برنامه</string>
-              <string name="help_whats_new">تازه‌ها</string>
-              <string name="help_whats_new_subtitle">جدیدترین قابلیت‌های نگار را ببینید</string>
-              <string name="help_get_started">شروع کار</string>
-              <string name="help_make_most">استفاده بهتر از نگار</string>
-              <string name="help_explore_tips">نکته‌های بیشتر</string>
-              <string name="help_done">تمام</string>
-              <string name="help_open_settings">باز کردن تنظیمات</string>
-              <string name="help_latest">جدیدترین</string>
-              <string name="setup_continue">ادامه</string>
-              <string name="setup_permissions_title">مجوزها</string>
-              <string name="setup_permissions_subtitle">نگار فقط از مجوزهایی استفاده می‌کند که برای نمایش و مدیریت رسانه لازم هستند.</string>
-              <string name="map_appearance_title">ظاهر نقشه</string>
-              <string name="map_appearance_description">انتخاب کنید نقشه از ظاهر نگار پیروی کند یا همیشه روشن/تیره باشد.</string>
-              <string name="backup_made_with_version">ساخته‌شده با نگار %1$s</string>
-              <string name="app_dev_name">AS Team Group</string>
-          </resources>
-          ''', encoding='utf-8')
-          PY
-
-      - name: Persist AS-Negar branding migration
-        shell: bash
-        run: |
-          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
-            echo "AS-Negar branding is already current."
-            exit 0
-          fi
-          git config user.name "AS Team Automation"
-          git config user.email "AS.Developers.Support@Gmail.Com"
-          git add app/build.gradle.kts app/src/main/res/values/strings.xml app/src/main/res/values-fa/as_negar_strings.xml
-          git commit -m "feat: sync AS-Negar branding baseline"
-          git push origin HEAD:main
-
-      - name: Verify AS-Negar identity
-        run: |
+          set -euo pipefail
           grep -q 'applicationId = "com.asteam.negar"' app/build.gradle.kts
           grep -q 'variables.put("appName", "AS-Negar")' app/build.gradle.kts
           grep -q 'com.asteam.negar.media_provider' app/build.gradle.kts
           grep -q '<string name="app_name">AS-Negar</string>' app/src/main/res/values/strings.xml
           grep -q 'Created with AS-Negar %1$s' app/src/main/res/values/strings.xml
           grep -q 'Discover the latest AS-Negar features' app/src/main/res/values/strings.xml
+          grep -q 'LATEST_RELEASE_API_URL' app/src/main/kotlin/com/dot/gallery/core/branding/ASBrand.kt
+          test -f app/src/main/kotlin/com/dot/gallery/core/update/ASUpdateChecker.kt
+          test -f app/src/main/kotlin/com/dot/gallery/feature_node/presentation/asdrawer/ASDrawerHost.kt
 
-      - name: Compile debug Kotlin
-        run: ./gradlew :app:compileArm64-v8aNoMLDebugKotlin --stacktrace --no-daemon
-
-      - name: Assemble debug APK
+      - name: Assemble AS-Negar debug APK
         run: ./gradlew :app:assembleArm64-v8aNoMLDebug --stacktrace --no-daemon
 
-      - name: Upload debug APK
-        if: success()
+      - name: Generate verification reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-artifacts
+          mapfile -t apks < <(find app/build/outputs/apk -type f -name '*.apk' | sort)
+          if [ "${#apks[@]}" -eq 0 ]; then
+            echo "No APK produced by Gradle." >&2
+            exit 1
+          fi
+
+          : > build-artifacts/SHA256SUMS.txt
+          for apk in "${apks[@]}"; do
+            sha256sum "$apk" >> build-artifacts/SHA256SUMS.txt
+          done
+
+          {
+            echo "AS-Negar debug build verification"
+            echo "Application ID: com.asteam.negar"
+            echo "Variant: arm64-v8aNoMLDebug"
+            echo "Commit: ${GITHUB_SHA}"
+            echo "Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "APK count: ${#apks[@]}"
+          } > build-artifacts/info.txt
+
+          apksigner=""
+          if [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME/build-tools" ]; then
+            apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1 || true)
+          fi
+
+          if [ -n "$apksigner" ]; then
+            : > build-artifacts/signature-verification.txt
+            for apk in "${apks[@]}"; do
+              echo "===== $apk =====" >> build-artifacts/signature-verification.txt
+              "$apksigner" verify --verbose --print-certs "$apk" >> build-artifacts/signature-verification.txt 2>&1
+              echo >> build-artifacts/signature-verification.txt
+            done
+          else
+            echo "apksigner was not found on the runner." > build-artifacts/signature-verification.txt
+          fi
+
+      - name: Upload verified debug package
         uses: actions/upload-artifact@v4
         with:
           name: AS-Negar-debug
-          path: app/build/outputs/apk/**/*.apk
+          path: |
+            app/build/outputs/apk/**/*.apk
+            build-artifacts/SHA256SUMS.txt
+            build-artifacts/info.txt
+            build-artifacts/signature-verification.txt
           if-no-files-found: error
+          retention-days: 14
