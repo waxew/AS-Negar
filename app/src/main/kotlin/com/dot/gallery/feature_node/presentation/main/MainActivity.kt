@@ -45,6 +45,7 @@ import com.dot.gallery.core.presentation.components.NavigationComp
 import com.dot.gallery.core.util.SetupMediaProviders
 import com.dot.gallery.feature_node.domain.model.UIEvent
 import com.dot.gallery.feature_node.domain.util.EventHandler
+import com.dot.gallery.feature_node.presentation.asdrawer.ASDrawerHost
 import com.dot.gallery.feature_node.presentation.util.LocalHazeState
 import com.dot.gallery.feature_node.presentation.util.toggleOrientation
 import com.dot.gallery.ui.theme.GalleryTheme
@@ -175,26 +176,30 @@ class MainActivity : AppCompatActivity() {
                         mediaHandler = mediaHandler,
                         mediaSelector = mediaSelector
                     ) {
-                        Scaffold(
-                            modifier = Modifier.fillMaxSize(),
-                            content = { paddingValues ->
-                                AppBarContainer(
-                                    navController = navController,
-                                    paddingValues = paddingValues,
-                                    bottomBarState = bottomBarState.value,
-                                    isScrolling = isScrolling.value
-                                ) {
-                                    NavigationComp(
+                        // AS Team layer: the drawer owns only global product navigation while
+                        // the existing NavHost continues to own gallery/editor destinations.
+                        ASDrawerHost(navController = navController) {
+                            Scaffold(
+                                modifier = Modifier.fillMaxSize(),
+                                content = { paddingValues ->
+                                    AppBarContainer(
                                         navController = navController,
                                         paddingValues = paddingValues,
-                                        bottomBarState = bottomBarState,
-                                        systemBarFollowThemeState = systemBarFollowThemeState,
-                                        toggleRotate = ::toggleOrientation,
-                                        isScrolling = isScrolling
-                                    )
+                                        bottomBarState = bottomBarState.value,
+                                        isScrolling = isScrolling.value
+                                    ) {
+                                        NavigationComp(
+                                            navController = navController,
+                                            paddingValues = paddingValues,
+                                            bottomBarState = bottomBarState,
+                                            systemBarFollowThemeState = systemBarFollowThemeState,
+                                            toggleRotate = ::toggleOrientation,
+                                            isScrolling = isScrolling
+                                        )
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
