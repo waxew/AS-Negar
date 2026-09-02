@@ -11,5 +11,23 @@
     <string name="settings_general">عمومی</string>
     <string name="change_app_name">نام برنامه</string>
     <string name="change_app_name_summary">نامی را که در صفحه اصلی گوشی نمایش داده می‌شود تغییر دهید</string>
+    <string name="change_app_logo">آیکون برنامه</string>
+    <string name="change_app_logo_summary">آیکون نمایش‌داده‌شده برای نگار را انتخاب کنید</string>
+    <string name="help_title">راهنما و نکته‌ها</string>
+    <string name="help_summary">آموزش‌ها، نکته‌ها و تازه‌های برنامه</string>
+    <string name="help_whats_new">تازه‌ها</string>
+    <string name="help_whats_new_subtitle">جدیدترین قابلیت‌های نگار را ببینید</string>
+    <string name="help_get_started">شروع کار</string>
+    <string name="help_make_most">استفاده بهتر از نگار</string>
+    <string name="help_explore_tips">نکته‌های بیشتر</string>
+    <string name="help_done">تمام</string>
+    <string name="help_open_settings">باز کردن تنظیمات</string>
+    <string name="help_latest">جدیدترین</string>
+    <string name="setup_continue">ادامه</string>
+    <string name="setup_permissions_title">مجوزها</string>
+    <string name="setup_permissions_subtitle">نگار فقط از مجوزهایی استفاده می‌کند که برای نمایش و مدیریت رسانه لازم هستند.</string>
+    <string name="map_appearance_title">ظاهر نقشه</string>
+    <string name="map_appearance_description">انتخاب کنید نقشه از ظاهر نگار پیروی کند یا همیشه روشن/تیره باشد.</string>
+    <string name="backup_made_with_version">ساخته‌شده با نگار %1$s</string>
     <string name="app_dev_name">AS Team Group</string>
 </resources>
