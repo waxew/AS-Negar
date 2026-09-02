@@ -77,6 +77,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.dot.gallery.BuildConfig
 import com.dot.gallery.core.branding.ASBrand
+import com.dot.gallery.core.update.ASUpdateCheckResult
+import com.dot.gallery.core.update.ASUpdateChecker
 import com.dot.gallery.feature_node.presentation.util.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -384,8 +386,18 @@ private fun openSupportEmail(context: Context) {
     runCatching { context.startActivity(mailIntent) }
 }
 
+private fun openUrl(context: Context, url: String) {
+    val viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    runCatching { context.startActivity(viewIntent) }
+}
+
 @Composable
 private fun AboutDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateResult by remember { mutableStateOf<ASUpdateCheckResult?>(null) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -397,6 +409,37 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                 Text(ASBrand.ABOUT_TEXT_FA)
                 Text("نسخه: ${BuildConfig.VERSION_NAME}")
                 Text("Develop by ${ASBrand.DEVELOPER_NAME}")
+                Text(ASBrand.SUPPORT_EMAIL)
+
+                TextButton(
+                    enabled = !isCheckingUpdate,
+                    onClick = {
+                        isCheckingUpdate = true
+                        updateResult = null
+                        scope.launch {
+                            updateResult = ASUpdateChecker.check(BuildConfig.VERSION_NAME)
+                            isCheckingUpdate = false
+                        }
+                    }
+                ) {
+                    Text(if (isCheckingUpdate) "در حال بررسی…" else "بررسی بروزرسانی")
+                }
+
+                when (val result = updateResult) {
+                    is ASUpdateCheckResult.Available -> {
+                        Text("نسخه جدید ${result.versionName} در دسترس است.")
+                        TextButton(onClick = { openUrl(context, result.releaseUrl) }) {
+                            Text("مشاهده نسخه جدید")
+                        }
+                    }
+
+                    ASUpdateCheckResult.UpToDate -> Text("نسخه نصب‌شده به‌روز است.")
+                    ASUpdateCheckResult.NoPublishedRelease ->
+                        Text("هنوز Release عمومی برای نگار منتشر نشده است.")
+                    ASUpdateCheckResult.Failed ->
+                        Text("بررسی بروزرسانی انجام نشد. اتصال اینترنت را بررسی کنید.")
+                    null -> Unit
+                }
             }
         }
     )
