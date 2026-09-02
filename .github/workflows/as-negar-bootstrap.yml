@@ -1,24 +1,20 @@
-name: AS-Negar Bootstrap
+name: AS-Negar Build
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/as-negar-bootstrap.yml
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  rebrand-and-verify:
+  build-debug:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -26,196 +22,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Apply AS-Negar branding
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-          build_file = Path('app/build.gradle.kts')
-          build = build_file.read_text(encoding='utf-8')
-          replacements = {
-              'variables.put("appName", "ReFra")': 'variables.put("appName", "AS-Negar")',
-              'applicationId = "com.dot.gallery"': 'applicationId = "com.asteam.negar"',
-              'base.archivesName.set("ReFra-${versionName}-$versionCode$offlinePrefix")': 'base.archivesName.set("AS-Negar-${versionName}-$versionCode$offlinePrefix")',
-              'manifestPlaceholders["appProvider"] = "com.dot.gallery.debug.media_provider"': 'manifestPlaceholders["appProvider"] = "com.asteam.negar.debug.media_provider"',
-              '"\\\"com.dot.gallery.debug.media_provider\\\""': '"\\\"com.asteam.negar.debug.media_provider\\\""',
-              '"appProvider" to "com.dot.gallery.media_provider"': '"appProvider" to "com.asteam.negar.media_provider"',
-              '"\\\"com.dot.gallery.media_provider\\\""': '"\\\"com.asteam.negar.media_provider\\\""',
-              'manifestPlaceholders["appProvider"] = "com.dot.staging.debug.media_provider"': 'manifestPlaceholders["appProvider"] = "com.asteam.negar.staging.media_provider"',
-              '"\\\"com.dot.staging.debug.media_provider\\\""': '"\\\"com.asteam.negar.staging.media_provider\\\""',
-              'manifestPlaceholders["appProvider"] = "com.dot.gallery.gplay.media_provider"': 'manifestPlaceholders["appProvider"] = "com.asteam.negar.gplay.media_provider"',
-              '"\\\"com.dot.gallery.gplay.media_provider\\\""': '"\\\"com.asteam.negar.gplay.media_provider\\\""',
-          }
-          for old, new in replacements.items():
-              if old not in build:
-                  raise SystemExit(f'Missing expected build token: {old}')
-              build = build.replace(old, new)
-          build_file.write_text(build, encoding='utf-8')
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
 
-          strings_file = Path('app/src/main/res/values/strings.xml')
-          strings = strings_file.read_text(encoding='utf-8')
-          strings = strings.replace('<string name="app_name">ReFra</string>', '<string name="app_name">AS-Negar</string>')
-          strings = strings.replace('<string name="app_name_gallery">Gallery</string>', '<string name="app_name_gallery">Negar</string>')
-          strings = strings.replace('ReFra’s', 'AS-Negar’s').replace("ReFra's", "AS-Negar's").replace('ReFra ', 'AS-Negar ')
-          strings = strings.replace('<string name="app_dev_name">IacobIonut01</string>', '<string name="app_dev_name">AS Team Group</string>')
-          strings = strings.replace('https://github.com/IacobIonut01/Gallery', 'https://github.com/waxew/AS-Negar')
-          strings_file.write_text(strings, encoding='utf-8')
-
-          fa_dir = Path('app/src/main/res/values-fa')
-          fa_dir.mkdir(parents=True, exist_ok=True)
-          fa_dir.joinpath('as_negar_strings.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <string name="app_name">نگار</string>
-              <string name="app_name_gallery">نگار</string>
-              <string name="nav_albums">آلبوم‌ها</string>
-              <string name="nav_timeline">تصاویر</string>
-              <string name="favorites">برگزیده‌ها</string>
-              <string name="trash">سطل زباله</string>
-              <string name="share">اشتراک‌گذاری</string>
-              <string name="settings_title">تنظیمات</string>
-              <string name="settings_general">عمومی</string>
-              <string name="edit">ویرایش</string>
-              <string name="photos_and_videos">عکس‌ها و ویدئوها</string>
-              <string name="photos">عکس‌ها</string>
-              <string name="videos">ویدئوها</string>
-              <string name="get_started">شروع</string>
-              <string name="welcome">به نگار خوش آمدید</string>
-              <string name="required">ضروری</string>
-              <string name="optional">اختیاری</string>
-              <string name="github">گیت‌هاب</string>
-              <string name="app_dev_name">AS Team Group</string>
-              <string name="change_app_name">نام برنامه</string>
-              <string name="change_app_name_summary">نامی را که در صفحه اصلی گوشی نمایش داده می‌شود تغییر دهید</string>
-          </resources>
-          ''', encoding='utf-8')
-
-          brand_dir = Path('app/src/main/kotlin/com/dot/gallery/core/branding')
-          brand_dir.mkdir(parents=True, exist_ok=True)
-          brand_dir.joinpath('ASBrand.kt').write_text('''package com.dot.gallery.core.branding
-
-          /**
-           * اطلاعات هویتی نسخه AS-Negar در یک نقطه نگهداری می‌شود تا در Drawer،
-           * About، Share و صفحات آینده از مقادیر پراکنده و ناسازگار استفاده نشود.
-           */
-          object ASBrand {
-              const val APP_NAME = "AS-Negar"
-              const val APP_NAME_FA = "نگار"
-              const val DEVELOPER_NAME = "AS Team Group"
-              const val SUPPORT_EMAIL = "AS.Developers.Support@Gmail.Com"
-              const val APPLICATION_ID = "com.asteam.negar"
-              const val REPOSITORY_URL = "https://github.com/waxew/AS-Negar"
-
-              const val ABOUT_TEXT =
-                  "نگار، گالری هوشمند AS Team برای مدیریت، مشاهده و ویرایش عکس و ویدئو است."
-
-              const val SHARE_TEXT =
-                  "AS-Negar | گالری هوشمند عکس و ویدئو از AS Team Group"
-          }
-          ''', encoding='utf-8')
-
-          drawer_dir = Path('app/src/main/kotlin/com/dot/gallery/feature_node/presentation/asdrawer')
-          drawer_dir.mkdir(parents=True, exist_ok=True)
-          drawer_dir.joinpath('ASDrawerDestination.kt').write_text('''package com.dot.gallery.feature_node.presentation.asdrawer
-
-          /**
-           * قرارداد مشترک منوی همبرگری AS Team.
-           * اتصال نهایی این مقصدها به NavHost در مرحله UI انجام می‌شود.
-           */
-          enum class ASDrawerDestination(val route: String) {
-              HOME("as/home"),
-              SETTINGS("as/settings"),
-              SHARE("as/share"),
-              ABOUT("as/about"),
-              CONTACT("as/contact")
-          }
-          ''', encoding='utf-8')
-
-          Path('README.md').write_text('''# AS-Negar | نگار
-
-AS-Negar یک گالری پیشرفته Android از **AS Team Group** است که بر پایه پروژه متن‌باز ReFra توسعه و شخصی‌سازی می‌شود.
-
-## وضعیت فعلی
-
-- Android / Kotlin / Jetpack Compose
-- شناسه نصب: `com.asteam.negar`
-- حداقل Android: API 29
-- مدیریت عکس، ویدئو، آلبوم، برگزیده‌ها و سطل زباله
-- ویرایش تصویر و متادیتا
-- قابلیت‌های AI روی دستگاه از جمله Subject Cutout
-- پشتیبانی از Immich، ownCloud، Nextcloud، WebDAV و SMB در Build آنلاین
-- زیرساخت Drawer مشترک AS Team در حال اتصال به UI اصلی
-
-## معماری Package
-
-`applicationId` نسخه AS-Negar برابر `com.asteam.negar` است. namespace و packageهای داخلی فعلاً `com.dot.gallery` باقی مانده‌اند تا Room schema، importها و migrationهای پروژه بدون شکست حفظ شوند. انتقال namespace در یک مرحله مهاجرت جداگانه انجام می‌شود.
-
-## Build
-
-```bash
-./gradlew :app:compileArm64-v8aNoMLDebugKotlin
-./gradlew :app:assembleArm64-v8aNoMLDebug
-```
-
-## قواعد AS Team
-
-- نسخه‌های بعدی باید روی نسخه قبلی نصب شوند و اطلاعات کاربر حفظ شود.
-- تغییرات دیتابیس باید با Migration امن انجام شوند.
-- کدهای جدید باید توضیح و کامنت مناسب داشته باشند.
-- Back باید به صفحه قبل برگردد و خروج ناخواسته ایجاد نکند.
-- Drawer مشترک شامل خانه، تنظیمات، اشتراک‌گذاری، درباره برنامه و تماس با ما خواهد بود.
-- ایمیل پشتیبانی: `AS.Developers.Support@Gmail.Com`
-
-## اعتبار و مجوز
-
-AS-Negar بر پایه پروژه **ReFra / Gallery** ساخته شده است. تاریخچه Git و فایل `LICENSE` برای حفظ اعتبار و شرایط مجوز پروژه اصلی نگهداری می‌شوند. نام‌گذاری و بخش‌های اختصاصی AS Team به معنی حذف حقوق یا اعتبار نویسندگان اصلی نیست.
-''', encoding='utf-8')
-
-          docs_dir = Path('docs')
-          docs_dir.mkdir(exist_ok=True)
-          docs_dir.joinpath('AS_TEAM_CUSTOMIZATION.md').write_text('''# AS-Negar customization baseline
-
-## Identity
-
-- Product: AS-Negar / نگار
-- Developer: AS Team Group
-- Android applicationId: `com.asteam.negar`
-- Support: `AS.Developers.Support@Gmail.Com`
-
-## Safe migration rule
-
-The Android `namespace` intentionally remains `com.dot.gallery` during the first branding stage. Changing it together with the applicationId would force a broad source-package, generated-R, Room schema and test migration. The public installation identity is already separated through `applicationId`.
-
-## Shared AS Team drawer
-
-The common drawer contract is introduced under `feature_node/presentation/asdrawer`. UI integration will keep the gallery destinations intact and add Home, Settings, Share, About and Contact without replacing ReFra's existing navigation model.
-
-## Update policy
-
-Never reset user databases or preferences for a cosmetic release. Increase versionCode monotonically and use explicit Room migrations whenever database schema changes.
-''', encoding='utf-8')
-          PY
-
-      - name: Verify branding tokens
-        shell: bash
+      - name: Verify AS-Negar identity
         run: |
           grep -q 'applicationId = "com.asteam.negar"' app/build.gradle.kts
           grep -q 'variables.put("appName", "AS-Negar")' app/build.gradle.kts
-          grep -q '<string name="app_name">AS-Negar</string>' app/src/main/res/values/strings.xml
-          grep -q 'const val APPLICATION_ID = "com.asteam.negar"' app/src/main/kotlin/com/dot/gallery/core/branding/ASBrand.kt
+          grep -q 'com.asteam.negar.media_provider' app/build.gradle.kts
 
-      - name: Compile AS-Negar debug Kotlin
-        run: ./gradlew :app:compileArm64-v8aNoMLDebugKotlin --no-daemon
+      - name: Compile debug Kotlin
+        run: ./gradlew :app:compileArm64-v8aNoMLDebugKotlin --stacktrace --no-daemon
 
-      - name: Commit verified AS-Negar baseline
-        shell: bash
-        run: |
-          if git diff --quiet; then
-            echo "No branding changes to commit."
-            exit 0
-          fi
-          git config user.name "AS Team Automation"
-          git config user.email "AS.Developers.Support@Gmail.Com"
-          git add app/build.gradle.kts app/src/main/res/values/strings.xml app/src/main/res/values-fa/as_negar_strings.xml app/src/main/kotlin/com/dot/gallery/core/branding/ASBrand.kt app/src/main/kotlin/com/dot/gallery/feature_node/presentation/asdrawer/ASDrawerDestination.kt README.md docs/AS_TEAM_CUSTOMIZATION.md
-          git commit -m "feat: establish AS-Negar application identity"
-          git push origin HEAD:main
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleArm64-v8aNoMLDebug --stacktrace --no-daemon
